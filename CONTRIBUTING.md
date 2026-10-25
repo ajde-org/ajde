@@ -1,57 +1,29 @@
 # Contributing Guide
 
-This document defines how code is written, committed, and merged in this repository. Follow it exactly — it is the source of truth for any automated or human contributor (Codex included).
+How code is committed and merged in this repository. Applies to human and automated contributors.
 
 ## Commits
 
-- Use **Conventional Commits**: `<type>(<scope>): <description>`
-- Max 1-2 sentences, no body, no footer.
-- Don't add LLM co-author trailers (`Co-authored-by: Codex` / `Claude` / etc.). We don't hide AI use: how we used AI coding agents is documented in the README's "How we built it" section.
-- Write in the imperative mood ("add", not "added" or "adds").
+- [Conventional Commits](https://www.conventionalcommits.org): `<type>(<scope>): <description>`, imperative mood.
+- Types: `feat`, `fix`, `refactor`, `style`, `docs`, `test`, `chore`, `perf`.
+- Keep commits small and scoped to one logical change; describe the effect, not the diff.
 
-**Types:**
-| Type | Use for |
-|---|---|
-| `feat` | new feature |
-| `fix` | bug fix |
-| `refactor` | code change that isn't a fix or feature |
-| `style` | formatting, whitespace, no logic change |
-| `docs` | documentation only |
-| `test` | adding or fixing tests |
-| `chore` | tooling, deps, config, build scripts |
-| `perf` | performance improvement |
+## Branches
 
-**Examples:**
+- `main` is production; `dev` is the integration branch. Never commit directly to either.
+- One ticket per branch, cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
+
+## Pull requests
+
+- Target `dev`, merge as a squash commit, delete the branch afterwards.
+- Title: a Conventional Commit message with the ticket number, e.g. `feat(auth): add magic link sign in (AJDE-30)`.
+- Description: first what the ticket was about, then what you did to solve it. Short is fine.
+
+```markdown
+## Ticket
+AJDE-30: Sign in depends on Supabase sending emails, which hits its rate limit.
+
+## Solution
+- Send sign-in emails through our own SMTP provider
+- Add a callback route that exchanges the magic link token for a session
 ```
-feat(auth): add JWT-based login endpoint
-fix(api): correct null pointer on empty playlist response
-refactor(db): extract query builder into separate module
-docs(readme): add setup instructions for local dev
-chore(deps): bump react to 18.3.1
-```
-
-## Branching
-
-- **One feature = one branch.** No exceptions, no bundling unrelated changes.
-- Branch naming: `<type>/<short-description>`, e.g. `feat/user-auth`, `fix/playlist-null-check`.
-- Branch off `main`, do your work, commit with conventional commits, then merge back into `main` directly.
-- **No pull requests.** Merge locally/directly into `main` once the feature works.
-- Delete the branch after merging to keep things clean.
-
-```bash
-git checkout main
-git pull
-git checkout -b feat/short-description
-# ...work, commit...
-git checkout main
-git merge feat/short-description
-git branch -d feat/short-description
-```
-
-## General rules
-
-- Keep commits small and scoped to one logical change — easier to review, easier to revert.
-- Don't commit directly to `main` except for merges.
-- Run tests/build locally before merging, if applicable.
-- If a feature branch grows too large or unfocused, split it before merging.
-- Keep commit messages free of implementation trivia ("fix typo in var name") — describe the *effect*, not the diff.
