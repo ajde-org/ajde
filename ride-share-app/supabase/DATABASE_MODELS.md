@@ -56,7 +56,10 @@ Canonical city catalog used by routes. It stores unique Macedonian and English n
 `aliases`, latitude, longitude, and `created_at`. Coordinates are constrained to valid geographic
 ranges. Deleting a city cascades to its pickup points, but referenced ride cities prevent deletion.
 The catalog is initially seeded with Skopje, Kumanovo, Bitola, Prilep, Tetovo, Shtip, Veles, Ohrid,
-Strumica, and Gostivar.
+Strumica, and Gostivar. `20260923120000_seed_remaining_macedonian_cities.sql` completes it with the
+other 24 official towns, so all 34 are routable. Their Latin names drop diacritics (Delcevo, Kicevo,
+Radovis) with the diacritic spellings kept as aliases. `scripts/rollback-remaining-macedonian-cities.sql`
+reverses that seed by hand, skipping any city a ride already references.
 
 ### `pickup_points`
 
