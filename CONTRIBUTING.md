@@ -11,7 +11,7 @@ How code is committed and merged in this repository. Applies to human and automa
 ## Branches
 
 - `main` is production; `dev` is the integration branch and the default. Both are protected: no direct pushes, force-pushes or deletion.
-- One ticket per branch, cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
+- One ticket per branch (small related tickets can share one), cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
 
 ## Pull requests
 
