@@ -1,13 +1,14 @@
 # CLAUDE.md
 
-Ajde is a student ride-sharing app. The Next.js app lives in `ride-share-app/`; Supabase is the database and auth, Vercel hosts it.
+Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `ride-share-app/`; Supabase is the database and auth, Vercel hosts it.
 
 @CONTRIBUTING.md
 @ride-share-app/AGENTS.md
 
 ## Git
 
-- Follow `CONTRIBUTING.md`. Never push to `main` or `dev`; work on a ticket branch and open a PR.
+- Follow `CONTRIBUTING.md`. Never push to `main` or `dev`; work on a ticket branch.
+- Committing locally is fine, but always ask for approval before pushing or opening/editing a PR, every time.
 - Small related tickets (docs, config, a few lines each) can share one branch and PR. List every ticket in the title, e.g. `docs: [AJDE-14, AJDE-48] add CLAUDE.md and ticket templates`, and cover each one in the description.
 
 ## Frontend
