@@ -10,13 +10,16 @@ How code is committed and merged in this repository. Applies to human and automa
 
 ## Branches
 
-- `main` is production; `dev` is the integration branch. Never commit directly to either.
+- `main` is production; `dev` is the integration branch and the default. Both are protected: no direct pushes, force-pushes or deletion.
 - One ticket per branch, cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
 
 ## Pull requests
 
-- Target `dev`, merge as a squash commit, delete the branch afterwards.
-- Title: a Conventional Commit message with the ticket number, e.g. `feat(auth): add magic link sign in (AJDE-30)`.
+- Every PR needs 1 approval. You can't approve your own.
+- Feature PRs target `dev` and are **squash merged**, so each ticket lands on `dev` as one commit.
+- Releases are a PR from `dev` to `main`, merged with a **merge commit** so every squash commit from `dev` ends up on `main`.
+- Hotfixes: admins can merge a PR without approval when it's urgent. A fix merged straight into `main` must then be merged back into `dev`.
+- Title: `<type>: [<ticket>] <title>`, using the commit types above, e.g. `feat: [AJDE-30] add magic link sign in`. The title becomes the squash commit message on `dev`.
 - Description: first what the ticket was about, then what you did to solve it. Short is fine.
 
 ```markdown
