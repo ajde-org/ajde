@@ -30,7 +30,6 @@ Ajde is a student ride-sharing app. The Next.js app lives in `ride-share-app/`; 
 - Tests sit next to the code (`*.test.ts`). New logic comes with tests.
 - Before opening a PR, run from `ride-share-app/`: `npm test`, `npm run lint`, `npx tsc --noEmit`.
 - Mock OpenAI in tests. Live evals (`npm run eval:*`, `npm run test:live`) cost credits: run them only when changing prompts or AI behaviour, and put the results in the PR.
-- Use the domain vocabulary in `docs/CONTEXT.md` (e.g. "ride offer", not "ride request").
 
 ## Keeping this file current
 

@@ -33,8 +33,7 @@ and often leaves with empty seats.
 - **Why they'd still use it next month:** the trip home repeats every week, and the price split,
   saved car and ratings carry over from one trip to the next.
 - **Green, honestly:** three passengers in one car means three fewer car trips. The CO₂ counter
-  only counts completed rides with a real distance and a petrol or diesel car
-  ([assumptions](docs/SAFETY.md#co2-impact-assumptions)). **The homepage totals are mostly seeded
+  only counts completed rides with a real distance and a petrol or diesel car. **The homepage totals are mostly seeded
   demo history**, not real usage: about 75 completed trips, 62 participants, ~1,425 L of fuel and
   ~3,725 kg of CO₂, of which 72 trips come from seeded data.
 
@@ -83,8 +82,7 @@ flowchart TD
 
 The import flow is three separate AI jobs passing work along: **reader → parser → checker**, with
 the driver choosing a post between the first two. The checker decides for itself which tools to
-call. A live run is recorded in [docs/verification/ai-import-live.md](docs/verification/ai-import-live.md),
-including a run where the model skipped the price tool. Screenshot import and the checker are
+call. Screenshot import and the checker are
 behind a server switch, `AI_IMPORT_PIPELINE_ENABLED=true`, which is on in the live deployment and in
 `.env.example`. When it's off, text import works as before, without the checker.
 
@@ -161,8 +159,7 @@ personal and platform CO₂ counters.
   the tool it should, which is why every draft goes through human review.
 - Screenshot import adds a model call before the checker's tool loop, so it's slower than
   pasting text: a few seconds in our runs.
-- A booking approved at the exact moment a ride departs isn't guarded by a transaction
-  ([ticket](docs/tickets/21-09-pero/06-atomic-booking-decisions.md)).
+- A booking approved at the exact moment a ride departs isn't guarded by a transaction.
 - Distance is city-centre to city-centre, not pickup to pickup ([why](docs/adr/0001-city-to-city-road-distance.md)).
   The free OSRM server is shared, so we rate-limit it and fall back to manual km.
 - CO₂ is estimated only for petrol and diesel cars. Fuel prices must be updated by hand.
@@ -186,7 +183,7 @@ result is in [docs/TESTING.md](docs/TESTING.md), along with the test suite and l
   security available in SQL. That saved a day of backend setup.
 - **OpenAI structured outputs + Zod:** the model must return our exact draft shape. The same Zod
   schema validates the form and the server.
-- **OSRM:** free road distances with no API key ([research](docs/research/free-road-distance-api.md)).
+- **OSRM:** free road distances with no API key.
 - **Vitest:** fast tests with mocked AI.
 
 **How we used AI.** Most of the code was written by AI coding agents. Our
@@ -195,8 +192,7 @@ can't decide for us. We decided the scope and the data model, and who sees whose
 We chose which numbers must *not* come from AI, and where a human has to review. We tuned the parser
 on real posts, wrote the guards, and checked the security rules. Each day we wrote a plan, split it
 into two parallel tracks so we didn't edit the same files, generated the code, and read and fixed the
-diffs. After that came tests and a verification write-up. The plans are in
-[archived-plans/](archived-plans/README.md), and review findings are in [docs/verification/](docs/verification/).
+diffs. After that came tests and a verification write-up.
 
 **Commits:** about 170 Conventional Commits over 20–22 September, on feature branches merged into
 `main` ([CONTRIBUTING.md](CONTRIBUTING.md)). Bugs appear as `fix(...)` commits after the feature
@@ -227,6 +223,5 @@ that introduced them.
 │   ├── fixtures/              real-post, search, chat and rating test fixtures
 │   ├── scripts/               live AI evaluations and browser verification
 │   └── supabase/              migrations, seed data, schema smoke test, DATABASE_MODELS.md
-├── docs/                      setup, AI, safety, testing, ADRs, verification records, glossary
-└── archived-plans/            master plan and the daily plans we built from
+└── docs/                      setup, AI, testing, ADRs
 ```

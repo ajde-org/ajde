@@ -30,3 +30,39 @@ AJDE-30: Sign in depends on Supabase sending emails, which hits its rate limit.
 - Send sign-in emails through our own SMTP provider
 - Add a callback route that exchanges the magic link token for a session
 ```
+
+## Tickets
+
+Tickets live in Linear (team AJDE). Titles are short and imperative, e.g. "Add CI pipeline on GitHub runner".
+
+- Type label: `Feature`, `Bug` or `Improvement`. Area labels: `frontend`, `backend`, `database`, `ai`, `infra` (one or more).
+- Priority: **Urgent** = production is broken, **High** = blocks the v1.0 launch, **Medium** = should be in v1.0, **Low** = nice to have. No estimates for now.
+
+Feature / task:
+
+```markdown
+## Context
+Why this is needed and what problem it solves. 1–3 sentences.
+
+## What needs to be done
+- [ ] …
+
+## Acceptance criteria
+- How we know it's done (behaviour a reviewer can check)
+
+## Notes
+Links, designs, related tickets. Delete if empty.
+```
+
+Bug:
+
+```markdown
+## What happened
+## Expected
+## Steps to reproduce
+1. …
+## Environment
+Production / preview / local · device · browser
+## Screenshots / logs
+Delete if none.
+```
