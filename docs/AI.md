@@ -75,8 +75,7 @@ In a private ride room, a member can press **Summarize chat** or **Ask AI** ("wh
 about pickup?"). The model gets the full room transcript the member is allowed to read and must
 answer with source excerpts from real messages, so a newly accepted passenger can catch up on
 what was agreed before they joined. Answers are private, marked out of date when new messages
-arrive, rate-limited, and can be switched off with `CHAT_AI_ENABLED=false`. Privacy and limits:
-[SAFETY.md](SAFETY.md#ai-chat-assistance).
+arrive, rate-limited, and can be switched off with `CHAT_AI_ENABLED=false`.
 
 ## Road distance (not AI)
 
@@ -122,8 +121,3 @@ and text import skips the checker.
 4. **Evidence guard:** a finding is kept only if it cites a successful tool call. Code writes the
    warning wording and never changes the driver's fields. If the model or a tool fails, the draft
    still continues to review.
-
-Verification records: [capabilities](verification/ai-import-capabilities.md),
-[pipeline](verification/ai-import-pipeline.md), [reader](verification/ai-import-screenshot-reader.md),
-[prices](verification/ai-import-prices.md), [duplicates](verification/ai-import-similar.md),
-[live run](verification/ai-import-live.md), [review](verification/ai-import-review.md).

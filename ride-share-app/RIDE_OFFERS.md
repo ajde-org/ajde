@@ -74,7 +74,6 @@ development database and its types regenerated. Live city-to-city routing return
 for Skopje to Bitola; the test intentionally does not assert a permanent provider distance.
 Browser verification also published an imported draft and manually completed a recovered native
 draft during simulated routing failure. Synthetic verification records were removed afterward.
-Review findings and their fixes are recorded in `../docs/verification/ride-offers.md`.
 
 Regular tests mock external providers; live evaluations are explicit opt-in commands. The live
 verification script must only target a development/test project. It never edits real users' records.
