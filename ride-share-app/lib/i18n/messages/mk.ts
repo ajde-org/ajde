@@ -24,6 +24,7 @@ export const mk = {
   "nav.about": "За нас",
   "nav.copyright": "© {year} ajde. Создадено во Скопје.",
   "locale.label": "Јазик",
+  "locale.switch": "Промени јазик",
   "locale.saving": "Се менува јазикот…",
   "locale.failed": "Јазикот не може да се промени. Обидете се повторно.",
   "date.today": "Денес",

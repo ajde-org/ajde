@@ -24,8 +24,14 @@ async function main() {
     const origin = page.locator('select[name="origin"]');
     if (await origin.locator('option[value="1"]').count()) await origin.selectOption('1');
     const selected = await origin.inputValue();
-    await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('mk');
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    const scrollBeforeSwitch = await page.evaluate(() => window.scrollY);
+    // Dispatch without Playwright scrolling the sticky control into view first.
+    await page.getByRole('button', { name: 'Switch language', exact: true }).dispatchEvent('click');
     await page.waitForFunction(() => document.documentElement.lang === 'mk');
+    await page.waitForFunction(y => Math.abs(window.scrollY - y) < 2, scrollBeforeSwitch);
+    await page.waitForTimeout(500);
+    assert(Math.abs(await page.evaluate(() => window.scrollY) - scrollBeforeSwitch) < 2, 'Language switch keeps scroll position');
     assert.equal(await origin.inputValue(), selected, 'Language switch keeps selected city');
     assert.equal(new URL(page.url()).search, '?origin=1', 'Language switch keeps query string');
     await page.getByRole('heading', { name: 'Каде патуваш?' }).waitFor();
@@ -47,7 +53,7 @@ async function main() {
     assert(await independent.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await independent.screenshot({ path: path.join(output, 'landing-en-mobile.png') });
     await independent.close();
-    for (const width of [375, 1024, 1440]) {
+    for (const width of [375, 768, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${base}/login?next=%2Frides%3Forigin%3D1&status=invalid-link`, { waitUntil: 'networkidle' });
       await page.getByRole('heading', { name: 'Добредојде назад' }).waitFor();
@@ -56,12 +62,12 @@ async function main() {
     }
     const email = page.getByLabel('Студентска е-пошта', { exact: true });
     await email.fill('preserve@example.invalid');
-    await page.getByRole('combobox', { name: 'Јазик', exact: true }).selectOption('en');
+    await page.getByRole('button', { name: 'Промени јазик', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.lang === 'en');
     assert.equal(await page.getByLabel('Student email', { exact: true }).inputValue(), 'preserve@example.invalid', 'Unsaved email survives switching');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.getByRole('alert').filter({ hasText: 'Use an approved student email address to continue.' }).waitFor();
-    await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('mk');
+    await page.getByRole('button', { name: 'Switch language', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.lang === 'mk');
     await page.getByRole('alert').filter({ hasText: 'За да продолжите' }).waitFor();
     await page.goto(`${base}/auth/callback`, { waitUntil: 'networkidle' });
@@ -74,7 +80,7 @@ async function main() {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Отвори мени' }).click();
-    await page.getByRole('combobox', { name: 'Јазик', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Промени јазик', exact: true }).waitFor();
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(output, 'landing-mk-mobile-menu.png'), fullPage: false });
     await page.keyboard.press('Escape');
@@ -86,8 +92,68 @@ async function main() {
     const missing = await page.goto(`${base}/i18n-smoke-nonexistent`, { waitUntil: 'networkidle' });
     assert.equal(missing.status(), 404);
     await page.getByRole('heading', { name: 'Страницата не е пронајдена' }).waitFor();
+
+    for (const locale of ['en', 'mk']) {
+      await context.addCookies([{ name: 'ajde_locale', value: locale, url: base }]);
+      await page.goto(base, { waitUntil: 'networkidle' });
+      // Layout-only signed-in slots: no account creation or authentication required.
+      await page.evaluate(locale => {
+        const links = document.querySelector('.site-nav-links');
+        for (const [href, text] of [['/dashboard/trips', locale === 'mk' ? 'Мои патувања' : 'My trips'], ['/profile/fixture', locale === 'mk' ? 'Профил' : 'Profile']]) {
+          const link = document.createElement('a');
+          link.href = href; link.className = 'nav-link'; link.textContent = text;
+          links.append(link);
+        }
+        const account = document.querySelector('.site-nav-account');
+        while (account.children.length > 1) account.lastElementChild.remove();
+        const form = document.createElement('form');
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'nav-button';
+        button.textContent = locale === 'mk' ? 'Одјави се' : 'Sign out';
+        form.append(button); account.append(form);
+      }, locale);
+      for (const width of [375, 768, 1024, 1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const y of [0, 1500]) {
+          await page.evaluate(y => window.scrollTo(0, y), y);
+          await page.waitForTimeout(500); // Header width/brand transitions.
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${locale}: no landing overflow at ${width}px`);
+          if (width >= 1024) {
+            assert(await page.evaluate(() => {
+              const rect = selector => document.querySelector(selector).getBoundingClientRect();
+              const brand = rect('.site-header-bar .brand');
+              const links = rect('.site-nav-links');
+              const account = rect('.site-nav-account');
+              const bar = rect('.site-header-bar');
+              return brand.right <= links.left && links.right <= account.left && account.right <= bar.right;
+            }), `${locale}: signed-in navbar has no overlapping slots at ${width}px, scroll ${y}`);
+          }
+        }
+        if (width < 1024) {
+          await page.locator('.site-menu-button').click();
+          assert(await page.evaluate(() => {
+            const menu = document.querySelector('.site-nav').getBoundingClientRect();
+            return menu.left >= 0 && menu.right <= innerWidth;
+          }), `${locale}: mobile menu fits at ${width}px`);
+          await page.keyboard.press('Escape');
+        }
+        const savings = page.locator('section[aria-labelledby="savings-heading"]');
+        await savings.scrollIntoViewIfNeeded();
+        assert(await savings.locator('dl').first().evaluate(dl => Array.from(dl.children).every(row => {
+          const term = row.querySelector('dt').getBoundingClientRect();
+          const formula = row.querySelector('dd').getBoundingClientRect();
+          return term.right <= formula.left || term.bottom <= formula.top;
+        })), `${locale}: formula labels do not overlap at ${width}px`);
+        if ([375, 1024, 1440].includes(width)) {
+          await savings.screenshot({ path: path.join(output, `savings-${locale}-${width}.png`) });
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: path.join(output, `navbar-signed-in-fixture-${locale}-${width}.png`) });
+        }
+      }
+    }
     assert.deepEqual(errors, [], 'No browser runtime or hydration errors');
-    console.log('PASS: locale cookie, SSR, independent sessions, state/query preservation, translated errors, auth redirects, mobile menu/calendar, 375/1024/1440px.');
+    console.log('PASS: scroll restoration, locale cookie, SSR, independent sessions, state/query preservation, translated errors, auth redirects, mobile menu/calendar; EN/MK signed-in navbar fixtures and savings layout at 375/768/1024/1280/1440px.');
     console.log(`Screenshots: ${output}`);
   } finally { await browser.close(); }
 }

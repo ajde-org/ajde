@@ -22,6 +22,7 @@ export const en = {
   "nav.about": "About",
   "nav.copyright": "© {year} ajde. Made in Skopje.",
   "locale.label": "Language",
+  "locale.switch": "Switch language",
   "locale.saving": "Changing language…",
   "locale.failed": "Could not change language. Please try again.",
   "date.today": "Today",

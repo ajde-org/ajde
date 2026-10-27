@@ -64,15 +64,15 @@ export function AppNavigation({ userLinks, account }: { userLinks: ReactNode; ac
 
   return <header className="site-header" data-scrolled={scrolled || undefined}>
     <a href="#main-content" className="skip-link">{t("nav.skip")}</a>
-    <div className="site-header-bar lg:!max-w-6xl lg:!h-14">
+    <div className="site-header-bar">
       <Brand />
       <nav id="main-navigation" aria-label={t("nav.main")} className={`site-nav ${menuOpen ? "site-nav-open" : ""}`}>
-        <div className="site-nav-links lg:!static lg:!translate-x-0 lg:!mx-auto">
+        <div className="site-nav-links">
           <NavLink href="/rides">{t("nav.find")}</NavLink>
           <NavLink href="/rides/new">{t("nav.offer")}</NavLink>
           {userLinks}
         </div>
-        <div className="site-nav-account flex-wrap"><LanguageSelector />{account}</div>
+        <div className="site-nav-account"><LanguageSelector />{account}</div>
       </nav>
       <button type="button" className="site-menu-button" aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setOpenPath(menuOpen ? null : pathname)}>
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d={menuOpen ? "m6 6 12 12M6 18 18 6" : "M4 7h16M4 12h16M4 17h16"} /></svg>

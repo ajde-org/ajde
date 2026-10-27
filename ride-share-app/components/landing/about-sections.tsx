@@ -153,9 +153,9 @@ export async function AboutSections() {
               [t("about.fuel"), t("about.fuelFormula")],
               ["CO₂", t("about.co2Formula")],
               [t("about.saved"), t("about.savedFormula")],
-            ].map(([term, formula]) => <div key={term} className="flex gap-5 border-b border-[#16201a]/10 pb-5">
-              <dt className="w-16 shrink-0 font-semibold">{term}</dt>
-              <dd className="text-[#4f5b4f]">{formula}</dd>
+            ].map(([term, formula]) => <div key={term} className="grid gap-2 border-b border-[#16201a]/10 pb-5 sm:grid-cols-[minmax(7rem,auto)_minmax(0,1fr)] sm:gap-5">
+              <dt className="font-semibold">{term}</dt>
+              <dd className="min-w-0 text-[#4f5b4f]">{formula}</dd>
             </div>)}
           </dl>
           <p className="mt-6 max-w-md text-sm text-[#647063]">{t("about.completedOnly")}</p>
