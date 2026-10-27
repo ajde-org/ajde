@@ -6,13 +6,22 @@ Initial file inventory: 2026-10-27. This is a migration checklist, not a claim t
 
 - [x] Locale infrastructure, shared navigation/footer/brand, landing hero/search/about/map, shared date controls, and login UI/action codes implemented with draft catalogs.
 - [x] Shared skeleton labels, default submit pending label, and root page error messages migrated.
-- [ ] Onboarding UI and validation/action results.
+- [x] Onboarding UI, metadata, photo/contact validation and stable action result keys implemented with draft catalogs; EN/MK state-preservation tests and responsive fixture review complete.
 - [ ] Discovery/feed, filters, cards, interpretation and details/booking.
 - [ ] Offer/import forms, distance/price checks and persisted drafts.
 - [ ] Dashboard/trips, public profiles, contacts, ratings and impact.
 - [ ] Chat, shared itineraries, generated AI text and all API/action errors.
 - [ ] Route-specific errors/not-found/metadata and remaining loading headings.
 - [ ] Final literal scan, visual QA for every flow, and human wording review.
+
+### Second implementation checkpoint — 2026-10-27
+
+- Discovery's fixed UI is localized: filters, empty states, natural-language search controls and failures, interpretation criteria, city names, date/number/money formatting and ride cards. Generated match explanations and API error contracts remain in the AI/API audit; the overall discovery checkbox stays open.
+- Search interpretation warnings now render deterministic catalog text from their validated warning code, including interpretations saved in URLs. Generated English warning prose is not displayed. The original query remains editable. No model prompts or structured schemas changed.
+- Ride details and seat requests use localized statuses, route/pickup names, prices, preferences, notices and accessibility text. Known tags are translated; unknown custom tags and driver notes remain as authored. Booking URLs now carry validated notice keys; older English notices remain compatible, and arbitrary query-string notices use a catalog fallback.
+- Profile and ride-chat error states and profile/ride not-found states are localized. Other profile/chat screens and offer/import loading headings remain pending.
+- Navbar uses a circular flag button with “Switch language” / “Промени јазик” labels, preserves scroll during locale refresh, and keeps signed-in slots from overlapping. Landing savings formulas wrap independently of label length. Browser checks cover both languages at 375/768/1024/1280/1440px.
+- Onboarding, discovery and booking pages have controlled fixtures for read-only visual review at 375/1024/1440px. These fixtures do not establish a real authenticated session or modify database records.
 
 ## Special surfaces and exceptions
 
@@ -59,24 +68,24 @@ Initial file inventory: 2026-10-27. This is a migration checklist, not a claim t
 | ride-share-app/app/login/login-form.tsx | auth | Integrated; verify coverage / human review pending |
 | ride-share-app/app/login/page.tsx | auth | Integrated; verify coverage / human review pending |
 | ride-share-app/app/not-found.tsx | shared / discovery / details | Integrated; verify coverage / human review pending |
-| ride-share-app/app/onboarding/actions.ts | onboarding / profile | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/onboarding/actions.ts | onboarding / profile | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/onboarding/loading.tsx | onboarding / profile | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/onboarding/onboarding-form.tsx | onboarding / profile | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/onboarding/page.tsx | onboarding / profile | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/onboarding/onboarding-form.tsx | onboarding / profile | Integrated; verified in controlled EN/MK fixtures; human review pending |
+| ride-share-app/app/onboarding/page.tsx | onboarding / profile | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/page.tsx | landing / about | Integrated; verify coverage / human review pending |
-| ride-share-app/app/profile/[id]/error.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/profile/[id]/error.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/profile/[id]/loading.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/profile/[id]/not-found.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/profile/[id]/not-found.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/profile/[id]/page.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
 | ride-share-app/app/rides/(feed)/loading.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/rides/(feed)/page.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/rides/(feed)/page.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/rides/[id]/(detail)/loading.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/rides/[id]/(detail)/page.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/rides/[id]/actions.ts | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/rides/[id]/chat/error.tsx | chat / AI | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/rides/[id]/(detail)/page.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
+| ride-share-app/app/rides/[id]/actions.ts | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
+| ride-share-app/app/rides/[id]/chat/error.tsx | chat / AI | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/rides/[id]/chat/loading.tsx | chat / AI | Pending audit/migration (may contain no UI text) |
 | ride-share-app/app/rides/[id]/chat/page.tsx | chat / AI | Pending audit/migration (may contain no UI text) |
-| ride-share-app/app/rides/[id]/not-found.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/app/rides/[id]/not-found.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/app/rides/import/fair-price-summary.tsx | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/app/rides/import/import-ride-form.tsx | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/app/rides/import/loading.tsx | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
@@ -101,9 +110,9 @@ Initial file inventory: 2026-10-27. This is a migration checklist, not a claim t
 | ride-share-app/components/contact-details.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/date-picker.tsx | shared / discovery / details | Integrated; verify coverage / human review pending |
 | ride-share-app/components/date-time-field.tsx | shared / discovery / details | Integrated; verify coverage / human review pending |
-| ride-share-app/components/discovery/natural-language-search.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/components/discovery/natural-language-search.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/components/discovery/ride-results.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/components/discovery/search-interpretation.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/components/discovery/search-interpretation.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/components/impact-summary.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/landing/about-sections.tsx | landing / about | Integrated; verify coverage / human review pending |
 | ride-share-app/components/landing/date-pill.tsx | landing / about | Integrated; verify coverage / human review pending |
@@ -117,11 +126,11 @@ Initial file inventory: 2026-10-27. This is a migration checklist, not a claim t
 | ride-share-app/components/ratings/rating-form.tsx | ratings | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/ratings/star-rating.tsx | ratings | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/ratings/submitted-rating.tsx | ratings | Pending audit/migration (may contain no UI text) |
-| ride-share-app/components/ride-card.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/components/ride-card.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/components/ride-completion/cancel-ride-control.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/ride-completion/complete-ride-button.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/components/ride-route.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
-| ride-share-app/components/seat-availability.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
+| ride-share-app/components/ride-route.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
+| ride-share-app/components/seat-availability.tsx | shared / discovery / details | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/components/site-footer.tsx | shared / discovery / details | Integrated; verify coverage / human review pending |
 | ride-share-app/components/site-header.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
 | ride-share-app/components/status-panel.tsx | shared / discovery / details | Pending audit/migration (may contain no UI text) |
@@ -181,7 +190,7 @@ Initial file inventory: 2026-10-27. This is a migration checklist, not a claim t
 | ride-share-app/lib/rides/ride-filters.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/lib/rides/ride-form.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/lib/rides/ride-limits.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
-| ride-share-app/lib/rides/ride-presentation.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
+| ride-share-app/lib/rides/ride-presentation.ts | offer / import / ride presentation | Integrated; verified in controlled EN/MK fixtures; human review pending |
 | ride-share-app/lib/rides/ride-price.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/lib/rides/ride-view.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
 | ride-share-app/lib/rides/road-distance.ts | offer / import / ride presentation | Pending audit/migration (may contain no UI text) |
