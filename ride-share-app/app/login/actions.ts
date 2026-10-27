@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+import { z } from 'zod'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -10,7 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export type LoginState = {
   status: 'idle' | 'error' | 'sent'
-  message?: string
+  messageKey?: 'auth.approvedEmail' | 'auth.originError' | 'auth.rateLimited' | 'auth.sendFailed' | 'auth.sent' | 'auth.failed'
   email?: string
 }
 
@@ -18,14 +20,18 @@ export async function requestMagicLink(
   _previousState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const email = String(formData.get('email') ?? '').trim().toLocaleLowerCase('en-US')
+  const parsed = z.object({ email: z.string().trim().email().max(254), intent: z.enum(['sign-in', 'magic-link']) }).safeParse({
+    email: formData.get('email'), intent: formData.get('intent') ?? 'sign-in',
+  })
+  if (!parsed.success) return { status: 'error', messageKey: 'auth.approvedEmail' }
+  const email = parsed.data.email.toLocaleLowerCase('en-US')
   const next = safeNextPath(String(formData.get('next') ?? ''), '/rides')
-  const intent = String(formData.get('intent') ?? 'sign-in')
+  const intent = parsed.data.intent
 
   if (!isAllowedStudentEmail(email)) {
     return {
       status: 'error',
-      message: 'Use an approved student email address to continue.',
+      messageKey: 'auth.approvedEmail',
       email,
     }
   }
@@ -37,7 +43,7 @@ export async function requestMagicLink(
   const requestHeaders = await headers()
   const origin = requestHeaders.get('origin')
   if (!origin) {
-    return { status: 'error', message: 'Could not determine the application URL.', email }
+    return { status: 'error', messageKey: 'auth.originError', email }
   }
 
   const callback = new URL('/auth/callback', origin)
@@ -56,16 +62,14 @@ export async function requestMagicLink(
     const rateLimited = error.status === 429 || error.code === 'over_email_send_rate_limit'
     return {
       status: 'error',
-      message: rateLimited
-        ? 'Email sending is temporarily rate-limited. Wait before requesting another link, or use Sign in instead.'
-        : 'We could not send the sign-in link. Please try again.',
+      messageKey: rateLimited ? 'auth.rateLimited' : 'auth.sendFailed',
       email,
     }
   }
 
   return {
     status: 'sent',
-    message: `A secure sign-in link was sent to ${email}.`,
+    messageKey: 'auth.sent',
     email,
   }
 }
@@ -84,7 +88,8 @@ async function instantSignIn(email: string, next: string): Promise<LoginState> {
     })
 
     if (linkError) {
-      return { status: 'error', message: `Sign-in failed: ${linkError.message}`, email }
+      console.error('Sign-in token creation failed', { code: linkError.code, status: linkError.status })
+      return { status: 'error', messageKey: 'auth.failed', email }
     }
 
     const supabase = await createClient()
@@ -97,16 +102,16 @@ async function instantSignIn(email: string, next: string): Promise<LoginState> {
     if (error || !data.user) {
       return {
         status: 'error',
-        message: `Sign-in failed: ${error?.message ?? 'No user was returned.'}`,
+        messageKey: 'auth.failed',
         email,
       }
     }
 
     userId = data.user.id
-  } catch (error) {
+  } catch {
     return {
       status: 'error',
-      message: error instanceof Error ? error.message : 'Sign-in failed.',
+      messageKey: 'auth.failed',
       email,
     }
   }

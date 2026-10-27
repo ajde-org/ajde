@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createClient } from "@/lib/supabase/server";
 import { PassengerTrips } from "./passenger-trips";

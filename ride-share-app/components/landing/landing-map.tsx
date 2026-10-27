@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { getI18n } from "@/lib/i18n/server";
+import { formatNumber } from "@/lib/i18n/format";
 import styles from "./landing.module.css";
 
 const route = "M240 318 C 330 330 400 385 520 420 C 700 472 930 455 1100 330 C 1220 242 1300 185 1380 172";
@@ -13,7 +15,8 @@ function Chip({ x, y, w, children, tone = "light", className }: { x: number; y: 
 }
 
 /** Stylised map: fields, hills, a lake, roads, and a shared car driving the highlighted route. */
-export function LandingMap() {
+export async function LandingMap() {
+  const { locale, t } = await getI18n();
   return <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" className="absolute inset-x-0 top-0 h-[27rem] w-full sm:h-full" aria-hidden="true">
     <defs>
       <filter id="chip-shadow" x="-20%" y="-50%" width="140%" height="200%"><feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0b2a17" floodOpacity=".14" /></filter>
@@ -31,7 +34,7 @@ export function LandingMap() {
     </g>
 
     <path d="M1470 150c70 10 110 90 105 190s-40 190-100 200-100-70-110-170 35-230 105-220Z" fill="#a8dcf5" />
-    <text x="1480" y="360" textAnchor="middle" fontSize="14" fontStyle="italic" fill="#4a86a8" opacity=".9">Lake Ohrid</text>
+    <text x="1480" y="360" textAnchor="middle" fontSize="14" fontStyle="italic" fill="#4a86a8" opacity=".9">{t("landing.lake")}</text>
 
     <g fill="none" stroke="#fff" strokeLinecap="round">
       <path d="M320 -20c10 220-50 480 70 940" strokeWidth="7" opacity=".7" />
@@ -53,10 +56,10 @@ export function LandingMap() {
     <rect x="1369" y="161" width="22" height="22" rx="3" fill="#111" stroke="#fff" strokeWidth="4" />
     <circle cx="800" cy="458" r="7" fill="#fff" stroke="#16a34a" strokeWidth="4" />
 
-    <Chip x={240} y={268} w={96}>Skopje</Chip>
-    <Chip x={1380} y={122} w={86}>Ohrid</Chip>
-    <Chip x={760} y={400} w={210} className={styles.float}>+2 riders picked up</Chip>
-    <Chip x={1080} y={250} w={176} tone="green" className={styles.floatSlow}>−21.4 kg CO₂</Chip>
+    <Chip x={240} y={268} w={96}>{t("landing.skopje")}</Chip>
+    <Chip x={1380} y={122} w={86}>{t("landing.ohrid")}</Chip>
+    <Chip x={760} y={400} w={240} className={styles.float}>{t("landing.pickedUp")}</Chip>
+    <Chip x={1080} y={250} w={176} tone="green" className={styles.floatSlow}>−{formatNumber(locale, 21.4)} kg CO₂</Chip>
 
     <g>
       <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#route" /></animateMotion>

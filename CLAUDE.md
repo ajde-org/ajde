@@ -16,7 +16,7 @@ Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `
 - Every UI change must be responsive. Build mobile-first and check it at phone width (~375px) and on desktop.
 - Style with Tailwind utilities; only add CSS to `globals.css` when utilities can't express it.
 - Accessibility basics: semantic elements, a label for every input, `alt` text on images, everything usable by keyboard.
-- UI text is English for now. Macedonian support (i18n) is planned, so don't build sentences by concatenating strings.
+- UI localization uses `en` (default) and `mk` with the `ajde_locale` cookie. Use typed messages in `ride-share-app/lib/i18n/`, `getI18n()` on the server, and `useI18n()` in client components; do not concatenate sentence fragments. The AJDE-29 migration is ongoing: see `docs/plans/AJDE-29-macedonian-language-support.md` and `docs/I18N.md` for coverage and workflow. Every Macedonian message needs recorded human review before a PR.
 
 ## Data and security
 

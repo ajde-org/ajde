@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { RideDraft } from "@/lib/rides/ride-draft";
 import { OfferWorkspace } from "./offer-workspace";
@@ -17,8 +17,8 @@ const props = { userId: "driver-one", initialDraft: blank, submissionId: "200000
   pickupPoints: [], cars: [], carModels: [], fuelPrices: { petrol: 80, diesel: 75 } };
 const trip = { draft: { ...blank, origin: { cityId: 1, pickupPointId: null, rawText: "skp" }, destination: { cityId: 3, pickupPointId: null, rawText: "bt" }, departureAt: "2026-09-26T14:00:00Z" },
   mentioned: ["origin", "destination", "departureDate", "departureTime"], dateLocal: "2026-09-26", timeLocal: "16:00" };
-beforeEach(() => { sessionStorage.clear(); publish.mockReset(); router.replace.mockReset(); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-09-22T10:00:00Z")); sessionStorage.clear(); publish.mockReset(); router.replace.mockReset(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 it("keeps Save draft private and closes the saved tab in the driver dashboard", async () => {
   publish.mockResolvedValue({ status: "success", message: "Ride saved as a draft.", fieldErrors: {}, rideId: "30000000-0000-4000-8000-000000000003" });

@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useI18n } from "@/lib/i18n/provider";
+import { intlLocale, type Locale } from "@/lib/i18n/config";
+import type { Translator } from "@/lib/i18n/translate";
 import { createPortal } from "react-dom";
 
 // Shared calendar primitives for the landing search pill and the ride form's departure field.
 
-const weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
 
 export function isoDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -24,17 +27,17 @@ export function fromIsoDate(value: string) {
   return new Date(year, month - 1, day);
 }
 
-export function describeDate(value: string, today: Date) {
-  if (value === isoDate(today)) return "Today";
-  if (value === isoDate(addDays(today, 1))) return "Tomorrow";
-  return fromIsoDate(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+export function describeDate(value: string, today: Date, locale: Locale, t: Translator) {
+  if (value === isoDate(today)) return t("date.today");
+  if (value === isoDate(addDays(today, 1))) return t("date.tomorrow");
+  return fromIsoDate(value).toLocaleDateString(intlLocale(locale), { weekday: "short", day: "numeric", month: "short" });
 }
 
-export function quickDatePicks(today: Date) {
+export function quickDatePicks(today: Date, t: Translator) {
   return [
-    { label: "Today", value: isoDate(today) },
-    { label: "Tomorrow", value: isoDate(addDays(today, 1)) },
-    { label: "Weekend", value: isoDate(addDays(today, (6 - today.getDay() + 7) % 7)) },
+    { label: t("date.today"), value: isoDate(today) },
+    { label: t("date.tomorrow"), value: isoDate(addDays(today, 1)) },
+    { label: t("date.weekend"), value: isoDate(addDays(today, (6 - today.getDay() + 7) % 7)) },
   ];
 }
 
@@ -96,13 +99,15 @@ export function Popover({ open, onClose, trigger, panel, label, children }: {
 
 export function ChipRow({ options, value, onChoose }: { options: { label: string; value: string }[]; value: string; onChoose: (value: string) => void }) {
   return <div className="flex gap-1">
-    {options.map((option) => <button key={option.label} type="button" onClick={() => onChoose(option.value)} aria-pressed={value === option.value}
-      className={`min-h-0 flex-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[13px] font-semibold ${value === option.value ? "bg-[#16201a] text-white" : "bg-[#f1f4f1] hover:bg-[#e6ebe5]"}`}>{option.label}</button>)}
+    {options.map((option) => <button key={option.value} type="button" onClick={() => onChoose(option.value)} aria-pressed={value === option.value}
+      className={`min-h-0 flex-1 rounded-full px-2 py-1.5 text-[13px] font-semibold ${value === option.value ? "bg-[#16201a] text-white" : "bg-[#f1f4f1] hover:bg-[#e6ebe5]"}`}>{option.label}</button>)}
   </div>;
 }
 
 /** Month grid; past days are disabled. `value` is yyyy-mm-dd or empty. */
 export function MonthCalendar({ value, onChoose, today, maxDate }: { value: string; onChoose: (value: string) => void; today: Date; maxDate?: Date }) {
+  const { locale, t } = useI18n();
+  const weekdays = Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 1 + index))));
   const [month, setMonth] = useState(() => {
     const selected = value ? fromIsoDate(value) : today;
     const base = selected < today ? today : maxDate && selected > maxDate ? maxDate : selected;
@@ -115,9 +120,9 @@ export function MonthCalendar({ value, onChoose, today, maxDate }: { value: stri
 
   return <div>
     <div className="flex items-center justify-between">
-      <button type="button" aria-label="Previous month" disabled={isCurrentMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-8 min-h-0 place-items-center rounded-full hover:bg-[#f1f4f1] disabled:opacity-30">‹</button>
-      <p className="font-display text-[15px] font-bold" aria-live="polite">{month.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</p>
-      <button type="button" aria-label="Next month" disabled={isLastMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-8 min-h-0 place-items-center rounded-full hover:bg-[#f1f4f1] disabled:opacity-30">›</button>
+      <button type="button" aria-label={t("date.previousMonth")} disabled={isCurrentMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-8 min-h-0 place-items-center rounded-full hover:bg-[#f1f4f1] disabled:opacity-30">‹</button>
+      <p className="font-display text-[15px] font-bold" aria-live="polite">{month.toLocaleDateString(intlLocale(locale), { month: "long", year: "numeric" })}</p>
+      <button type="button" aria-label={t("date.nextMonth")} disabled={isLastMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-8 min-h-0 place-items-center rounded-full hover:bg-[#f1f4f1] disabled:opacity-30">›</button>
     </div>
     <div className="mt-2 grid grid-cols-7 gap-0.5 text-center">
       {weekdays.map((day) => <span key={day} className="py-1 text-[13px] font-semibold text-[#849182]">{day}</span>)}
@@ -128,7 +133,7 @@ export function MonthCalendar({ value, onChoose, today, maxDate }: { value: stri
         const selected = key === value;
         const isToday = key === isoDate(today);
         return <button key={key} type="button" disabled={date < today || Boolean(maxDate && date > maxDate)} onClick={() => onChoose(key)} aria-pressed={selected}
-          aria-label={date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          aria-label={date.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "long" })}
           className={`mx-auto grid size-9 min-h-0 place-items-center rounded-full text-sm font-medium ${selected ? "bg-[#16201a] text-white" : isToday ? "text-[#15803d] ring-2 ring-inset ring-[#22c55e]" : "hover:bg-[#f1f4f1]"} disabled:text-[#c7d1c4] disabled:hover:bg-transparent`}>
           {index + 1}
         </button>;

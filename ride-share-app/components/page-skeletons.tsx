@@ -1,3 +1,6 @@
+"use client";
+import { useI18n } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/messages/en";
 import type { ReactNode } from "react";
 
 // Route-level loading states. They mirror each page's container and card layout so content
@@ -7,10 +10,11 @@ export function Bone({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
-function SkeletonMain({ label, className, bodyClassName, children }: { label: string; className: string; bodyClassName?: string; children: ReactNode }) {
+function SkeletonMain({ label, className, bodyClassName, children }: { label: Extract<MessageKey, `loading.${string}`>; className: string; bodyClassName?: string; children: ReactNode }) {
+  const { t } = useI18n();
   // w-full: <main> sits directly in the flex-column body, where mx-auto alone would shrink it to its content.
   return <main id="main-content" aria-busy="true" className={`w-full ${className}`}>
-    <p role="status" className="sr-only">{label}</p>
+    <p role="status" className="sr-only">{t(label)}</p>
     <div aria-hidden="true" className={bodyClassName}>{children}</div>
   </main>;
 }
@@ -32,7 +36,7 @@ export function RideCardSkeleton() {
 }
 
 export function RideFeedSkeleton() {
-  return <SkeletonMain label="Loading rides…" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+  return <SkeletonMain label="loading.rides" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
     <h1 className="page-heading">Find a ride</h1>
     <p className="mt-4 text-slate-500">A seat, some company, and a way home.</p>
     <Bone className="mt-10 h-5 w-64" />
@@ -44,7 +48,7 @@ export function RideFeedSkeleton() {
 }
 
 export function RideDetailSkeleton() {
-  return <SkeletonMain label="Loading ride…" className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+  return <SkeletonMain label="loading.ride" className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
     <Bone className="h-4 w-28" />
     <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_350px]">
       <div className="surface-card p-6 sm:p-8">
@@ -63,7 +67,7 @@ export function RideDetailSkeleton() {
 }
 
 export function FormPageSkeleton({ width = "max-w-4xl", fields = 6, title, subtitle, backLink = true }: { width?: string; fields?: number; title?: string; subtitle?: string; backLink?: boolean }) {
-  return <SkeletonMain label="Loading form…" className="px-4 py-10 sm:px-6">
+  return <SkeletonMain label="loading.form" className="px-4 py-10 sm:px-6">
     <div className={`mx-auto ${width}`}>
       {backLink ? <Bone className="mb-8 h-4 w-24" /> : null}
       <div>{title ? <><h1 className="page-heading">{title}</h1>{subtitle ? <p className="mt-3 max-w-2xl text-slate-600">{subtitle}</p> : null}</> : <Heading />}</div>
@@ -76,7 +80,7 @@ export function FormPageSkeleton({ width = "max-w-4xl", fields = 6, title, subti
 }
 
 export function ProfileSkeleton() {
-  return <SkeletonMain label="Loading profile…" className="px-5 py-8 sm:py-12">
+  return <SkeletonMain label="loading.profile" className="px-5 py-8 sm:py-12">
     <div className="mx-auto max-w-xl">
       <div className="flex h-11 items-center"><Bone className="h-4 w-28" /></div>
       <div className="surface-card mt-20">
@@ -96,7 +100,7 @@ export function ProfileSkeleton() {
 }
 
 export function ChatSkeleton() {
-  return <SkeletonMain label="Loading ride room…" bodyClassName="flex min-h-0 flex-1 flex-col" className="mx-auto flex h-[calc(100svh-var(--header-h))] min-h-[32rem] w-full max-w-6xl flex-col px-3 pb-3 pt-4 sm:px-6 sm:pb-6">
+  return <SkeletonMain label="loading.chat" bodyClassName="flex min-h-0 flex-1 flex-col" className="mx-auto flex h-[calc(100svh-var(--header-h))] min-h-[32rem] w-full max-w-6xl flex-col px-3 pb-3 pt-4 sm:px-6 sm:pb-6">
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-5">
       <div className="surface-card flex shrink-0 flex-col gap-3 p-4 lg:order-last lg:gap-5 lg:p-5"><Bone className="h-4 w-32" /><div className="flex gap-2 lg:flex-col"><Bone className="h-10 w-40 rounded-full lg:w-full lg:rounded-xl" /><Bone className="h-10 w-40 rounded-full lg:w-full lg:rounded-xl" /></div><Bone className="h-4 w-48" /></div>
       <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -107,7 +111,7 @@ export function ChatSkeleton() {
     </div>
   </SkeletonMain>;
 }
-export function SplitCardSkeleton({ label }: { label: string }) {
+export function SplitCardSkeleton({ label }: { label: Extract<MessageKey, `loading.${string}`> }) {
   return <SkeletonMain label={label} className="mx-auto grid max-w-5xl gap-10 px-4 py-8 sm:px-6 sm:py-14 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-16">
     <div><Bone className="h-4 w-36" /><Bone className="mt-4 h-12 w-full max-w-sm" /><Bone className="mt-3 h-12 w-3/4 max-w-xs" /></div>
     <div className="surface-card p-6 sm:p-9"><Bone className="h-12 rounded-full" /><Bone className="mt-7 h-8 w-56" /><Bone className="mt-4 h-4 w-full" /><Bone className="mt-8 h-[52px] rounded-[.9rem]" /><Bone className="mt-4 h-[52px] rounded-[.9rem]" /></div>
@@ -115,7 +119,7 @@ export function SplitCardSkeleton({ label }: { label: string }) {
 }
 
 export function ItinerarySkeleton() {
-  return <SkeletonMain label="Loading shared itinerary…" className="mx-auto w-full max-w-xl px-4 py-12">
+  return <SkeletonMain label="loading.itinerary" className="mx-auto w-full max-w-xl px-4 py-12">
     <Bone className="h-9 w-64" /><Bone className="mt-3 h-4 w-full" />
     <div className="surface-card mt-6 p-6"><Bone className="h-7 w-48" /><Bone className="mt-5 h-4 w-40" /><Bone className="mt-2 h-4 w-56" /><Bone className="mt-5 h-12 w-48" /></div>
   </SkeletonMain>;
@@ -134,7 +138,7 @@ function CollapsedSectionSkeleton({ width, className = "mt-5" }: { width: string
  * import prompt, then the ride form. Heights match the rendered page so content swaps in without a jump.
  */
 export function OfferRideSkeleton({ heading }: { heading: ReactNode }) {
-  return <SkeletonMain label="Loading ride form…" className="px-4 py-10 sm:px-6">
+  return <SkeletonMain label="loading.offer" className="px-4 py-10 sm:px-6">
     <div className="mx-auto max-w-4xl">
       {heading}
       <div className="surface-card mt-8 p-4 sm:p-6">
