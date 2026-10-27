@@ -1,7 +1,13 @@
+import { onboardingEn } from "./onboarding-en";
+import { detailEn } from "./detail-en";
+import { discoveryEn } from "./discovery-en";
 import { aboutEn } from "./about-en";
 import { authEn } from "./auth-en";
 
 export const en = {
+  ...detailEn,
+  ...discoveryEn,
+  ...onboardingEn,
   ...aboutEn,
   ...authEn,
   "app.title": "Student Ride Share",

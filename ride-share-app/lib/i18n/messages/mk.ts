@@ -1,13 +1,20 @@
+import { onboardingMk } from "./onboarding-mk";
+import { detailMk } from "./detail-mk";
+import { discoveryMk } from "./discovery-mk";
 import type { Messages } from "./en";
 import { aboutMk } from "./about-mk";
 import { authMk } from "./auth-mk";
 
 // Draft Macedonian copy. Human approval is tracked in docs/plans/AJDE-29-translation-review.md.
 export const mk = {
+  ...detailMk,
+  ...discoveryMk,
+  ...onboardingMk,
   ...aboutMk,
   ...authMk,
   "app.title": "Студентски заеднички превоз",
-  "app.description": "Патувајте заедно и поделете ги реалните патни трошоци со студенти низ Северна Македонија.",
+  "app.description":
+    "Патувајте заедно и поделете ги реалните патни трошоци со студенти низ Северна Македонија.",
   "nav.home": "ajde — почетна страница",
   "nav.skip": "Прескокни до содржината",
   "nav.main": "Главно мени",
@@ -49,7 +56,8 @@ export const mk = {
   "landing.quickerCheaper": "Побрзо. Поевтино.",
   "landing.greener": "Позелено.",
   "landing.rideHome": "Твојот превоз до дома.",
-  "landing.intro": "Пополни ги слободните седишта на пат до дома. Подели ги трошоците за гориво, запознај други студенти и намали го загадувањето со секое патување.",
+  "landing.intro":
+    "Пополни ги слободните седишта на пат до дома. Подели ги трошоците за гориво, запознај други студенти и намали го загадувањето со секое патување.",
   "landing.where": "Каде патуваш?",
   "landing.from": "Од",
   "landing.to": "До",
@@ -59,12 +67,13 @@ export const mk = {
   "landing.swap": "Замени ги местата на поаѓање и пристигнување",
   "landing.sharedSaving": "Заедничкото патување заштедува околу 21 kg CO₂.",
   "landing.statistics": "Податоци за заедничките патувања",
-  "landing.statisticsUnavailable": "Податоците за патувањата привремено не се достапни.",
+  "landing.statisticsUnavailable":
+    "Податоците за патувањата привремено не се достапни.",
   "landing.statisticsLoading": "Се вчитуваат податоците за патувањата…",
   "landing.co2": "Проценета заштеда на CO₂",
   "landing.fuel": "Проценета заштеда на гориво",
-  "landing.participants": "Различни учесници",
-  "landing.completed": "Завршени заеднички патувања",
+  "landing.participants": "Корисници",
+  "landing.completed": "Заеднички патувања",
   "landing.lake": "Охридско Езеро",
   "landing.skopje": "Скопје",
   "landing.ohrid": "Охрид",
@@ -86,6 +95,8 @@ export const mk = {
   "loading.itinerary": "Се вчитува споделениот план за патување…",
   "loading.offer": "Се вчитува формуларот за превоз…",
   "loading.login": "Се вчитува најавата…",
-  "landing.excluded.one": "{count} завршено заедничко патување не е вклучено во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
-  "landing.excluded.other": "{count} завршени заеднички патувања не се вклучени во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
+  "landing.excluded.one":
+    "{count} завршено заедничко патување не е вклучено во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
+  "landing.excluded.other":
+    "{count} завршени заеднички патувања не се вклучени во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
 } satisfies Messages;

@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 const db = vi.hoisted(() => ({ photo: "https://example.com/existing.png" as string | null, written: null as Record<string, unknown> | null }));
 vi.mock("@/lib/auth/session", () => ({ requireUser: async () => ({ id: "owner" }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -18,7 +19,12 @@ it("updates contacts without requiring another photo or changing profile ownersh
   expect(db.written).toMatchObject({id:"owner",photo_url:db.photo,phone:"+38970123456",social_url:input.socialUrl,bio:input.bio});
 });
 it("rejects a missing phone before writing", async () => {
-  expect((await saveProfile({...input,phone:""})).ok).toBe(false);expect(db.written).toBeNull();
+  expect(await saveProfile({...input,phone:""})).toEqual({ok:false,messageKey:"contact.invalidPhone"});expect(db.written).toBeNull();
+});
+it("returns stable validation keys without exposing raw schema messages", async () => {
+  expect(await saveProfile({...input,fullName:"a"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
+  expect(await saveProfile({...input,socialUrl:"http://example.com"})).toEqual({ok:false,messageKey:"contact.invalidSocial"});
+  expect(db.written).toBeNull();
 });
 it("rejects another account's photo path", async () => {
   expect((await saveProfile({...input,storagePath:"other/photo.jpg"})).ok).toBe(false);expect(db.written).toBeNull();
