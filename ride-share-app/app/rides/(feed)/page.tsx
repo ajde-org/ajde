@@ -46,7 +46,6 @@ export default async function RideFeedPage({ searchParams }: RideFeedPageProps) 
         {firstParam(rawParams.welcome) === "1" ? <p role="status" className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Your profile is ready. Welcome aboard — find your first ride below.</p> : null}
         <div>
           <h1 className="page-heading">Find a ride</h1>
-          <p className="mt-4 text-slate-500">A seat, some company, and a way home.</p>
         </div>
 
         <NaturalLanguageSearch key={naturalQuery} currentParams={currentParams} initialQuery={naturalQuery} />
