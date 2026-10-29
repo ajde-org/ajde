@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { personalitySchema, readPersonality, type Personality } from '@/lib/profiles/personality'
+import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { contactSchema } from '@/lib/profiles/contact'
 import { requireUser } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
@@ -14,6 +16,7 @@ export type ProfileInput = {
   phone: string
   socialUrl: string
   bio: string
+  personality?: Personality
   gender: Gender | ''
 }
 
@@ -27,6 +30,8 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   const user = await requireUser('/onboarding')
   const contacts = contactSchema.safeParse(input)
   if (!contacts.success) return { ok: false, message: contacts.error.issues[0].message }
+  const personality = personalitySchema.safeParse(input.personality ?? { prompts: [] })
+  if (!personality.success) return { ok: false, message: personality.error.issues[0].message }
   const fullName = input.fullName.trim()
   const university = input.university.trim()
   const bio = input.bio.trim()
@@ -48,7 +53,12 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   }
 
   const supabase = await createClient()
-  const { data: existing } = await supabase.from('profiles').select('photo_url').eq('id', user.id).maybeSingle()
+  const { data: existing, error: existingError } = await supabase.from('profiles').select('photo_url, driver_details').eq('id', user.id).maybeSingle()
+  if (existingError) return { ok: false, message: 'Your profile could not be loaded. Please try again.' }
+  // Hidden prompt controls must neither erase saved answers nor accept forged edits.
+  if (!profilePromptsEnabled()) {
+    personality.data.prompts = readPersonality(existing?.driver_details).prompts
+  }
   const photoUrl = input.storagePath
     ? supabase.storage.from('profile-photos').getPublicUrl(input.storagePath).data.publicUrl
     : existing?.photo_url
@@ -62,6 +72,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
     university,
     bio: bio || null,
     gender: input.gender || null,
+    ...(input.personality !== undefined ? { driver_details: personality.data } : {}),
   })
 
   if (error) {

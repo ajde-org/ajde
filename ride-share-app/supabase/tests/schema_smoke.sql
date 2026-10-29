@@ -261,3 +261,5 @@ rollback;
 \ir ride_offers.sql
 
 \ir chat_ai.sql
+
+\ir driver_profile_details.sql

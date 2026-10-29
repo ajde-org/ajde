@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 
+import { PersonalityFields } from './personality-fields';
+import { readPersonality, personalitySchema, travelDescriptors } from '@/lib/profiles/personality';
 import { contactSchema } from '@/lib/profiles/contact';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/client';
@@ -12,9 +14,9 @@ import { saveProfile, type ProfileInput } from './actions';
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-type InitialProfile = Pick<Tables<'profiles'>, 'full_name' | 'university' | 'photo_url' | 'bio' | 'gender' | 'phone' | 'social_url'>;
+type InitialProfile = Pick<Tables<'profiles'>, 'full_name' | 'university' | 'photo_url' | 'bio' | 'gender' | 'phone' | 'social_url' | 'driver_details'>;
 
-export function OnboardingForm({ userId, initial }: { userId: string; initial: InitialProfile | null }) {
+export function OnboardingForm({ userId, initial, promptsEnabled = false }: { userId: string; initial: InitialProfile | null; promptsEnabled?: boolean }) {
   const router = useRouter();
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -64,6 +66,11 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
       const form = new FormData(event.currentTarget);
       const contacts = contactSchema.safeParse({ phone: form.get('phone'), socialUrl: form.get('socialUrl') });
       if (!contacts.success) { setError(contacts.error.issues[0].message); setSaving(false); return; }
+      const personality = personalitySchema.safeParse({
+        ...Object.fromEntries(travelDescriptors.flatMap(({ key }) => form.get(key) ? [[key, form.get(key)]] : [])),
+        prompts: JSON.parse(String(form.get('prompts') ?? '[]')),
+      });
+      if (!personality.success) { setError(personality.error.issues[0].message); setSaving(false); return; }
       const supabase = createClient();
       let storagePath = '';
       if (photo) {
@@ -80,6 +87,7 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
         bio: String(form.get('bio') ?? ''),
         gender: String(form.get('gender') ?? '') as ProfileInput['gender'],
         storagePath,
+        personality: personality.data,
         phone: contacts.data.phone,
         socialUrl: contacts.data.socialUrl,
       });
@@ -91,7 +99,7 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
         return;
       }
 
-      router.replace('/rides?welcome=1');
+      router.replace(initial ? `/profile/${userId}` : '/rides?welcome=1');
       router.refresh();
     } catch {
       setError('We could not finish your profile. Check your connection and try again.');
@@ -188,6 +196,8 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
         <p id="bio-help" className="field-help">A short introduction for your fellow travellers. Up to 500 characters.</p>
       </div>
 
+      <PersonalityFields initial={readPersonality(initial?.driver_details)} promptsEnabled={promptsEnabled} />
+
       <div className="space-y-2">
         <label
           htmlFor="gender"
@@ -223,7 +233,7 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
         disabled={saving}
         className="w-full btn-primary disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? 'Creating profile…' : 'Complete profile & find a ride'}
+        {saving ? 'Saving profile…' : initial ? 'Save profile' : 'Complete profile & find a ride'}
       </button>
     </form>
   );

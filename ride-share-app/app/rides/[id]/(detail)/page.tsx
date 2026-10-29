@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TravelDescriptors } from '@/components/profile-personality';
+import { getPublicProfile } from '@/lib/profiles/public-profile';
+import { memberSince } from '@/lib/profiles/personality';
+import { getProfileRatingSummary } from '@/lib/ratings/queries';
 import { SeatAvailability } from "@/components/seat-availability";
 import { RideRoute } from "@/components/ride-route";
 import { SubmitButton } from "@/components/submit-button";
@@ -40,6 +44,9 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
     isDriver: ride.driver_id === user.id,
     bookingStatus: booking?.status,
   })) notFound();
+  const [driverProfile, driverRating] = ride.driver_id ? await Promise.all([
+    getPublicProfile(ride.driver_id), getProfileRatingSummary(ride.driver_id),
+  ]) : [null, null];
   const notice = await searchParams;
   const requestAction = requestBooking.bind(null, id);
   const canChat = Boolean(ride.driver_id) && (ride.driver_id === user.id || booking?.status === "accepted");
@@ -84,7 +91,14 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
                   <img src={ride.driver.photo_url} alt="" width={64} height={64} className="size-16 shrink-0 rounded-full bg-blue-50 object-cover" />
                   <div><p className="text-sm font-medium text-slate-500">Your driver</p>{ride.driver.verified_at ? <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">Verified driver</span> : null}</div>
                 </div>
-                <Link href={`/profile/${ride.driver.id}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${ride.car.color} ` : ""}{ride.car.make} {ride.car.model}</p> : null}
+                <Link href={`/profile/${ride.driver.id}?returnTo=${encodeURIComponent(`/rides/${id}`)}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${ride.car.color} ` : ""}{ride.car.make} {ride.car.model}</p> : null}
+                {driverProfile ? <div className="mt-4 border-t border-slate-100 pt-4">
+                  <p className="text-xs leading-6 text-slate-500">Member since {memberSince(driverProfile.createdAt)}</p>
+                  {driverProfile.completedRides !== null ? <p className="text-sm font-semibold text-slate-700">{driverProfile.completedRides} completed rides</p> : null}
+                  {driverRating && driverRating.count > 0 ? <p className="mt-2 text-sm font-semibold text-slate-700">★ {driverRating.average!.toFixed(1)}/5 · {driverRating.count} ratings</p> : null}
+                  <TravelDescriptors personality={driverProfile.personality} compact />
+                  <Link href={`/profile/${ride.driver.id}?returnTo=${encodeURIComponent(`/rides/${id}`)}`} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline">Meet your driver →</Link>
+                </div> : null}
               </> : <p className="p-5 text-sm text-slate-600">Imported ride awaiting a driver.</p>}
             </section>
 

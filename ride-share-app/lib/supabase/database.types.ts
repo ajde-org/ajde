@@ -21,6 +21,7 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           decided_at?: string | null
@@ -72,6 +73,7 @@ export type Database = {
           model: string
           release_year: number | null
         }
+        ComputedFields: never
         Insert: {
           co2_emissions_g_km?: number | null
           consumption_l_100km: number
@@ -111,6 +113,7 @@ export type Database = {
           seats_total: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           car_model_id?: number | null
           color?: string | null
@@ -161,6 +164,7 @@ export type Database = {
           admitted_at: string[]
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           admitted_at?: string[]
           user_id: string
@@ -181,6 +185,7 @@ export type Database = {
           name_en: string
           name_mk: string
         }
+        ComputedFields: never
         Insert: {
           aliases?: string[]
           created_at?: string
@@ -212,6 +217,7 @@ export type Database = {
           source_hint: string | null
           spam_flags: string[]
         }
+        ComputedFields: never
         Insert: {
           confidence?: number | null
           created_at?: string
@@ -252,6 +258,7 @@ export type Database = {
           ride_id: string
           sender_id: string
         }
+        ComputedFields: never
         Insert: {
           body: string
           created_at?: string
@@ -305,6 +312,7 @@ export type Database = {
           name_en: string
           name_mk: string
         }
+        ComputedFields: never
         Insert: {
           aliases?: string[]
           city_id: number
@@ -339,6 +347,7 @@ export type Database = {
         Row: {
           bio: string | null
           created_at: string
+          driver_details: NonNullable<Json>
           facebook: string | null
           full_name: string
           gender: Database["public"]["Enums"]["profile_gender"] | null
@@ -351,9 +360,11 @@ export type Database = {
           updated_at: string
           verified_at: string | null
         }
+        ComputedFields: never
         Insert: {
           bio?: string | null
           created_at?: string
+          driver_details?: NonNullable<Json>
           facebook?: string | null
           full_name: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -369,6 +380,7 @@ export type Database = {
         Update: {
           bio?: string | null
           created_at?: string
+          driver_details?: NonNullable<Json>
           facebook?: string | null
           full_name?: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -393,6 +405,7 @@ export type Database = {
           ride_id: string
           score: number
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -445,6 +458,7 @@ export type Database = {
           ride_id: string | null
           target_user_id: string | null
         }
+        ComputedFields: never
         Insert: {
           body?: string | null
           created_at?: string
@@ -496,6 +510,7 @@ export type Database = {
           ride_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           author_id: string
           body: string
@@ -534,6 +549,7 @@ export type Database = {
           id: boolean
           last_request_at: string
         }
+        ComputedFields: never
         Insert: {
           id?: boolean
           last_request_at?: string
@@ -568,6 +584,7 @@ export type Database = {
           tags: string[]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           car_id?: string | null
           claimed_by?: string | null
@@ -681,6 +698,7 @@ export type Database = {
           id: string
           token: string
         }
+        ComputedFields: never
         Insert: {
           booking_id: string
           created_at?: string
@@ -747,6 +765,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      valid_driver_details: { Args: { details: Json }; Returns: boolean }
     }
     Enums: {
       booking_status: "requested" | "accepted" | "declined" | "cancelled"
