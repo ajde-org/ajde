@@ -271,3 +271,5 @@ rollback;
 \ir api_privileges.sql
 
 \ir profile_contacts.sql
+
+\ir rls_policies.sql

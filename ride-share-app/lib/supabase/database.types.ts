@@ -721,6 +721,10 @@ export type Database = {
         Args: { message_time: string; target_ride_id: string }
         Returns: boolean
       }
+      can_request_seat: {
+        Args: { requested_seats: number; target_ride_id: string }
+        Returns: boolean
+      }
       can_send_ride_room: { Args: { target_ride_id: string }; Returns: boolean }
       create_ride_offer: {
         Args: {
@@ -731,6 +735,15 @@ export type Database = {
         }
         Returns: Json
       }
+      is_booking_passenger: {
+        Args: { target_booking_id: string }
+        Returns: boolean
+      }
+      is_ride_active: {
+        Args: { before_departure?: boolean; target_ride_id: string }
+        Returns: boolean
+      }
+      is_ride_driver: { Args: { target_ride_id: string }; Returns: boolean }
       profile_contacts: {
         Args: { profile_ids: string[] }
         Returns: {
