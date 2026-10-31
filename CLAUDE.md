@@ -21,9 +21,10 @@ Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `
 ## Data and security
 
 - Change the database only through migration files in `ride-share-app/supabase/migrations/`, never the Supabase SQL editor. Apply them to production with `supabase db push` only after the PR is merged, and never push migrations from an unmerged branch.
-- Every new table enables RLS and gets its policies in the same migration.
+- Every table has RLS. A new table enables it and gets its policies in the same migration, with cases in `supabase/tests/rls_policies.sql`. The access model is in `supabase/DATABASE_MODELS.md`.
+- New tables and sequences start with no API access: grant `anon`/`authenticated` exactly what they need in the same migration. Every new function revokes execute from `public, anon, authenticated` and grants only what it needs; a function meant to be called through the API goes on the allowlist in `supabase/tests/api_privileges.sql`.
 - Test migrations locally (`supabase start`, `supabase db reset --local`, `npm run test:db`), never against production.
-- Contact details (`phone`, `instagram`, `facebook`, `social_url`) are private: read them only through `getContactDetails()` (`lib/profiles/contact-details.ts`), and write them with a plain update or insert, not an upsert.
+- Contact details (`phone`, `instagram`, `facebook`, `social_url`) are private: read them only through `getContactDetails()` (`lib/profiles/contact-details.ts`), and write them with a plain update or insert, not an upsert. A new public `profiles` column needs a SELECT grant in its migration.
 - Use the user's Supabase client so RLS applies. The admin client (`lib/supabase/admin.ts`) is only for server code that must read across users, and returns only what the caller may see.
 - Server-side modules import `server-only`. Secrets never go in `NEXT_PUBLIC_*` variables.
 - Validate input with zod in every server action and API route.
