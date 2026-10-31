@@ -15,9 +15,7 @@ and duplicate executors, so no database or routing network requests occur. The 5
 100 MKD/L petrol price are explicit test fixtures, not claims about current roads or pump prices.
 The calculated estimate is 121 MKD per available seat (364 MKD total / three seats, rounded).
 
-Ordinary `npm test` excludes these provider calls. See
-[the live evidence record](../../../docs/verification/ai-import-live.md) for actual outcomes,
-including a failed first price-check run, observed model identifiers, timings, and limitations.
+Ordinary `npm test` excludes these provider calls.
 
 ## Text-parser fixture evaluation
 

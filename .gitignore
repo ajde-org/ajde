@@ -6,3 +6,6 @@ logos/
 .scratch/
 # Supabase CLI state
 ride-share-app/supabase/.temp/
+
+# local agent config
+.claude/settings.local.json

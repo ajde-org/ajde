@@ -10,13 +10,16 @@ How code is committed and merged in this repository. Applies to human and automa
 
 ## Branches
 
-- `main` is production; `dev` is the integration branch. Never commit directly to either.
-- One ticket per branch, cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
+- `main` is production; `dev` is the integration branch and the default. Both are protected: no direct pushes, force-pushes or deletion.
+- One ticket per branch (small related tickets can share one), cut from `dev`, named `<type>/<ticket>-<short-description>` (e.g. `feat/AJDE-30-magic-link-auth`).
 
 ## Pull requests
 
-- Target `dev`, merge as a squash commit, delete the branch afterwards.
-- Title: a Conventional Commit message with the ticket number, e.g. `feat(auth): add magic link sign in (AJDE-30)`.
+- Every PR needs 1 approval. You can't approve your own.
+- Feature PRs target `dev` and are **squash merged**, so each ticket lands on `dev` as one commit.
+- Releases are a PR from `dev` to `main`, merged with a **merge commit** so every squash commit from `dev` ends up on `main`.
+- Hotfixes: admins can merge a PR without approval when it's urgent. A fix merged straight into `main` must then be merged back into `dev`.
+- Title: `<type>: [<ticket>] <title>`, using the commit types above, e.g. `feat: [AJDE-30] add magic link sign in`. The title becomes the squash commit message on `dev`, with no body: the description stays on the PR, and the ticket ID and PR number in the title link to the details.
 - Description: first what the ticket was about, then what you did to solve it. Short is fine.
 
 ```markdown
@@ -26,4 +29,40 @@ AJDE-30: Sign in depends on Supabase sending emails, which hits its rate limit.
 ## Solution
 - Send sign-in emails through our own SMTP provider
 - Add a callback route that exchanges the magic link token for a session
+```
+
+## Tickets
+
+Tickets live in Linear (team AJDE). Titles are short and imperative, e.g. "Add CI pipeline on GitHub runner".
+
+- Type label: `Feature`, `Bug` or `Improvement`. Area labels: `frontend`, `backend`, `database`, `ai`, `infra` (one or more).
+- Priority: **Urgent** = production is broken, **High** = blocks the v1.0 launch, **Medium** = should be in v1.0, **Low** = nice to have. No estimates for now.
+
+Feature / task:
+
+```markdown
+## Context
+Why this is needed and what problem it solves. 1–3 sentences.
+
+## What needs to be done
+- [ ] …
+
+## Acceptance criteria
+- How we know it's done (behaviour a reviewer can check)
+
+## Notes
+Links, designs, related tickets. Delete if empty.
+```
+
+Bug:
+
+```markdown
+## What happened
+## Expected
+## Steps to reproduce
+1. …
+## Environment
+Production / preview / local · device · browser
+## Screenshots / logs
+Delete if none.
 ```

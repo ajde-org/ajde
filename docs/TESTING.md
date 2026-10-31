@@ -1,4 +1,4 @@
-# Testing and what we tried to break
+# Testing
 
 ## Automated tests
 
@@ -22,17 +22,11 @@ tests check what *our code* does with good, bad and malformed AI output.
 | --- | --- | --- |
 | `npm run eval:parser` | 5 anonymised real group posts ([fixtures/posts](../ride-share-app/fixtures/posts/README.md)) | 5/5 on classification, route, departure, seats and price |
 | `npm run eval:search` | 12 search phrases in English and Macedonian Cyrillic/Latin ([fixtures/search](../ride-share-app/fixtures/search/README.md)) | 12/12 |
-| `npm run test:live -- tests/live/pipeline.live.test.ts` | 1 real landing-page screenshot + 1 synthetic overpriced Skopje → Veles draft | Screenshot read 2/2 runs; checker called `fair_price` in 1 of 2 runs ([log](verification/ai-import-live.md)) |
+| `npm run test:live -- tests/live/pipeline.live.test.ts` | 1 real landing-page screenshot + 1 synthetic overpriced Skopje → Veles draft | Screenshot read 2/2 runs; checker called `fair_price` in 1 of 2 runs |
 | `npx tsx scripts/evaluate-offers.ts` | 4 multilingual ride descriptions incl. an outbound + return trip | 4/4 |
 
 Each run uses a fixed clock so "tomorrow" and "Friday" give repeatable answers. These are small
 curated sets: a regression signal, not a claim about production accuracy.
-
-## Outside test run
-
-We gave another hackathon team a test account on the live deployment
-([ride-share-app-delta.vercel.app](https://ride-share-app-delta.vercel.app)) and collected their
-feedback.
 
 ## What we tried, what broke, what we fixed
 
@@ -54,13 +48,9 @@ feedback.
 | A browser in another timezone (Los Angeles) | Departure times are still entered and saved in Skopje time (browser check in `scripts/verify-offers.cjs`). |
 | Signed-out or non-student users hitting the APIs | 401/403 with a message; the student domain is checked on sign-up, on sign-in and again after the session is created. |
 
-Review findings and their fixes are written up in [docs/verification/](verification/). Bugs found
-while building show up in the history as a `fix(...)` commit following the feature commit.
-
 ## Not tested / known gaps
 
 - Languages other than Macedonian and English.
 - Load: the public OSRM server is rate-limited to one request per 1.2 s for the whole app.
-- A driver approving a booking at the exact moment the ride departs or is completed
-  ([ticket 06](tickets/21-09-pero/06-atomic-booking-decisions.md), deferred).
+- A driver approving a booking at the exact moment the ride departs or is completed (deferred).
 - Row-level security only covers messages and ratings (see README known issues).

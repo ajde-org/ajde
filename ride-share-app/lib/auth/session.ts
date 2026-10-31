@@ -4,6 +4,7 @@ import { phoneSchema } from '@/lib/profiles/contact'
 import type { User } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 
+import { getContactDetails } from '@/lib/profiles/contact-details'
 import { createClient } from '@/lib/supabase/server'
 
 export type ProfileCompletion = {
@@ -21,17 +22,21 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function getProfileCompletion(userId: string): Promise<ProfileCompletion> {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, photo_url, university, phone')
-    .eq('id', userId)
-    .maybeSingle()
+  const [{ data, error }, contacts] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, photo_url, university')
+      .eq('id', userId)
+      .maybeSingle(),
+    getContactDetails(supabase, [userId]),
+  ])
 
-  if (error || !data) return { complete: false, profileId: null }
+  if (error || contacts.error || !data) return { complete: false, profileId: null }
+  const phone = contacts.data.get(userId)?.phone
 
   return {
     complete: Boolean(
-      data.full_name.trim() && data.photo_url.trim() && data.university.trim() && phoneSchema.safeParse(data.phone).success,
+      data.full_name.trim() && data.photo_url.trim() && data.university.trim() && phoneSchema.safeParse(phone).success,
     ),
     profileId: data.id,
   }
