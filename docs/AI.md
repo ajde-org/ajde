@@ -61,6 +61,11 @@ filters reach the feed query. `explainMatch` receives a bounded batch of server-
 ride facts and the parsed search context. Invalid, timed-out, missing-key, or unsupported responses
 fall back to deterministic explanations; AI failure never removes the underlying ride results.
 
+The explanation endpoint reads the validated `ajde_locale` cookie and loads city names in that language.
+The model is instructed to use English or Macedonian Cyrillic; deterministic fallback messages use the
+same locale with Skopje dates, MKD prices and plural forms. Localized results are private/no-store,
+and the client request key includes locale so a late response cannot restore an old-language result.
+
 ## Describing ride offers (`lib/ai/parse-offer-description.ts`)
 
 On `/rides/new` a driver types one or several trips the way they would in a group chat ("Skopje →
@@ -76,6 +81,15 @@ about pickup?"). The model gets the full room transcript the member is allowed t
 answer with source excerpts from real messages, so a newly accepted passenger can catch up on
 what was agreed before they joined. Answers are private, marked out of date when new messages
 arrive, rate-limited, and can be switched off with `CHAT_AI_ENABLED=false`.
+
+Generated chat item text now follows the selected UI language, independently of the transcript or
+question language. Source excerpts, author names and message IDs remain unchanged. A language switch
+hides an existing answer until the member explicitly refreshes it; the question stays editable and
+switching alone makes no paid request. Fixed status/failure text is translated from validated codes.
+
+The synthetic-data locale evaluation (`tests/live/i18n.live.test.ts`) passed English and Macedonian
+cases for both explanation and cited-answer generation. It makes four paid provider calls; exact
+cost was not exposed by the evaluation. This is behavioral evidence, not human language approval.
 
 ## Road distance (not AI)
 

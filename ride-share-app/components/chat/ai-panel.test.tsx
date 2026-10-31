@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ChatAiPanel } from "./ai-panel";
 import type { AiAnswer } from "@/lib/chat/ai-contract";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { en } from "@/lib/i18n/messages/en";
+import { mk } from "@/lib/i18n/messages/mk";
 const rideId = "94000000-0000-4000-8000-000000000001";
 const source = { id: "94000000-0000-4000-8000-000000000010", created_at: "2026-09-21T12:00:00.000001Z", author: "Ana", body: "Earlier pickup agreement" };
 const answer: AiAnswer = { mode: "summary", insufficientEvidence: false,
@@ -15,6 +18,19 @@ HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); 
 beforeEach(() => { vi.stubGlobal("matchMedia", () => ({ matches: true })); denied.mockReset(); fetcher.mockReset().mockResolvedValue(Response.json({ ok: true, value: answer })); vi.stubGlobal("fetch", fetcher); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const mount = () => render(<ChatAiPanel rideId={rideId} latest={source} onUnavailable={denied} />);
+it("hides an old-language answer after switching while retaining the typed question", async () => {
+  const panel = <ChatAiPanel rideId={rideId} latest={source} onUnavailable={denied} />;
+  const view = render(<I18nProvider locale="en" messages={en}>{panel}</I18nProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Ask AI" }));
+  fireEvent.change(screen.getByLabelText("Your question"), { target: { value: "My original question" } });
+  fireEvent.click(screen.getAllByRole("button", { name: "Summarize chat" })[1]);
+  await screen.findByText("Pickup at the station");
+  view.rerender(<I18nProvider locale="mk" messages={mk}>{panel}</I18nProvider>);
+  expect(screen.queryByText("Pickup at the station")).toBeNull();
+  expect(screen.getByText(mk["chatAi.languageChanged"])).toBeTruthy();
+  expect(screen.getByLabelText(mk["chatAi.question"])).toHaveProperty("value", "My original question");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 it("only calls AI on request, shows full-history count and real source text", async () => {
   mount(); expect(fetcher).not.toHaveBeenCalled();
   fireEvent.click(screen.getAllByRole("button", { name: "Summarize chat" })[0]);

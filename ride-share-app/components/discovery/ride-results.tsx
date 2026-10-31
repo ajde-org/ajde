@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 
 import { RideCard } from "@/components/ride-card";
@@ -17,11 +18,13 @@ export function RideResults({
   rides: RideView[];
   searchContext: SearchQueryResult | null;
 }) {
+  const { locale } = useI18n();
   const [loaded, setLoaded] = useState<{
     requestKey: string;
     explanations: Record<string, string>;
   }>({ requestKey: "", explanations: {} });
   const requestKey = JSON.stringify({
+    locale,
     rideIds: rides.slice(0, MAX_EXPLAINED_RIDES).map((ride) => ride.id),
     searchContext,
   });

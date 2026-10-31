@@ -1,3 +1,6 @@
+import type { Locale } from "@/lib/i18n/config";
+import { formatDateTime, formatMoney, formatNumber, plural } from "@/lib/i18n/format";
+import { createTranslator } from "@/lib/i18n/translate";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
@@ -35,6 +38,7 @@ export type ExplainSearchPrompt = {
 
 type ModelExplanation = { rideId: string; explanation: string };
 export type ExplanationModelRunner = (input: {
+  locale: Locale;
   rides: readonly ExplainRidePrompt[];
   search: ExplainSearchPrompt;
 }) => Promise<readonly ModelExplanation[]>;
@@ -45,12 +49,13 @@ export async function explainMatch(
   rides: readonly ExplainRideFact[],
   context: SearchQueryResult,
   modelRunner: ExplanationModelRunner = runOpenAIExplanationModel,
+  locale: Locale = "en",
 ) {
   if (rides.length === 0) return [];
 
   let proposed: readonly ModelExplanation[] = [];
   try {
-    proposed = await modelRunner({ rides: rides.map(ridePrompt), search: searchPrompt(rides, context) });
+    proposed = await modelRunner({ locale, rides: rides.map(ridePrompt), search: searchPrompt(rides, context) });
   } catch {
     // Explanations are optional. Factual local templates keep the feed useful
     // when the provider is missing, slow, or unavailable.
@@ -64,14 +69,16 @@ export async function explainMatch(
   for (const item of proposed) {
     if (!validRideIds.has(item.rideId) || counts.get(item.rideId) !== 1) continue;
     const ride = rides.find((candidate) => candidate.rideId === item.rideId);
-    if (ride && explanationUsesSupportedFacts(item.explanation, ride, context)) {
+    if (ride && explanationUsesSupportedFacts(item.explanation, ride, context, locale)) {
       accepted.set(item.rideId, item.explanation.trim());
     }
   }
 
+  const messages = locale === "mk" ? (await import("@/lib/i18n/messages/mk")).mk : (await import("@/lib/i18n/messages/en")).en;
+  const t = createTranslator(messages);
   return rides.map((ride) => ({
     rideId: ride.rideId,
-    explanation: accepted.get(ride.rideId) ?? factualTemplate(ride, context),
+    explanation: accepted.get(ride.rideId) ?? t(`explain.${isFreeRide(ride.pricePerSeatMkd) ? "free" : "paid"}.${plural(locale, ride.seatsAvailable)}`, { origin: ride.originName, destination: ride.destinationName, date: formatDateTime(locale, ride.departureAt), count: formatNumber(locale, ride.seatsAvailable), price: formatMoney(locale, ride.pricePerSeatMkd ?? 0) }),
   }));
 }
 
@@ -126,9 +133,10 @@ const CONTRADICTIONS = /\b(?:not|no longer|doesn['’]?t|isn['’]?t|however|but
 // Internal identifiers and raw field names leak when the model echoes structured input.
 const INTERNAL_DETAILS = /\(\s*\d+\s*\)|\b(?:ids?|originId|destinationId|departureAfter|departureBefore|timeAfter|timeBefore|dateFrom|dateTo|utc|gmt)\b|\d{4}-\d{2}-\d{2}T/i;
 
-function explanationUsesSupportedFacts(text: string, ride: ExplainRideFact, context: SearchQueryResult) {
+function explanationUsesSupportedFacts(text: string, ride: ExplainRideFact, context: SearchQueryResult, locale: Locale) {
   const normalized = text.trim();
   if (
+    (locale === "mk" && (!/[а-яѓќљњџѕ]/i.test(normalized) || /безбед|доверлив|гарант|проверен|жени|мажи|оценк|не одговара|предоцна|прерано/i.test(normalized))) ||
     normalized.length < 8 ||
     normalized.length > 180 ||
     UNSUPPORTED_CLAIMS.test(normalized) ||
@@ -150,25 +158,6 @@ function explanationUsesSupportedFacts(text: string, ride: ExplainRideFact, cont
     .some((value) => lower.includes(value));
 }
 
-function factualTemplate(ride: ExplainRideFact, context: SearchQueryResult) {
-  const reasons: string[] = [];
-  if (context.originId === ride.originCityId) reasons.push(`leaves from ${ride.originName}`);
-  if (context.destinationId === ride.destinationCityId) reasons.push(`goes to ${ride.destinationName}`);
-  if (context.requestedSeats !== null) {
-    reasons.push(`${ride.seatsAvailable} seat${ride.seatsAvailable === 1 ? "" : "s"} available`);
-  }
-  if (describeDates(context) || describeDailyTime(context)) {
-    reasons.push(`departs ${formatDeparture(ride.departureAt)}`);
-  }
-  if (reasons.length === 0) {
-    reasons.push(`${ride.originName} to ${ride.destinationName}`, `departs ${formatDeparture(ride.departureAt)}`);
-  }
-  if (reasons.length < 3) {
-    reasons.push(isFreeRide(ride.pricePerSeatMkd) ? "is free of charge" : `${ride.pricePerSeatMkd} MKD per seat`);
-  }
-  return `Matches because it ${reasons.join(", ")}.`;
-}
-
 const dateFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short" });
 const clockFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
@@ -185,7 +174,7 @@ function formatDeparture(value: string) {
   return `${formatDate(value)} at ${formatClock(value)}`;
 }
 
-async function runOpenAIExplanationModel({ rides, search }: Parameters<ExplanationModelRunner>[0]) {
+export async function runOpenAIExplanationModel({ rides, search, locale }: Parameters<ExplanationModelRunner>[0]) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("OpenAI is not configured.");
   const client = new OpenAI({ apiKey, timeout: 10_000 });
@@ -197,6 +186,7 @@ async function runOpenAIExplanationModel({ rides, search }: Parameters<Explanati
       {
         role: "system",
         content:
+          `Write the explanation in ${locale === "mk" ? "Macedonian using Cyrillic" : "English"}. Keep ride IDs unchanged. ` +
           "Every ride below has already been checked by the app and matches the passenger's search. " +
           "Write one short sentence per ride (under 150 characters) saying how it fits the search: " +
           "route, departure day and time, and, when useful, seats or price. All times are local " +

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { explainMatch, type ExplainRideFact } from "./explain-match";
 import {
   explanationRideMatchesContext,
+  matchExplanationResponseSchema,
   shouldApplyExplanationResponse,
 } from "./explain-match-schema";
 import type { SearchQueryResult } from "./search-query-schema";
@@ -63,7 +64,7 @@ describe("batched match explanations", () => {
       explanation: "This ride goes to Bitola.",
     }]);
     expect(result[0]?.rideId).toBe(rides[0]?.rideId);
-    expect(result[0]?.explanation).toContain("goes to Bitola");
+    expect(result[0]?.explanation).toContain("to Bitola");
   });
 
   it("rejects duplicate explanations for the same ride", async () => {
@@ -153,6 +154,7 @@ describe("explanations for daily time windows", () => {
     let sent: unknown;
     await explainMatch([gostivarRide], afterFive, async (input) => { sent = input; return []; });
     expect(sent).toEqual({
+      locale: "en",
       search: { from: "Gostivar", to: "Skopje", dates: null, dailyTime: "at or after 17:00" },
       rides: [{ rideId: gostivarRide.rideId, from: "Gostivar", to: "Skopje", departs: "Sun 27 Sept at 17:00", seatsAvailable: 3, price: "250 MKD per seat" }],
     });
@@ -173,7 +175,9 @@ describe("explanations for daily time windows", () => {
     ["an internal field name", "Gostivar to Skopje, after your timeAfter."],
   ])("replaces %s with the factual template", async (_, explanation) => {
     const [result] = await explainMatch([gostivarRide], afterFive, answer(explanation));
-    expect(result.explanation).toBe("Matches because it leaves from Gostivar, goes to Skopje, departs Sun 27 Sept at 17:00.");
+    expect(result.explanation).toContain("Gostivar to Skopje");
+    expect(result.explanation).toContain("17:00");
+    expect(result.explanation).not.toContain("15:00");
   });
 
   it("keeps a correct explanation that uses the local time", async () => {
@@ -198,6 +202,21 @@ describe("free rides in explanations", () => {
     const [result] = await explainMatch([free], { ...context, requestedSeats: null, departureAfter: null, departureBefore: null },
       async (input) => { sent = input; return []; });
     expect(sent?.rides[0].price).toBe("free of charge");
-    expect(result.explanation).toBe("Matches because it goes to Bitola, is free of charge.");
+    expect(result.explanation).toContain("Skopje to Bitola");
+    expect(result.explanation).toContain("free of charge");
   });
+});
+
+it.each([0, 1, 2, 21])("localizes Macedonian fallback facts with %i seats without changing IDs", async seats => {
+  const ride = { ...rides[0], originName: "Скопје", destinationName: "Битола", seatsAvailable: seats };
+  const result = await explainMatch([ride], context, async input => {
+    expect(input.locale).toBe("mk");
+    expect(input.rides[0].rideId).toBe(ride.rideId);
+    throw new Error("private provider failure");
+  }, "mk");
+  expect(result[0].rideId).toBe(ride.rideId);
+  expect(result[0].explanation).toContain("Скопје до Битола");
+  expect(result[0].explanation).toContain("18:00");
+  expect(result[0].explanation).not.toMatch(/Matches|private provider/);
+  expect(matchExplanationResponseSchema.safeParse({ explanations: result }).success).toBe(true);
 });

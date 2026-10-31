@@ -1,3 +1,5 @@
+import { getLocale } from "@/lib/i18n/server";
+import { localizedName } from "@/lib/i18n/locations";
 import {
   explainMatch,
   type ExplainRideFact,
@@ -10,6 +12,7 @@ import { isAllowedStudentEmail } from "@/lib/auth/email-domain";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
+  const locale = await getLocale();
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,11 +53,11 @@ export async function POST(request: Request) {
   const eligible = rides.filter((ride) => explanationRideMatchesContext(ride, input.data.context));
   const cityIds = [...new Set(eligible.flatMap((ride) => [ride.origin_city_id, ride.dest_city_id]))];
   const { data: cities, error: cityError } = cityIds.length
-    ? await supabase.from("cities").select("id, name_en").in("id", cityIds)
+    ? await supabase.from("cities").select("id, name_en, name_mk").in("id", cityIds)
     : { data: [], error: null };
   if (cityError) return Response.json({ error: "Route facts could not be loaded." }, { status: 500 });
 
-  const cityNames = new Map((cities ?? []).map((city) => [city.id, city.name_en]));
+  const cityNames = new Map((cities ?? []).map((city) => [city.id, localizedName(city, locale)]));
   const byId = new Map(eligible.map((ride) => [ride.id, ride]));
   const facts: ExplainRideFact[] = input.data.rideIds.flatMap((rideId) => {
     const ride = byId.get(rideId);
@@ -74,5 +77,5 @@ export async function POST(request: Request) {
     }];
   });
 
-  return Response.json({ explanations: await explainMatch(facts, input.data.context) });
+  return Response.json({ explanations: await explainMatch(facts, input.data.context, undefined, locale) }, { headers: { "Cache-Control": "private, no-store" } });
 }
