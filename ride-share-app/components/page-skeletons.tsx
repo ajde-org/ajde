@@ -36,9 +36,10 @@ export function RideCardSkeleton() {
 }
 
 export function RideFeedSkeleton() {
+  const { t } = useI18n();
   return <SkeletonMain label="loading.rides" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
-    <h1 className="page-heading">Find a ride</h1>
-    <p className="mt-4 text-slate-500">A seat, some company, and a way home.</p>
+    <h1 className="page-heading">{t("discovery.title")}</h1>
+    <p className="mt-4 text-slate-500">{t("discovery.intro")}</p>
     <Bone className="mt-10 h-5 w-64" />
     <div className="mt-4 flex gap-4"><Bone className="h-[52px] flex-1 rounded-xl" /><Bone className="h-[52px] w-28 rounded-[.9rem]" /></div>
     <Bone className="mt-6 h-16 rounded-[1.25rem]" />

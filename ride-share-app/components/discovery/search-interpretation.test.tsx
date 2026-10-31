@@ -25,7 +25,8 @@ it("labels overnight windows and manual overrides", () => {
 
 it("formats Macedonian dates and translates warnings from saved interpretations", () => {
   render(<SearchInterpretation result={{ ...result, dateFrom: "2026-09-22", warnings: [{ field: "origin", code: "needs_review", message: "Old English generated warning" }] }} cityNames={new Map([[8, "Охрид"]])} manualOverride />, { locale: "mk" });
-  expect(screen.getByText(/До Охрид.*22\.9\.2026.*16:00–18:00 секој ден/)).toBeTruthy();
+  const date = new Intl.DateTimeFormat("mk-MK", { dateStyle: "medium", timeZone: "Europe/Skopje" }).format(new Date("2026-09-22T12:00:00Z"));
+  expect(screen.getByText(content => content.includes(`До Охрид · ${date} · 16:00–18:00 секој ден`))).toBeTruthy();
   expect(screen.getByText(mk["search.manual"])).toBeTruthy();
   expect(screen.getByText(`• ${mk["search.warning.needs_review"]}`)).toBeTruthy();
   expect(screen.queryByText("Old English generated warning")).toBeNull();

@@ -123,7 +123,7 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
             htmlFor="photo"
             className="block text-sm font-semibold text-slate-800"
           >
-            {t("onboarding.photo")} <span className="text-rose-600">*</span>
+            {t("onboarding.photo")} <span className="text-rose-700">*</span>
           </label>
           <input
             id="photo"
@@ -251,7 +251,7 @@ function Field({ defaultValue, type = "text", label, name, minLength, maxLength,
         htmlFor={name}
         className="block text-sm font-semibold text-slate-800"
       >
-        {label} {required ? <span className="text-rose-600">*</span> : null}
+        {label} {required ? <span className="text-rose-700">*</span> : null}
       </label>
       <input
         id={name}

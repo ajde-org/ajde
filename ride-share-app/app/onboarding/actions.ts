@@ -2,7 +2,7 @@
 
 import 'server-only'
 import { z } from 'zod'
-import type { MessageKey } from '@/lib/i18n/messages/en'
+import type { StaticMessageKey } from '@/lib/i18n/translate'
 import { contactErrorKey } from '@/lib/profiles/contact-errors'
 import { revalidatePath } from 'next/cache'
 import { contactSchema } from '@/lib/profiles/contact'
@@ -25,7 +25,7 @@ export type SaveProfileResult =
   | { ok: true }
   | { ok: false; messageKey: ProfileErrorKey }
 
-export type ProfileErrorKey = Extract<MessageKey, `onboarding.${string}` | `contact.${string}`>
+export type ProfileErrorKey = Extract<StaticMessageKey, `onboarding.${string}` | `contact.${string}`>
 
 const genders = new Set<Gender>(['woman', 'man', 'non_binary', 'prefer_not_to_say'])
 

@@ -2,6 +2,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { en } from "@/lib/i18n/messages/en";
+import { mk } from "@/lib/i18n/messages/mk";
 
 const mocks = vi.hoisted(() => ({ saveCar: vi.fn(), createRide: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("./actions", () => ({ saveCar: mocks.saveCar, createRide: mocks.createRide }));
@@ -80,14 +83,17 @@ describe("ride car selection", () => {
   });
 
   it("retains entered car details when saving fails", async () => {
-    mocks.saveCar.mockResolvedValue({ ok: false, message: "Could not save car." });
-    render(<OfferWorkspace {...props} cars={[]} />);
+    mocks.saveCar.mockResolvedValue({ ok: false, message: "form.carSaveFailed" });
+    const view = render(<I18nProvider locale="en" messages={en}><OfferWorkspace {...props} cars={[]} /></I18nProvider>);
     fireEvent.change(screen.getByLabelText("Model"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Color (optional)"), { target: { value: "Blue" } });
     fireEvent.change(screen.getByLabelText("Total passenger seats"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Save car" }));
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Could not save car.");
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "We could not save this car. Review its details and try again.");
     expect(screen.getByLabelText("Color (optional)")).toHaveProperty("value", "Blue");
+    view.rerender(<I18nProvider locale="mk" messages={mk}><OfferWorkspace {...props} cars={[]} /></I18nProvider>);
+    expect(screen.getByRole("alert")).toHaveProperty("textContent", mk["form.carSaveFailed"]);
+    expect(screen.getByLabelText(mk["form.color"])).toHaveProperty("value", "Blue");
   });
 
   it("makes an inline saved car available to sibling drafts and preserves its selection on recovery", async () => {

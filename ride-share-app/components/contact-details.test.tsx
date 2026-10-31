@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@/lib/i18n/testing";
 import { afterEach, expect, it } from "vitest";
 import { ContactDetails } from "./contact-details";
 afterEach(cleanup);

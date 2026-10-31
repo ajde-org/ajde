@@ -55,8 +55,8 @@ afterEach(() => vi.useRealTimers());
 
 describe("completeRide", () => {
   it("lets the driver complete a departed ride and safely retry", async () => {
-    expect(await completeRide(fixture.ride.id)).toEqual({ success: true, message: "Ride marked completed." });
-    expect(await completeRide(fixture.ride.id)).toEqual({ success: true, message: "This ride is already completed." });
+    expect(await completeRide(fixture.ride.id)).toEqual({ success: true, message: "completion.done" });
+    expect(await completeRide(fixture.ride.id)).toEqual({ success: true, message: "completion.already" });
   });
   it.each([null, "other-driver"])("rejects completion by %s", async (userId) => {
     fixture.userId = userId;
@@ -84,7 +84,7 @@ describe("completeRide", () => {
   it("prevents approving a pending booking after completion", async () => {
     fixture.booking.seats = 1;
     await completeRide(fixture.ride.id);
-    await expect(decideBooking(fixture.booking.id, "accepted")).rejects.toThrow("This ride is no longer accepting booking decisions.");
+    await expect(decideBooking(fixture.booking.id, "accepted")).rejects.toThrow("tripAction.closed");
   });
   it("preserves accepted bookings and seat counts when completing", async () => {
     fixture.booking.status = "accepted";
@@ -100,7 +100,7 @@ describe("cancelRide", () => {
 
     expect(await cancelRide(fixture.ride.id, false)).toEqual({
       success: true,
-      message: "Ride cancelled. Confirmed passengers will see the cancellation in My trips.",
+      message: "cancel.done",
     });
     expect(fixture.ride.status).toBe("cancelled");
   });
@@ -112,7 +112,7 @@ describe("cancelRide", () => {
 
     expect(await cancelRide(fixture.ride.id, false)).toEqual({
       success: false,
-      message: "This ride is full. Confirm that you understand passengers will need to make other plans.",
+      message: "cancel.needsAck",
     });
     expect(fixture.ride.status).toBe("full");
     expect(await cancelRide(fixture.ride.id, true)).toMatchObject({ success: true });
@@ -138,21 +138,21 @@ describe("booking decisions", () => {
   it.each(["draft", "cancelled", "completed"])("rejects decisions on a %s ride", async (status) => {
     fixture.ride.status = status;
     fixture.ride.departure_at = "2026-09-22T12:00:00Z";
-    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("no longer accepting booking decisions");
+    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("tripAction.closed");
   });
   it("rejects decisions when departure has arrived", async () => {
     fixture.ride.departure_at = "2026-09-21T12:00:00Z";
-    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("no longer accepting booking decisions");
+    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("tripAction.closed");
   });
   it.each(["accepted", "declined"] as const)("still permits an eligible %s decision", async (decision) => {
     fixture.ride.departure_at = "2026-09-22T12:00:00Z";
     fixture.booking.seats = 1;
-    await expect(decideBooking(fixture.booking.id, decision)).rejects.toThrow(`success=Request ${decision}.`);
+    await expect(decideBooking(fixture.booking.id, decision)).rejects.toThrow(`success=tripAction.${decision}`);
   });
   it("preserves capacity and ownership checks", async () => {
     fixture.ride.departure_at = "2026-09-22T12:00:00Z";
-    await expect(decideBooking(fixture.booking.id, "accepted")).rejects.toThrow("no longer has enough available seats");
+    await expect(decideBooking(fixture.booking.id, "accepted")).rejects.toThrow("tripAction.noSeats");
     fixture.userId = "other-driver";
-    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("cannot manage this request");
+    await expect(decideBooking(fixture.booking.id, "declined")).rejects.toThrow("tripAction.forbidden");
   });
 });

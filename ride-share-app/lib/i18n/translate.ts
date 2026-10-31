@@ -15,3 +15,13 @@ export function createTranslator(messages: Messages) {
 }
 
 export type Translator = ReturnType<typeof createTranslator>;
+
+export type StaticMessageKey = { [Key in MessageKey]: ParametersIn<(typeof en)[Key]> extends never ? Key : never }[MessageKey];
+
+/** Action/API notices are untrusted strings. Only render complete, known catalog messages. */
+export function createNoticeTranslator(messages: Messages) {
+  return (code: string, fallback: StaticMessageKey): string => {
+    const value = Object.hasOwn(messages, code) ? messages[code as MessageKey] : undefined;
+    return value && !/\{\w+\}/.test(value) ? value : messages[fallback];
+  };
+}

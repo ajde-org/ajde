@@ -126,6 +126,20 @@ it("preserves manual fields and description on interpretation failure and offers
   expect(screen.getByLabelText("Describe your rides")).toHaveProperty("value", "skp bt");
 });
 
+it("shows Macedonian offer notices and keeps the author's description after an API failure", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "Raw provider error" }, { status: 502 })));
+  render(<OfferWorkspace {...props} initialDraft={{ ...blank, warnings: [{ field: "departureAt", code: "needs_review", message: "Old English generated warning" }] }} />, { locale: "mk" });
+  expect(screen.getByText("Еден податок треба да се провери. Провери го формуларот пред објавување.")).toBeTruthy();
+  expect(screen.queryByText("Old English generated warning")).toBeNull();
+  const description = screen.getByLabelText("Опиши ги патувањата");
+  fireEvent.change(description, { target: { value: "Скопје до Битола во сабота" } });
+  fireEvent.click(screen.getByRole("button", { name: "Пополни формулар" }));
+  await screen.findByText("Описот не можеше да се обработи. Обиди се повторно или рачно пополни го формуларот.");
+  expect(screen.queryByText("Raw provider error")).toBeNull();
+  expect(description).toHaveProperty("value", "Скопје до Битола во сабота");
+  expect(screen.getByRole("button", { name: "Обиди се повторно" })).toBeTruthy();
+});
+
 it("does not overwrite edits made while interpretation was in flight", async () => {
   let finish: (response: Response) => void = () => {};
   vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })));
@@ -224,12 +238,12 @@ it("handles corrupt and unavailable storage without claiming recovery or losing 
 });
 
 it("keeps a failed publication editable and redirects only after a successful retry", async () => {
-  publish.mockResolvedValueOnce({ status: "error", message: "Please retry", fieldErrors: {} })
+  publish.mockResolvedValueOnce({ status: "error", message: "form.saveFailed", fieldErrors: {} })
     .mockResolvedValueOnce({ status: "success", message: "Published", fieldErrors: {}, rideId: "30000000-0000-4000-8000-000000000003" });
   render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Notes"), { target: { value: "Keep this on failure" } });
   fireEvent.submit(screen.getByRole("button", { name: "Publish ride" }).closest("form")!);
-  await screen.findByText("Please retry");
+  await screen.findByText("We could not save this ride. Retry; the same draft will not create a duplicate.");
   expect(screen.getAllByRole("tab")).toHaveLength(1);
   expect(screen.getByLabelText("Notes")).toHaveProperty("value", "Keep this on failure");
   expect(router.replace).not.toHaveBeenCalled();

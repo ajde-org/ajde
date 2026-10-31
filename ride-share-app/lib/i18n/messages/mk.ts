@@ -1,12 +1,30 @@
+import { errorsMk } from "./errors-mk";
 import { onboardingMk } from "./onboarding-mk";
 import { detailMk } from "./detail-mk";
 import { discoveryMk } from "./discovery-mk";
 import type { Messages } from "./en";
 import { aboutMk } from "./about-mk";
 import { authMk } from "./auth-mk";
+import { offerMk } from "./offer-mk";
+import { rideFormMk } from "./ride-form-mk";
+import { importFlowMk } from "./import-flow-mk";
+import { tripsMk } from "./trips-mk";
+import { profileFlowMk } from "./profile-flow-mk";
+import { chatMk } from "./chat-mk";
+import { sharingMk } from "./sharing-mk";
+import { explanationsMk } from "./explanations-mk";
 
 // Draft Macedonian copy. Human approval is tracked in docs/plans/AJDE-29-translation-review.md.
 export const mk = {
+  ...errorsMk,
+  ...rideFormMk,
+  ...importFlowMk,
+  ...tripsMk,
+  ...profileFlowMk,
+  ...chatMk,
+  ...sharingMk,
+  ...explanationsMk,
+  ...offerMk,
   ...detailMk,
   ...discoveryMk,
   ...onboardingMk,
@@ -57,7 +75,7 @@ export const mk = {
   "landing.greener": "Позелено.",
   "landing.rideHome": "Твојот превоз до дома.",
   "landing.intro":
-    "Пополни ги слободните седишта на пат до дома. Подели ги трошоците за гориво, запознај други студенти и намали го загадувањето со секое патување.",
+    "Пополни ги слободните седишта на патот до дома. Подели ги трошоците за гориво, запознај други студенти и намали го загадувањето со секое патување.",
   "landing.where": "Каде патуваш?",
   "landing.from": "Од",
   "landing.to": "До",
@@ -80,11 +98,7 @@ export const mk = {
   "landing.pickedUp": "+2 патници се приклучија",
   "common.saving": "Се зачувува…",
   "common.loading": "Се вчитува…",
-  "common.error": "Настана грешка",
-  "common.loadFailed": "Страницата не може да се вчита",
-  "common.retry": "Обидете се повторно",
-  "common.home": "Назад на почетната страница",
-  "common.connection": "Проверете ја интернет-врската и обидете се повторно.",
+
   "common.notFound": "Страницата не е пронајдена",
   "common.notFoundBody": "Оваа страница не постои или повеќе не е достапна.",
   "loading.rides": "Се вчитуваат понудите за превоз…",

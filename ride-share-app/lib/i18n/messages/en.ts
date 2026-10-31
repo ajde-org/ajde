@@ -1,10 +1,28 @@
+import { errorsEn } from "./errors-en";
 import { onboardingEn } from "./onboarding-en";
 import { detailEn } from "./detail-en";
 import { discoveryEn } from "./discovery-en";
 import { aboutEn } from "./about-en";
 import { authEn } from "./auth-en";
+import { offerEn } from "./offer-en";
+import { rideFormEn } from "./ride-form-en";
+import { importFlowEn } from "./import-flow-en";
+import { tripsEn } from "./trips-en";
+import { profileFlowEn } from "./profile-flow-en";
+import { chatEn } from "./chat-en";
+import { sharingEn } from "./sharing-en";
+import { explanationsEn } from "./explanations-en";
 
 export const en = {
+  ...errorsEn,
+  ...rideFormEn,
+  ...importFlowEn,
+  ...tripsEn,
+  ...profileFlowEn,
+  ...chatEn,
+  ...sharingEn,
+  ...explanationsEn,
+  ...offerEn,
   ...detailEn,
   ...discoveryEn,
   ...onboardingEn,
@@ -75,11 +93,7 @@ export const en = {
   "landing.pickedUp": "+2 riders picked up",
   "common.saving": "Saving…",
   "common.loading": "Loading…",
-  "common.error": "Something went wrong",
-  "common.loadFailed": "We could not load this page",
-  "common.retry": "Try again",
-  "common.home": "Back to home",
-  "common.connection": "Check your connection and try again.",
+
   "common.notFound": "Page not found",
   "common.notFoundBody": "This page does not exist or is no longer available.",
   "loading.rides": "Loading rides…",

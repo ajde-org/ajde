@@ -1,14 +1,9 @@
 export const detailMk = {
-  "profile.connectionError": "Проблем со врската",
-  "profile.loadFailed": "Профилот не може да се вчита",
-  "profile.unavailable":
-    "Услугата можеби е привремено недостапна. Твојата сесија и податоци се зачувани.",
   "profile.label": "Профил",
   "profile.notFound": "Студентот не е пронајден",
   "profile.notFoundBody":
     "Овој профил можеби сè уште не постои или веќе не е достапен.",
-  "chat.room": "Соба за разговор за патувањето",
-  "chat.loadFailed": "Собата за разговор не може да се вчита",
+
   "tag.flexible_pickup": "Поаѓање по договор",
   "tag.luggage_space": "Место за багаж",
   "tag.music": "Музиката е добредојдена",

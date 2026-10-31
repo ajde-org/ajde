@@ -24,7 +24,7 @@ it("publishes through the atomic operation and returns the saved ride without na
 it("saves a private draft through the same duplicate-safe operation", async () => {
   const data = form(); data.set("intent", "save_draft");
   db.rpc.mockResolvedValueOnce({ data: { rideId, carId, status: "draft" }, error: null });
-  expect(await createRide(idle, data)).toMatchObject({ status: "success", message: "Ride saved as a draft.", rideId });
+  expect(await createRide(idle, data)).toMatchObject({ status: "success", message: "form.draftSaved", rideId });
   expect(db.rpc.mock.calls[0][1].p_publish).toBe(false);
 });
 

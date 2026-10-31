@@ -1,4 +1,6 @@
 import { ContactDetails } from "@/components/contact-details";
+import { getI18n } from "@/lib/i18n/server";
+import { formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
 
 import { SubmitButton } from "@/components/submit-button";
@@ -15,14 +17,16 @@ import { decideBooking } from "../actions";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
 import { tripStatusFilters, type TripStatusFilter } from "./trip-tabs";
 
-const emptyStates: Record<TripStatusFilter, { title: string; body: string }> = {
-  active: { title: "No active rides", body: "Have a spare seat? Give someone a way home." },
-  completed: { title: "No completed rides yet", body: "Rides you finish will show up here." },
-  cancelled: { title: "No cancelled rides", body: "Rides you cancel will show up here." },
-  all: { title: "No rides offered yet", body: "Have a spare seat? Give someone a way home." },
-};
+
 
 export async function DriverRides({ userId, filter }: { userId: string; filter: TripStatusFilter }) {
+  const { locale, t } = await getI18n();
+  const emptyStates: Record<TripStatusFilter, { title: string; body: string }> = {
+  active: { title: t("trips.noActiveRides"), body: t("trips.spareSeat") },
+  completed: { title: t("trips.noCompletedRides"), body: t("trips.finishedHere") },
+  cancelled: { title: t("trips.noCancelledRides"), body: t("trips.cancelledHere") },
+  all: { title: t("trips.noOffers"), body: t("trips.spareSeat") },
+};
   const supabase = await createClient();
   const { data: allRides, error } = await supabase
     .from("rides")
@@ -41,7 +45,7 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
     rideIds.length
       ? supabase.from("bookings").select("id, ride_id, passenger_id, seats, message, status, created_at").in("ride_id", rideIds).order("created_at")
       : Promise.resolve({ data: [] }),
-    cityIds.length ? supabase.from("cities").select("id, name_en").in("id", cityIds) : Promise.resolve({ data: [] }),
+    cityIds.length ? supabase.from("cities").select("id, name_en, name_mk").in("id", cityIds) : Promise.resolve({ data: [] }),
   ]);
   const passengerIds = [...new Set((bookings ?? []).map((booking) => booking.passenger_id))];
   const contactPassengerIds = [...new Set((bookings ?? []).filter((booking) => ["requested", "accepted"].includes(booking.status)).map((booking) => booking.passenger_id))];
@@ -53,7 +57,7 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
       ? supabase.from("profiles").select("id, phone").in("id", contactPassengerIds)
       : Promise.resolve({ data: [] }),
   ]);
-  const cityMap = new Map((cities ?? []).map((city) => [city.id, city.name_en]));
+  const cityMap = new Map((cities ?? []).map((city) => [city.id, locale === "mk" ? city.name_mk : city.name_en]));
   const passengerMap = new Map((passengers ?? []).map((passenger) => [passenger.id, passenger]));
   const contactMap = new Map((requestContacts ?? []).map((contact) => [contact.id, contact]));
   const ratingControls = await getRatingControls(userId, rides.map((ride) => ({ ...ride, driver_id: userId })), bookings ?? []);
@@ -72,17 +76,17 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
           const pendingRequests = rideBookings.filter((booking) => booking.status === "requested").length;
           const isFull = ride.status === "full" || ride.seats_available === 0;
           return <section key={ride.id} className="journey-card">
-            <div className="journey-card-top"><p className="journey-card-date">{formatDeparture(ride.departure_at)}</p><span className={`status-pill ${ride.status === "cancelled" ? "bg-red-50 text-red-800" : isOpen ? "bg-blue-50 text-blue-800" : ""}`}>{ride.status}</span></div>
-            <h2><Link href={`/rides/${ride.id}`} className="journey-card-route hover:text-brand-700">{cityMap.get(ride.origin_city_id)} <span>to</span> {cityMap.get(ride.dest_city_id)}</Link></h2>
-            <div className="journey-card-meta"><SeatAvailability available={ride.seats_available} total={ride.seats_total} /><p className="text-slate-500">{confirmedSeats} confirmed · Skopje time</p></div>
-            <nav aria-label="Ride actions" className="mt-6 flex flex-wrap gap-3">
-              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1">View ride</Link>
-              {confirmedSeats > 0 ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1" aria-label={`Open ride chat for ${cityMap.get(ride.origin_city_id)} to ${cityMap.get(ride.dest_city_id)}`}><ChatIcon /> Open ride chat</Link> : null}
+            <div className="journey-card-top"><p className="journey-card-date">{formatDeparture(ride.departure_at, locale)}</p><span className={`status-pill ${ride.status === "cancelled" ? "bg-red-50 text-red-800" : isOpen ? "bg-blue-50 text-blue-800" : ""}`}>{t(`status.${ride.status}`)}</span></div>
+            <h2><Link href={`/rides/${ride.id}`} className="journey-card-route hover:text-brand-700">{cityMap.get(ride.origin_city_id)} <span>{t("ride.to")}</span> {cityMap.get(ride.dest_city_id)}</Link></h2>
+            <div className="journey-card-meta"><SeatAvailability available={ride.seats_available} total={ride.seats_total} /><p className="text-slate-500">{t("trips.confirmed", { count: formatNumber(locale, confirmedSeats) })}</p></div>
+            <nav aria-label={t("trips.rideActions")} className="mt-6 flex flex-wrap gap-3">
+              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1">{t("trips.viewRide")}</Link>
+              {confirmedSeats > 0 ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
             </nav>
             {isOpen && hasDeparted ? <CompleteRideButton rideId={ride.id} /> : null}
             <details className="card-options" open={(canDecide && pendingRequests > 0) || ratingControls.has(ride.id)}>
-              <summary>{ride.status === "completed" ? "Passengers & feedback" : "Manage ride"}{canDecide && pendingRequests > 0 ? <span className="ml-3 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">{pendingRequests} pending</span> : null}</summary>
-              <h3 className="text-xl font-medium">Passenger requests</h3>
+              <summary>{ride.status === "completed" ? t("trips.feedback") : t("trips.manage")}{canDecide && pendingRequests > 0 ? <span className="ml-3 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">{t("trips.pending", { count: formatNumber(locale, pendingRequests) })}</span> : null}</summary>
+              <h3 className="text-xl font-medium">{t("trips.requests")}</h3>
               {rideBookings.length ? <div className="mt-5 space-y-5">{rideBookings.map((booking) => {
                 const passenger = passengerMap.get(booking.passenger_id);
                 const contact = contactMap.get(booking.passenger_id);
@@ -93,24 +97,24 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
                       <img src={passenger.photo_url} alt="" className="size-12 shrink-0 rounded-full bg-slate-50 object-cover" />
                     ) : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm">SR</span>}
                     <div className="min-w-0">
-                      <p className="font-medium">{passenger ? <Link href={`/profile/${passenger.id}`} className="hover:text-brand-700">{passenger.full_name}</Link> : "Student"}</p>
+                      <p className="font-medium">{passenger ? <Link href={`/profile/${passenger.id}`} className="hover:text-brand-700">{passenger.full_name}</Link> : t("trips.student")}</p>
                       <p className="text-sm text-slate-500">{passenger?.university}</p>
                     </div>
                   </div>
                   {booking.message ? <p className="mt-3 text-slate-600">“{booking.message}”</p> : null}
                   {["requested", "accepted"].includes(booking.status) ? <ContactDetails phone={contact?.phone} /> : null}
                   <div className="mt-4 flex flex-wrap gap-3">{booking.status === "requested" && canDecide ? <>
-                    <form action={decideBooking.bind(null, booking.id, "accepted")}><SubmitButton pendingLabel="Accepting…" className="btn-primary disabled:opacity-60">Accept</SubmitButton></form>
-                    <form action={decideBooking.bind(null, booking.id, "declined")}><SubmitButton pendingLabel="Declining…" className="btn-secondary disabled:opacity-60">Decline</SubmitButton></form>
-                  </> : <span className="status-pill">{booking.status}</span>}</div>
-                  {booking.status === "accepted" ? <RatingControl state={ratingControls.get(ride.id)?.get(booking.passenger_id)} rideId={ride.id} rateeId={booking.passenger_id} targetName={passenger?.full_name ?? "your passenger"} /> : null}
+                    <form action={decideBooking.bind(null, booking.id, "accepted")}><SubmitButton pendingLabel={t("trips.accepting")} className="btn-primary disabled:opacity-60">{t("trips.accept")}</SubmitButton></form>
+                    <form action={decideBooking.bind(null, booking.id, "declined")}><SubmitButton pendingLabel={t("trips.declining")} className="btn-secondary disabled:opacity-60">{t("trips.decline")}</SubmitButton></form>
+                  </> : <span className="status-pill">{t(`status.${booking.status}`)}</span>}</div>
+                  {booking.status === "accepted" ? <RatingControl state={ratingControls.get(ride.id)?.get(booking.passenger_id)} rideId={ride.id} rateeId={booking.passenger_id} targetName={passenger?.full_name ?? t("trips.yourPassenger")} /> : null}
                 </article>;
-              })}</div> : <p className="mt-3 text-slate-500">No requests yet.</p>}
+              })}</div> : <p className="mt-3 text-slate-500">{t("trips.noRequests")}</p>}
               {canDecide ? <CancelRideControl rideId={ride.id} isFull={isFull} confirmedSeats={confirmedSeats} /> : null}
             </details>
           </section>;
         })}
-        {!rides.length ? <div className="journey-card dashboard-empty"><h2>{allRides?.length ? emptyStates[filter].title : "No rides offered yet"}</h2><p>{allRides?.length ? emptyStates[filter].body : emptyStates.all.body}</p><Link href="/rides/new" className="btn-primary">{allRides?.length ? "Offer a ride" : "Offer your first ride"}</Link></div> : null}
+        {!rides.length ? <div className="journey-card dashboard-empty"><h2>{allRides?.length ? emptyStates[filter].title : t("trips.noOffers")}</h2><p>{allRides?.length ? emptyStates[filter].body : emptyStates.all.body}</p><Link href="/rides/new" className="btn-primary">{allRides?.length ? t("trips.offer") : t("trips.firstOffer")}</Link></div> : null}
       </div>
     </TripStatusFilterNav>;
 }

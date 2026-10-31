@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveLocale } from "./config";
-import { createTranslator } from "./translate";
+import { createTranslator, createNoticeTranslator } from "./translate";
 import { en } from "./messages/en";
 import { mk } from "./messages/mk";
 import { formatDateTime, formatMoney, formatNumber, plural } from "./format";
@@ -24,6 +24,13 @@ describe("locale and catalog contracts", () => {
   it("interpolates values literally without treating user content as a template", () => {
     expect(createTranslator(mk)("nav.copyright", { year: 2026 })).toContain("2026");
     expect(createTranslator(en)("date.summary", { date: "{time}", time: "$&" })).toBe("{time} · $&");
+  });
+  it.each([en, mk])("only renders complete known notices and never raw external errors", messages => {
+    const notice = createNoticeTranslator(messages);
+    expect(notice("form.saveFailed", "validation.generic")).toBe(messages["form.saveFailed"]);
+    for (const code of ["private database details", "toString", "__proto__", "chat.count.one"]) {
+      expect(notice(code, "validation.generic")).toBe(messages["validation.generic"]);
+    }
   });
 });
 

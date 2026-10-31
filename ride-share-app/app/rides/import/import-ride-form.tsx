@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
+import { formatMoney, formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
@@ -8,7 +10,7 @@ import { rideCheckMetadataSchema, type RideCheckMetadata } from "@/lib/ai/ride-c
 import { formatDeparture } from "@/lib/rides/ride-presentation";
 import { RideCheckSummary } from "./ride-check-summary";
 import { ScreenshotImport } from "./screenshot-import";
-import { formatSeatPrice } from "@/lib/rides/ride-price";
+import { isFreeRide } from "@/lib/rides/ride-price";
 
 type ParseResponse = {
   importId: string;
@@ -19,7 +21,8 @@ type ParseResponse = {
 const inputClass =
   "mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
 
-export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { id: number; name_en: string }[]; pipelineEnabled?: boolean }) {
+export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { id: number; name_en: string; name_mk?: string }[]; pipelineEnabled?: boolean }) {
+  const { t, notice } = useI18n();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"facebook" | "viber">("viber");
   const [screenshotText, setScreenshotText] = useState("");
@@ -46,14 +49,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
       const payload: unknown = await response.json();
 
       if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload !== null &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "The post could not be parsed.";
-        setError(message);
+        setError("import.parseFailed");
         return;
       }
 
@@ -71,7 +67,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           : null;
 
       if (!parsedResponse.success || !importId) {
-        setError("The parser returned an invalid draft. Nothing was published.");
+        setError("import.invalidDraft");
         return;
       }
 
@@ -80,7 +76,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
       );
       setResult({ importId, parsed: parsedResponse.data, ...(check.success ? { check: check.data } : {}) });
     } catch {
-      setError("The parser could not be reached. Try again or create the ride manually.");
+      setError("import.offline");
     } finally {
       setPending(false);
     }
@@ -89,12 +85,12 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   return (
     <div className="space-y-7">
       <form className="space-y-5" onSubmit={submit} aria-busy={pending || readingScreenshot}>
-        {pipelineEnabled ? <div role="group" aria-label="Import method" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+        {pipelineEnabled ? <div role="group" aria-label={t("import.method")} className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
           {(["facebook", "viber"] as const).map(method => <button key={method} type="button"
             aria-pressed={mode === method} disabled={pending || readingScreenshot}
             onClick={() => { setMode(method); setResult(null); setError(""); }}
-            className={`rounded-lg px-3 py-3 text-sm font-semibold transition disabled:opacity-60 ${mode === method ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>
-            {method === "facebook" ? "Facebook screenshot" : "Viber text"}
+            className={`rounded-lg px-3 py-3 text-sm font-semibold transition disabled:opacity-60 ${mode === method ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>
+            {method === "facebook" ? t("import.facebook") : t("import.viber")}
           </button>)}
         </div> : null}
         {pipelineEnabled ? <div hidden={!screenshotMode}>
@@ -103,15 +99,14 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
             onSelect={post => { setScreenshotText(post.text); setResult(null); setError(""); }} />
         </div> : null}
         {!screenshotMode ? <label className="block text-sm font-medium text-slate-700">
-          Post text
-          <textarea
-            aria-label="Post text"
+          {t("import.text")}<textarea
+            aria-label={t("import.text")}
             className={`${inputClass} min-h-56 resize-y text-sm leading-relaxed disabled:opacity-60`}
             maxLength={5_000}
             minLength={10}
             disabled={pending}
             onChange={(event) => { setText(event.target.value); setResult(null); setError(""); }}
-            placeholder="Имам 3 слободни места од Скопје за Битола…"
+            placeholder={t("import.placeholder")}
             required
             value={text}
           />
@@ -119,22 +114,22 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
         </label> : null}
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[.8125rem] text-slate-500">
-            No post to import? <Link href="/rides/new" className="font-semibold text-brand-700 hover:underline">Create a ride manually</Link>
+            {t("import.noPost")}{" "}<Link href="/rides/new" className="font-semibold text-brand-700 hover:underline">{t("import.manual")}</Link>
           </p>
           <button
             className="btn-primary disabled:opacity-50"
             disabled={pending || readingScreenshot || postText.trim().length < 10}
             type="submit"
           >
-            {pending ? "Parsing…" : "Create review draft"}
+            {pending ? t("import.parsing") : t("import.reviewDraft")}
           </button>
         </div>
       </form>
 
       {error ? (
         <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
-          {error}
-          <Link href="/rides/new" className="mt-2 block font-semibold underline">Enter the ride manually</Link>
+          {notice(error, "import.parseFailed")}
+          <Link href="/rides/new" className="mt-2 block font-semibold underline">{t("import.enterManually")}</Link>
         </p>
       ) : null}
 
@@ -143,28 +138,30 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   );
 }
 
-function ParsedReview({ result, cities, pipelineEnabled }: { result: ParseResponse; cities: { id: number; name_en: string }[]; pipelineEnabled: boolean }) {
+function ParsedReview({ result, cities, pipelineEnabled }: { result: ParseResponse; cities: { id: number; name_en: string; name_mk?: string }[]; pipelineEnabled: boolean }) {
+  const { locale, t } = useI18n();
+  const cityName = (id: number | null) => { const city = cities.find(city => city.id === id); return locale === "mk" ? city?.name_mk ?? city?.name_en : city?.name_en; };
   const { parsed } = result;
   const fields = [
-    ["Classification", parsed.classification],
-    ["Departure city", cities.find(city => city.id === parsed.draft.origin.cityId)?.name_en ?? parsed.draft.origin.rawText ?? "Needs review"],
-    ["Destination city", cities.find(city => city.id === parsed.draft.destination.cityId)?.name_en ?? parsed.draft.destination.rawText ?? "Needs review"],
-    ["Departure (Skopje time)", parsed.draft.departureAt ? formatDeparture(parsed.draft.departureAt) : "Needs review"],
-    ["Seats", parsed.draft.seatsTotal ?? "Needs review"],
-    ["Price per seat", parsed.draft.pricePerSeatMkd !== null ? formatSeatPrice(parsed.draft.pricePerSeatMkd) : "Not stated (free unless you add one)"],
+    [t("import.classification"), t(`import.kind.${parsed.classification}`)],
+    [t("import.origin"), cityName(parsed.draft.origin.cityId) ?? parsed.draft.origin.rawText ?? t("import.needsReview")],
+    [t("import.destination"), cityName(parsed.draft.destination.cityId) ?? parsed.draft.destination.rawText ?? t("import.needsReview")],
+    [t("import.departure"), parsed.draft.departureAt ? formatDeparture(parsed.draft.departureAt, locale) : t("import.needsReview")],
+    [t("import.seats"), parsed.draft.seatsTotal ?? t("import.needsReview")],
+    [t("import.price"), parsed.draft.pricePerSeatMkd !== null ? isFreeRide(parsed.draft.pricePerSeatMkd) ? t("ride.free") : formatMoney(locale, parsed.draft.pricePerSeatMkd) : t("import.priceNotStated")],
   ];
 
   return (
     <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-emerald-950">Review the extracted details</h2>
+          <h2 className="text-lg font-bold text-emerald-950">{t("import.review")}</h2>
           <p className="mt-1 text-sm text-emerald-900/75">
-            Confidence: {Math.round((parsed.draft.confidence ?? 0) * 100)}%
+            {t("import.confidence", { percent: formatNumber(locale, Math.round((parsed.draft.confidence ?? 0) * 100)) })}
           </p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase text-emerald-800">
-          {parsed.sourceLanguage}
+          {t(`import.language.${parsed.sourceLanguage}`)}
         </span>
       </div>
 
@@ -181,7 +178,7 @@ function ParsedReview({ result, cities, pipelineEnabled }: { result: ParseRespon
         <ul className="mt-4 space-y-2 text-sm text-amber-900">
           {parsed.draft.warnings.map((warning, index) => (
             <li className="rounded-lg bg-amber-100 px-3 py-2" key={`${warning.code}-${index}`}>
-              {warning.message}
+              {t(`offer.warning.${warning.code}`)}
             </li>
           ))}
         </ul>
@@ -191,16 +188,14 @@ function ParsedReview({ result, cities, pipelineEnabled }: { result: ParseRespon
 
       {parsed.classification === "request" ? (
         <p className="mt-4 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-950">
-          This looks like a request for transport, not an offered ride. Confirm before continuing.
-        </p>
+          {t("import.requestWarning")}</p>
       ) : null}
 
       <Link
         className="mt-5 inline-flex btn-primary"
         href={`/rides/new?import=${result.importId}`}
       >
-        Continue to editable ride form
-      </Link>
+        {t("import.continue")}</Link>
     </section>
   );
 }

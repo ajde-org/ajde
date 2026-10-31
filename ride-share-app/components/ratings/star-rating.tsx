@@ -1,8 +1,10 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber, plural } from "@/lib/i18n/format";
 import { useState } from "react";
 
-export const scoreLabels = ["Poor", "Fair", "Good", "Very good", "Excellent"];
+export const scoreLabels = ["rating.poor", "rating.fair", "rating.good", "rating.veryGood", "rating.excellent"] as const;
 
 function Star({ filled, size }: { filled: boolean; size: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={filled ? "text-amber-400" : "text-slate-300"}>
@@ -12,7 +14,8 @@ function Star({ filled, size }: { filled: boolean; size: number }) {
 
 /** Read-only stars; fractional scores (e.g. a 4.5 average) partially fill a star. */
 export function StarDisplay({ score, size = 20, label }: { score: number; size?: number; label?: string }) {
-  return <span className="inline-flex items-center gap-0.5" role="img" aria-label={label ?? `${score} out of 5 stars`}>
+  const { locale, t } = useI18n();
+  return <span className="inline-flex items-center gap-0.5" role="img" aria-label={label ?? t("rating.stars", { score: formatNumber(locale, score) })}>
     {[1, 2, 3, 4, 5].map((star) => {
       const fill = Math.min(1, Math.max(0, score - (star - 1)));
       return <span key={star} className="relative inline-block" style={{ width: size, height: size }}>
@@ -28,6 +31,7 @@ export function StarDisplay({ score, size = 20, label }: { score: number; size?:
  * form submission work natively; hovering previews a score.
  */
 export function StarRatingInput({ name, label }: { name: string; label: string }) {
+  const { locale, t } = useI18n();
   const [selected, setSelected] = useState(0);
   const [hovered, setHovered] = useState(0);
   const shown = hovered || selected;
@@ -37,10 +41,10 @@ export function StarRatingInput({ name, label }: { name: string; label: string }
       {[1, 2, 3, 4, 5].map((star) => <label key={star} onMouseEnter={() => setHovered(star)}
         className="cursor-pointer rounded-lg p-1 transition-transform hover:scale-110 has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-brand-600">
         <input type="radio" name={name} value={star} required checked={selected === star} onChange={() => setSelected(star)} className="sr-only" />
-        <span className="sr-only">{star} star{star === 1 ? "" : "s"}, {scoreLabels[star - 1]}</span>
+        <span className="sr-only">{t(`rating.option.${plural(locale, star)}`, { count: formatNumber(locale, star), label: t(scoreLabels[star - 1]) })}</span>
         <Star filled={star <= shown} size={34} />
       </label>)}
     </div>
-    <span aria-hidden="true" className={`text-sm font-semibold ${shown ? "text-slate-800" : "text-slate-400"}`}>{shown ? scoreLabels[shown - 1] : "Tap a star to rate"}</span>
+    <span aria-hidden="true" className={`text-sm font-semibold ${shown ? "text-slate-800" : "text-slate-400"}`}>{shown ? t(scoreLabels[shown - 1]) : t("rating.tap")}</span>
   </div>;
 }

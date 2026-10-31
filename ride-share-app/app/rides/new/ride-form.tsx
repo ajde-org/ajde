@@ -1,5 +1,8 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber, formatMoney } from "@/lib/i18n/format";
+import { localizedName } from "@/lib/i18n/locations";
 import { departureInstant, type OfferValues } from "@/lib/rides/offer-values";
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
@@ -57,18 +60,11 @@ export type RideFormProps = {
 const inputClass =
   "mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 
-const tagLabels: Record<(typeof RIDE_TAGS)[number], string> = {
-  flexible_pickup: "Flexible pickup",
-  luggage_space: "Luggage space",
-  music: "Music welcome",
-  no_smoking: "No smoking",
-  pets_allowed: "Pets allowed",
-  quiet_ride: "Quiet ride",
-};
 
 function FieldError({ errors, id }: { errors?: string[]; id?: string }) {
+  const { notice } = useI18n();
   if (!errors?.length) return null;
-  return <p id={id} className="mt-1 text-sm text-red-700">{errors[0]}</p>;
+  return <p id={id} className="mt-1 text-sm text-red-700">{notice(errors[0], "validation.generic")}</p>;
 }
 
 export function RideForm({
@@ -82,6 +78,7 @@ export function RideForm({
   isImportedDraft,
   values, onChange, onSubmit, state, pending, onCarSaved, onCarSaving,
 }: RideFormProps) {
+  const { locale, t, notice } = useI18n();
   const [savingCar, startSavingCar] = useTransition();
   const [carMessage, setCarMessage] = useState("");
   const [carSaveError, setCarSaveError] = useState(false);
@@ -174,11 +171,11 @@ export function RideForm({
         onCarSaved(result.car);
         setChoosingCar(false);
         setCarSaveError(false);
-        setCarMessage("Car saved. It’s ready for this ride and future rides.");
+        setCarMessage("form.savedCarNotice");
         requestAnimationFrame(() => carChangeRef.current?.focus());
       } catch {
         setCarSaveError(true);
-        setCarMessage("We could not save your car. Please try again.");
+        setCarMessage("form.carFailed");
       } finally {
         onCarSaving(false);
       }
@@ -209,17 +206,14 @@ export function RideForm({
 
       {isImportedDraft ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-          Imported details are only a starting point. Confirm every field before saving or
-          publishing this ride.
-        </div>
+          {t("form.imported")}</div>
       ) : null}
 
       <section className="space-y-4" aria-labelledby="route-heading">
-        <h2 id="route-heading" className="font-semibold">Your ride</h2>
+        <h2 id="route-heading" className="font-semibold">{t("form.ride")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="font-medium text-slate-800">
-            From
-            <select
+            {t("form.from")}<select
               className={inputClass}
               name="originCityId"
               aria-invalid={Boolean(state.fieldErrors["origin.cityId"]) || undefined}
@@ -230,18 +224,17 @@ export function RideForm({
                 onChange({ ...values, originCityId: event.target.value, originPickupId: "" });
               }}
             >
-              <option value="">Choose a city</option>
+              <option value="">{t("form.city")}</option>
               {cities.map((city) => (
                 <option key={city.id} value={city.id}>
-                  {city.name_en} / {city.name_mk}
+                  {localizedName(city, locale)}
                 </option>
               ))}
             </select>
             <FieldError id="origin-error" errors={state.fieldErrors["origin.cityId"]} />
           </label>
           <label className="font-medium text-slate-800">
-            To
-            <select
+            {t("form.to")}<select
               className={inputClass}
               name="destinationCityId"
               aria-invalid={Boolean(state.fieldErrors["destination.cityId"]) || undefined}
@@ -252,10 +245,10 @@ export function RideForm({
                 onChange({ ...values, destinationCityId: event.target.value, destinationPickupId: "" });
               }}
             >
-              <option value="">Choose a city</option>
+              <option value="">{t("form.city")}</option>
               {cities.map((city) => (
                 <option key={city.id} value={city.id}>
-                  {city.name_en} / {city.name_mk}
+                  {localizedName(city, locale)}
                 </option>
               ))}
             </select>
@@ -264,7 +257,7 @@ export function RideForm({
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="font-medium text-slate-800 col-span-2">
-            <span id="departure-label">Departure</span>
+            <span id="departure-label">{t("form.departure")}</span>
             <DateTimeField
               labelledBy="departure-label"
               className={inputClass}
@@ -275,11 +268,10 @@ export function RideForm({
               onChange={setDepartureLocal}
             />
             <FieldError id="departure-error" errors={state.fieldErrors.departureAt} />
-            {departureLocal && !departureAt && <p className="mt-2 text-sm text-amber-800">Recognized {departureLocal.split("T").filter(Boolean).join(" ")}. Complete the departure date and time.</p>}
+            {departureLocal && !departureAt && <p className="mt-2 text-sm text-amber-800">{t("form.incompleteDeparture", { value: departureLocal.split("T").filter(Boolean).join(" ") })}</p>}
           </div>
           <label className="font-medium text-slate-800">
-            Available seats
-            <input
+            {t("form.seats")}<input
               className={inputClass}
               max={Math.min(selectedCarCapacity ?? RIDE_LIMITS.seats.max, RIDE_LIMITS.seats.max)}
               min={RIDE_LIMITS.seats.min}
@@ -293,19 +285,18 @@ export function RideForm({
               type="number"
               value={seatsTotal}
             />
-            <span id="seats-hint" className="sr-only">Choose how many seats to offer for this ride</span>
+            <span id="seats-hint" className="sr-only">{t("form.seatsHint")}</span>
             <FieldError id="seats-error" errors={state.fieldErrors.seatsTotal} />
           </label>
           <label className="font-medium text-slate-800">
-            Price per seat (MKD) 
-            {/* <span className="font-normal text-slate-500">(optional)</span> */}
+            {t("form.price")}{/* <span className="font-normal text-slate-500">(optional)</span> */}
             <input
               ref={priceRef}
               className={`${inputClass} ${priceFilled ? "ring-4 ring-brand-200" : ""}`}
               min={RIDE_LIMITS.priceMkd.min}
               max={RIDE_LIMITS.priceMkd.max}
-              title="0–3,000 MKD per seat; leave empty or enter 0 for a free ride"
-              placeholder="Free"
+              title={t("form.priceLimit")}
+              placeholder={t("form.free")}
               name="pricePerSeatMkd"
               aria-invalid={Boolean(state.fieldErrors.pricePerSeatMkd) || undefined}
               aria-describedby={state.fieldErrors.pricePerSeatMkd ? "price-hint price-error" : "price-hint"}
@@ -314,42 +305,40 @@ export function RideForm({
               type="number"
               value={pricePerSeatMkd}
             />
-            <span id="price-hint" className="mt-1 block text-[.75rem] font-normal text-slate-500">Leave empty or enter 0 to offer the ride free of charge.</span>
+            <span id="price-hint" className="mt-1 block text-[.75rem] font-normal text-slate-500">{t("form.freeHint")}</span>
             <FieldError id="price-error" errors={state.fieldErrors.pricePerSeatMkd} />
           </label>
         </div>
-        <p className="text-[.75rem] text-slate-500">Departure is in Skopje local time.</p>
+        <p className="text-[.75rem] text-slate-500">{t("form.timeZone")}</p>
         <details className="ride-form-options" open={Boolean(originPickupId || destinationPickupId || state.fieldErrors["origin.pickupPointId"] || state.fieldErrors["destination.pickupPointId"])}>
-        <summary>Pickup & drop-off points <span className="font-normal text-slate-500">· optional</span></summary>
+        <summary>{t("form.pickups")}{" "}<span className="font-normal text-slate-500">{t("form.optional")}</span></summary>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="font-medium text-slate-800">
-            Pickup point
-            <select
+            {t("form.pickup")}<select
               className={inputClass}
               name="originPickupPointId"
               value={originPickupId}
               onChange={(event) => setOriginPickupId(event.target.value)}
             >
-              <option value="">Decide with passengers</option>
+              <option value="">{t("form.decide")}</option>
               {originPickupPoints.map((point) => (
                 <option key={point.id} value={point.id}>
-                  {point.name_en} / {point.name_mk}
+                  {localizedName(point, locale)}
                 </option>
               ))}
             </select>
           </label>
           <label className="font-medium text-slate-800">
-            Drop-off point
-            <select
+            {t("form.dropoff")}<select
               className={inputClass}
               name="destinationPickupPointId"
               value={destinationPickupId}
               onChange={(event) => setDestinationPickupId(event.target.value)}
             >
-              <option value="">Decide with passengers</option>
+              <option value="">{t("form.decide")}</option>
               {destinationPickupPoints.map((point) => (
                 <option key={point.id} value={point.id}>
-                  {point.name_en} / {point.name_mk}
+                  {localizedName(point, locale)}
                 </option>
               ))}
             </select>
@@ -359,17 +348,17 @@ export function RideForm({
       </section>
 
       <fieldset ref={carFieldsRef} disabled={pending || savingCar} className="rounded-2xl border border-slate-200 p-4 sm:p-5">
-        <legend className="px-2 font-semibold text-slate-900">Your car</legend>
+        <legend className="px-2 font-semibold text-slate-900">{t("form.car")}</legend>
         {carMode === "existing" && selectedExistingCar && !choosingCar ? (
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-semibold text-slate-900">{selectedExistingCar.make} {selectedExistingCar.model}</p>
               <p className="mt-1 text-sm text-slate-500">
-                Saved car{selectedExistingCar.color ? ` · ${selectedExistingCar.color}` : ""}
+                {t("form.savedCar")}{selectedExistingCar.color ? ` · ${selectedExistingCar.color}` : ""}
                 {selectedExistingCar.plate_last3 ? ` · •••${selectedExistingCar.plate_last3}` : ""}
               </p>
             </div>
-            <button ref={carChangeRef} type="button" className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setChoosingCar(true)}>Change</button>
+            <button ref={carChangeRef} type="button" className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setChoosingCar(true)}>{t("form.change")}</button>
             <input type="hidden" name="carId" value={existingCarId} />
           </div>
         ) : (
@@ -379,46 +368,42 @@ export function RideForm({
                 <button
                   className={`rounded-full px-4 py-2 text-sm font-semibold ${
                     carMode === "existing"
-                      ? "bg-brand-600 text-white"
+                      ? "bg-brand-700 text-white"
                       : "bg-slate-100 text-slate-700"
                   }`}
                   onClick={() => setCarMode("existing")}
                   aria-pressed={carMode === "existing"}
                   type="button"
                 >
-                  Saved car
-                </button>
+                  {t("form.savedCar")}</button>
               ) : null}
               <button
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   carMode === "catalog"
-                    ? "bg-brand-600 text-white"
+                    ? "bg-brand-700 text-white"
                     : "bg-slate-100 text-slate-700"
                 }`}
                 onClick={() => setCarMode("catalog")}
                 aria-pressed={carMode === "catalog"}
                 type="button"
               >
-                Find model
-              </button>
+                {t("form.findModel")}</button>
               <button
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   carMode === "manual"
-                    ? "bg-brand-600 text-white"
+                    ? "bg-brand-700 text-white"
                     : "bg-slate-100 text-slate-700"
                 }`}
                 onClick={() => setCarMode("manual")}
                 aria-pressed={carMode === "manual"}
                 type="button"
               >
-                Enter manually
-              </button>
+                {t("form.manual")}</button>
             </div>
 
             {carMode === "existing" ? (
               <label className="mt-5 block font-medium text-slate-800">
-                Your saved cars
-                <select
+                {t("form.savedCars")}<select
                   className={inputClass}
                   name="carId"
                   onChange={(event) => {
@@ -429,7 +414,7 @@ export function RideForm({
                   required
                   value={existingCarId}
                 >
-                  <option value="">Choose a car</option>
+                  <option value="">{t("form.chooseCar")}</option>
                   {cars.map((car) => (
                     <option key={car.id} value={car.id}>
                       {car.make} {car.model}
@@ -444,8 +429,7 @@ export function RideForm({
             {carMode === "catalog" ? (
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <label className="font-medium text-slate-800 md:col-span-2">
-                  Search models
-                  <input
+                  {t("form.searchModels")}<input
                     className={inputClass}
                     onChange={(event) => setCatalogQuery(event.target.value)}
                     placeholder="Golf, Astra, Clio…"
@@ -455,8 +439,7 @@ export function RideForm({
                   />
                 </label>
                 <label className="font-medium text-slate-800 md:col-span-2">
-                  Model
-                  <select
+                  {t("form.model")}<select
                     className={inputClass}
                     name="carModelId"
                     onChange={(event) => {
@@ -467,18 +450,17 @@ export function RideForm({
                     required
                     value={catalogModelId}
                   >
-                    <option value="">Choose a model</option>
+                    <option value="">{t("form.chooseModel")}</option>
                     {filteredCarModels.map((model) => (
                       <option key={model.id} value={model.id}>
-                        {model.make} {model.model} · {model.engine_size_l}L {model.fuel_type}
+                        {model.make} {model.model} · {formatNumber(locale, model.engine_size_l)}L {t(`fuel.${model.fuel_type}`)}
                         {model.release_year ? ` · ${model.release_year}` : ""}
                       </option>
                     ))}
                   </select>
                   {selectedCatalogModel ? (
                     <p className="mt-2 text-sm text-slate-600">
-                      Catalog estimate: {selectedCatalogModel.consumption_l_100km} L/100 km. Change it
-                      below if you know your car&apos;s real consumption.
+                      {t("form.catalogEstimate", { value: formatNumber(locale, selectedCatalogModel.consumption_l_100km) })}
                     </p>
                   ) : null}
                 </label>
@@ -494,8 +476,7 @@ export function RideForm({
             {carMode === "manual" ? (
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <label className="font-medium text-slate-800">
-                  Make
-                  <input
+                  {t("form.make")}<input
                     className={inputClass}
                     value={values.carMake}
                     onChange={(event) => onChange({ ...values, carMake: event.target.value })}
@@ -506,8 +487,7 @@ export function RideForm({
                   />
                 </label>
                 <label className="font-medium text-slate-800">
-                  Model
-                  <input
+                  {t("form.model")}<input
                     className={inputClass}
                     value={values.carModel}
                     onChange={(event) => onChange({ ...values, carModel: event.target.value })}
@@ -518,21 +498,20 @@ export function RideForm({
                   />
                 </label>
                 <label className="font-medium text-slate-800">
-                  Fuel
-                  <select
+                  {t("form.fuel")}<select
                     className={inputClass}
                     name="fuelType"
                     onChange={(event) => setManualFuelType(event.target.value)}
                     required
                     value={manualFuelType}
                   >
-                    <option value="">Choose fuel</option>
-                    <option value="petrol">Petrol</option>
-                    <option value="diesel">Diesel</option>
-                    <option value="hybrid">Hybrid</option>
-                    <option value="electric">Electric</option>
-                    <option value="lpg">LPG</option>
-                    <option value="other">Other</option>
+                    <option value="">{t("form.chooseFuel")}</option>
+                    <option value="petrol">{t("fuel.petrol")}</option>
+                    <option value="diesel">{t("fuel.diesel")}</option>
+                    <option value="hybrid">{t("fuel.hybrid")}</option>
+                    <option value="electric">{t("fuel.electric")}</option>
+                    <option value="lpg">{t("fuel.lpg")}</option>
+                    <option value="other">{t("fuel.other")}</option>
                   </select>
                 </label>
                 <NewCarFields
@@ -546,22 +525,22 @@ export function RideForm({
             {carMode !== "existing" ? (
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <button className="btn-secondary disabled:opacity-50" type="button" onClick={handleSaveCar} disabled={savingCar || pending}>
-                  {savingCar ? "Saving car…" : "Save car"}
+                  {savingCar ? t("form.savingCar") : t("form.saveCar")}
                 </button>
-                <p className="text-sm text-slate-500">Save once and reuse on future rides.</p>
+                <p className="text-sm text-slate-500">{t("form.reuseCar")}</p>
               </div>
             ) : selectedExistingCar ? (
-              <button className="mt-4 text-sm font-semibold text-brand-700" type="button" onClick={() => setChoosingCar(false)}>Done</button>
+              <button className="mt-4 text-sm font-semibold text-brand-700" type="button" onClick={() => setChoosingCar(false)}>{t("form.done")}</button>
             ) : null}
           </div>
         )}
         <input name="carMode" type="hidden" value={carMode} />
-        {carMessage ? <p role={carSaveError ? "alert" : "status"} className={`mt-3 text-sm ${carSaveError ? "text-red-700" : "text-brand-700"}`}>{carMessage}</p> : null}
+        {carMessage ? <p role={carSaveError ? "alert" : "status"} className={`mt-3 text-sm ${carSaveError ? "text-red-700" : "text-brand-700"}`}>{notice(carMessage, "form.carSaveFailed")}</p> : null}
         <FieldError errors={state.fieldErrors.carId} />
       </fieldset>
 
       <details className="ride-form-options" open={Boolean(state.fieldErrors.distanceKm?.length)}>
-      <summary>Estimate fuel costs & CO₂ savings</summary>
+      <summary>{t("form.estimate")}</summary>
       <RideEstimatePanel
         consumption={estimateConsumption}
         distanceKm={distanceKm}
@@ -574,9 +553,9 @@ export function RideForm({
       </details>
 
       <details className="ride-form-options" open={values.tags.length > 0 || values.genderPreference !== "any" || Boolean(state.fieldErrors.tags?.length || state.fieldErrors.genderPreference?.length)}>
-        <summary>Preferences</summary>
+        <summary>{t("form.preferences")}</summary>
         <fieldset>
-          <legend className="font-medium text-slate-800">Ride</legend>
+          <legend className="font-medium text-slate-800">{t("form.rideLegend")}</legend>
           <div className="mt-3 flex flex-wrap gap-3">
             {RIDE_TAGS.map((tag) => (
               <label
@@ -590,7 +569,7 @@ export function RideForm({
                   type="checkbox"
                   value={tag}
                 />
-                {tagLabels[tag]}
+                {t(`tag.${tag}`)}
               </label>
             ))}
           </div>
@@ -598,32 +577,30 @@ export function RideForm({
         </fieldset>
 
         <label className="mt-6 block font-medium text-slate-800">
-          Passengers
-          <select
+          {t("form.passengers")}<select
             className={inputClass}
             value={values.genderPreference}
             onChange={(event) => onChange({ ...values, genderPreference: event.target.value === "same_as_driver" ? "same_as_driver" : "any" })}
             name="genderPreference"
             required
           >
-            <option value="any">Anyone</option>
-            <option value="same_as_driver">Same gender as me</option>
+            <option value="any">{t("form.anyone")}</option>
+            <option value="same_as_driver">{t("form.sameGender")}</option>
           </select>
           <FieldError errors={state.fieldErrors.genderPreference} />
         </label>
       </details>
 
       <details className="ride-form-options" open={Boolean(values.notes || state.fieldErrors.notes?.length)}>
-      <summary>Notes for passengers <span className="font-normal text-slate-500">· optional</span></summary>
+      <summary>{t("form.notesTitle")}{" "}<span className="font-normal text-slate-500">{t("form.optional")}</span></summary>
       <label className="block font-medium text-slate-800">
-        Notes
-        <textarea
+        {t("form.notes")}<textarea
           className={`${inputClass} min-h-28 resize-y`}
           value={values.notes}
           onChange={(event) => onChange({ ...values, notes: event.target.value })}
           maxLength={RIDE_LIMITS.notesLength}
           name="notes"
-          placeholder="Luggage, timing, or pickup details passengers should know"
+          placeholder={t("form.notesPlaceholder")}
         />
         <FieldError errors={state.fieldErrors.notes} />
       </label>
@@ -640,14 +617,14 @@ export function RideForm({
               : "border-red-300 bg-red-50 text-red-900"
           }`}
         >
-          {state.message}
-          {state.rideId ? <span className="ml-1">Opening My trips…</span> : null}
-          {Object.keys(state.fieldErrors).length ? <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(state.fieldErrors).map(([field, errors]) => <li key={field}>{errors[0]}</li>)}</ul> : null}
+          {notice(state.message, "form.saveFailed")}
+          {state.rideId ? <span className="ml-1">{t("form.openingTrips")}</span> : null}
+          {Object.keys(state.fieldErrors).length ? <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(state.fieldErrors).map(([field, errors]) => <li key={field}>{notice(errors[0], "validation.generic")}</li>)}</ul> : null}
         </div>
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
-        <p className="text-[.8125rem] text-slate-500 sm:mr-auto sm:max-w-xs">You approve each seat request.</p>
+        <p className="text-[.8125rem] text-slate-500 sm:mr-auto sm:max-w-xs">{t("form.approveSeats")}</p>
         <button
           className="btn-secondary disabled:opacity-50"
           disabled={pending || savingCar || state.status === "success"}
@@ -655,7 +632,7 @@ export function RideForm({
           type="submit"
           value="save_draft"
         >
-          {pending ? "Saving…" : "Save draft"}
+          {pending ? t("form.saving") : t("form.saveDraft")}
         </button>
         <button
           className="btn-primary disabled:opacity-50"
@@ -664,7 +641,7 @@ export function RideForm({
           type="submit"
           value="publish"
         >
-          {pending ? "Publishing…" : "Publish ride"}
+          {pending ? t("form.publishing") : t("form.publish")}
         </button>
       </div>
     </form>
@@ -690,6 +667,7 @@ function RideEstimatePanel({
   onUseSuggestion,
   seats,
 }: RideEstimatePanelProps) {
+  const { locale, t } = useI18n();
   const [tolls, setTolls] = useState("0");
   const tollsMkd = Number(tolls) > 0 ? Number(tolls) : 0;
   const hasSeats = Number(seats) > 0;
@@ -721,14 +699,12 @@ function RideEstimatePanel({
 
   return (
     <section className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4 sm:p-5">
-      <h2 className="font-semibold text-brand-950">Fair-price and CO₂ estimate</h2>
+      <h2 className="font-semibold text-brand-950">{t("estimate.title")}</h2>
       <p className="mt-1 text-sm text-brand-900/75">
-        Fuel and tolls are split across the offered passenger seats. The price remains editable.
-      </p>
+        {t("estimate.intro")}</p>
       <div className="mt-4 grid max-w-xl gap-4 sm:grid-cols-2">
         <label className="block font-medium text-slate-800">
-          Estimated route distance (km)
-          <input
+          {t("estimate.distance")}<input
             className={inputClass}
             min={RIDE_LIMITS.distanceKm.min}
             max={RIDE_LIMITS.distanceKm.max}
@@ -742,13 +718,12 @@ function RideEstimatePanel({
           />
         </label>
         <label className="block font-medium text-slate-800">
-          Tolls (MKD)
-          <input
+          {t("estimate.tolls")}<input
             className={inputClass}
             inputMode="numeric"
             min={RIDE_LIMITS.tollsMkd.min}
             max={RIDE_LIMITS.tollsMkd.max}
-            title="0–2,000 MKD for the whole trip"
+            title={t("estimate.tollsLimit")}
             onChange={(event) => setTolls(event.target.value)}
             onFocus={(event) => event.currentTarget.select()}
             step="1"
@@ -758,32 +733,31 @@ function RideEstimatePanel({
         </label>
       </div>
       {!hasSeats ? (
-        <p className="mt-3 text-sm text-slate-500">Enter the number of available seats to get an estimate.</p>
+        <p className="mt-3 text-sm text-slate-500">{t("estimate.needSeats")}</p>
       ) : null}
 
       {!supportedFuel && fuelType ? (
         <p className="mt-4 text-sm text-amber-800">
-          Automatic CO₂ estimates are currently available only for petrol and diesel cars; no
-          emissions factor is assumed for {fuelType}.
+          {t("estimate.unsupported")}
         </p>
       ) : null}
       {supportedFuel && !fuelPrice ? (
         <p className="mt-4 text-sm text-amber-800">
-          The {supportedFuel} price estimate is unavailable right now. Enter your price per seat above.
+          {t("estimate.priceUnavailable")}
         </p>
       ) : null}
 
       {estimate && supportedFuel && fuelPrice ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <EstimateValue label="Fuel used" value={`${estimate.fuelLitres.toFixed(1)} L`} />
+          <EstimateValue label={t("estimate.fuelUsed")} value={`${formatNumber(locale, estimate.fuelLitres, { maximumFractionDigits: 1 })} L`} />
           <EstimateValue
-            label={tollsMkd > 0 ? "Fuel + tolls" : "Fuel cost"}
-            value={`${Math.round(estimate.totalTripCostMkd)} MKD`}
+            label={tollsMkd > 0 ? t("estimate.fuelTolls") : t("estimate.fuelCost")}
+            value={formatMoney(locale, estimate.totalTripCostMkd)}
           />
-          <EstimateValue label="Suggested seat" value={`${estimate.pricePerSeatMkd} MKD`} />
+          <EstimateValue label={t("estimate.seat")} value={formatMoney(locale, estimate.pricePerSeatMkd)} />
           <EstimateValue
-            label="Potential CO₂ saved"
-            value={`${estimate.potentialCo2SavedKg.toFixed(1)} kg`}
+            label={t("estimate.co2")}
+            value={`${formatNumber(locale, estimate.potentialCo2SavedKg, { maximumFractionDigits: 1 })} kg`}
           />
           <div className="sm:col-span-2 lg:col-span-4">
             <button
@@ -792,13 +766,11 @@ function RideEstimatePanel({
               onClick={() => onUseSuggestion(estimate.pricePerSeatMkd)}
               type="button"
             >
-              Use {estimate.pricePerSeatMkd} MKD suggestion
+              {t("estimate.use", { price: formatMoney(locale, estimate.pricePerSeatMkd) })}
             </button>
-            {estimate.pricePerSeatMkd > RIDE_LIMITS.priceMkd.max && <p className="mt-2 text-sm text-amber-800">This estimate exceeds the 3,000 MKD limit. Review the distance, consumption and tolls.</p>}
+            {estimate.pricePerSeatMkd > RIDE_LIMITS.priceMkd.max && <p className="mt-2 text-sm text-amber-800">{t("estimate.limit")}</p>}
             <p className="mt-2 text-xs text-brand-900/70">
-              Assumes {fuelPrice} MKD/L{tollsMkd > 0 ? `, ${Math.round(tollsMkd)} MKD in tolls` : ""} and {supportedFuel === "petrol" ? "2.31" : "2.68"} kg CO₂
-              per litre. Potential savings assume every offered seat replaces one separate car on
-              the same route.
+              {t("estimate.assumptions", { fuelPrice: formatNumber(locale, fuelPrice), tolls: formatMoney(locale, tollsMkd), emissions: formatNumber(locale, supportedFuel === "petrol" ? 2.31 : 2.68) })}
             </p>
           </div>
         </div>
@@ -828,16 +800,16 @@ function NewCarFields({
   values, onChange,
   onConsumptionChange,
 }: NewCarFieldsProps) {
+  const { locale, t } = useI18n();
   return (
     <>
       <label className="font-medium text-slate-800">
-        Consumption (L/100 km)
-        <input
+        {t("form.consumption")}<input
           className={inputClass}
           min={RIDE_LIMITS.consumptionL100Km.min}
           max={RIDE_LIMITS.consumptionL100Km.max}
-          title="0.5–30 L/100 km"
-          placeholder="0.5–30"
+          title={`${formatNumber(locale, 0.5)}–30 L/100 km`}
+          placeholder={`${formatNumber(locale, 0.5)}–30`}
           name="consumptionL100Km"
           onChange={(event) => onConsumptionChange(event.target.value)}
           required
@@ -847,8 +819,7 @@ function NewCarFields({
         />
       </label>
       <label className="font-medium text-slate-800">
-        Total passenger seats
-        <input
+        {t("form.carSeats")}<input
           className={inputClass}
           value={values.carSeatsTotal}
           onChange={(event) => onChange({ ...values, carSeatsTotal: event.target.value })}
@@ -861,8 +832,7 @@ function NewCarFields({
         />
       </label>
       <label className="font-medium text-slate-800">
-        Color (optional)
-        <input
+        {t("form.color")}<input
           className={inputClass}
           value={values.carColor}
           onChange={(event) => onChange({ ...values, carColor: event.target.value })}
@@ -871,15 +841,14 @@ function NewCarFields({
         />
       </label>
       <label className="font-medium text-slate-800">
-        Last 3 plate characters (optional)
-        <input
+        {t("form.plate")}<input
           className={inputClass}
           value={values.plateLast3}
           onChange={(event) => onChange({ ...values, plateLast3: event.target.value })}
           maxLength={3}
           minLength={3}
           pattern="[A-Za-z0-9]{3}"
-          title="Exactly 3 letters or numbers"
+          title={t("form.plateHint")}
           name="plateLast3"
           placeholder="123"
         />

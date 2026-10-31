@@ -1,12 +1,9 @@
 export const detailEn = {
-  "profile.connectionError": "Connection error",
-  "profile.loadFailed": "The profile did not load",
-  "profile.unavailable": "The service may be temporarily unavailable. Your session and data are safe.",
+
   "profile.label": "Profile",
   "profile.notFound": "Student not found",
   "profile.notFoundBody": "This profile may not exist yet, or it may no longer be available.",
-  "chat.room": "Ride room",
-  "chat.loadFailed": "Could not load the ride room",
+
   "tag.flexible_pickup": "Flexible pickup",
   "tag.luggage_space": "Luggage space",
   "tag.music": "Music welcome",
