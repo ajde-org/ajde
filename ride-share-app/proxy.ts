@@ -66,18 +66,25 @@ export async function proxy(request: NextRequest) {
       )
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, photo_url, university, phone')
-      .eq('id', user.id)
-      .maybeSingle()
+    // Phone is a private contact column, readable only through profile_contacts().
+    const [{ data: profile }, { data: contacts, error: contactsError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, photo_url, university')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase.rpc('profile_contacts', { profile_ids: [user.id] }),
+    ])
+    const phone = (contacts as { phone: string | null }[] | null)?.[0]?.phone
 
     const profileComplete = Boolean(
-      profile?.full_name.trim() && profile.photo_url.trim() && profile.university.trim() && phoneSchema.safeParse(profile.phone).success,
+      profile?.full_name.trim() && profile.photo_url.trim() && profile.university.trim() && phoneSchema.safeParse(phone).success,
     )
 
 
-    if (pathname !== '/onboarding' && !profileComplete) {
+    // A failed lookup is not an incomplete profile: let the page load rather than wrongly sending
+    // the user to onboarding (pages re-check completeness themselves).
+    if (pathname !== '/onboarding' && !profileComplete && !contactsError) {
       return redirectWithCookies(new URL('/onboarding', request.url), response)
     }
   }

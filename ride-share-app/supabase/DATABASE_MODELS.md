@@ -17,6 +17,25 @@ The executable source of truth remains `supabase/migrations/`; generated applica
 - `messages` and `ratings` have table-specific RLS. Other public tables still lack RLS;
   application checks are not a substitute for database protection. In particular, direct
   mutation of unprotected rides/bookings can undermine the membership facts these policies use.
+- Interim API privileges (`20261031210000_revoke_anonymous_writes.sql`, until full RLS): `anon`
+  has no INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES or TRIGGER on any public table, and default
+  privileges stop new tables from granting them again. `authenticated` has no TRUNCATE anywhere,
+  cannot write `cities`, `pickup_points` or `car_models`, and has no access to the unused
+  `ride_comments` and `reports` tables. Profile INSERT and UPDATE are column grants that exclude
+  `verified_at`, `created_at` and `updated_at`, so a new user-writable profile column needs its own
+  grant.
+- Contact details (`phone`, `instagram`, `facebook`, `social_url`) are read only through
+  `profile_contacts(uuid[])`, never selected from `profiles` directly. It returns a profile's own
+  contacts, those of passengers with a requested or accepted booking on a ride the viewer drives,
+  and the driver and accepted co-passengers of a ride the viewer is accepted on. It accepts at most
+  200 ids and raises `22023` beyond that; `getContactDetails()` batches lookups of 100. Write
+  contacts with a plain UPDATE or INSERT, not an upsert: once RLS withholds SELECT on these columns,
+  an upsert's conflict branch cannot re-read them.
+- Chat rooms read their accepted members through `ride_room_roster(uuid)`, which returns passenger
+  ids and decision times to room members only, so co-passengers never need each other's bookings.
+- The service role is used only by server-only code that must read across users: sign-in links
+  (`app/login`), platform impact totals (`lib/impact/queries.ts`, aggregates only) and share links
+  (`lib/sharing/queries.ts`, looked up by token).
 
 ## Storage
 
@@ -48,6 +67,10 @@ The application requires a valid phone (7–15 digits, optional leading +) for p
 `verified_at` records verification. It also has `created_at` and trigger-maintained `updated_at`.
 Names must be 2–100 trimmed characters, university names 2–160, and bios at most 500 characters.
 `social_url` stores an optional HTTPS profile URL (up to 500 characters), validated on save; credentials and non-HTTPS URLs are rejected. Existing social columns are preserved.
+`driver_details` is public JSON for optional travel preferences (`conversation`, `music`, `pets`,
+`smoking`) and up to three driving prompt answers (`prompts`: unique known `id`, 1–180 character
+`answer`). It defaults to `{"prompts": []}` and is checked by the immutable `valid_driver_details(jsonb)`;
+it never holds contact data.
 The Tier 1 demo seed creates 25 clearly synthetic, verified student profiles with deterministic IDs.
 
 ### `cities`
@@ -238,6 +261,8 @@ bookings 1--* trip_shares
 - `set_updated_at()` refreshes `updated_at` on updates to `profiles`, `cars`, `rides`, `bookings`,
   and `ride_comments`.
 - `guard_booking_identity()` prevents changing a booking's ride or passenger.
+- `guard_profile_identity()` prevents changing a profile's `id`. PostgREST upserts write `id` in
+  their update branch, so `authenticated` holds UPDATE on that column and this trigger keeps it fixed.
 - `sync_ride_seats()` calls `recalculate_ride_seats()` after booking inserts, updates, and deletes.
   Accepted seats are subtracted from ride capacity; zero availability changes `published` to `full`,
   while restored availability changes `full` back to `published`. Overbooking raises a constraint
@@ -255,7 +280,8 @@ For every database change:
 1. Add a new migration; do not rewrite a migration that may already be applied.
 2. Update this file's affected enum, table, relationship, and behavior sections.
 3. Regenerate `lib/supabase/database.types.ts` from the migrated database.
-4. Extend and run `supabase/tests/schema_smoke.sql` for new invariants.
+4. Extend `supabase/tests/` for new invariants and run `npm run test:db` against a local Supabase
+   (`supabase start`, then `supabase db reset --local`). Never run the tests against production.
 
 ## Shared policy helpers and verification
 
@@ -265,7 +291,9 @@ and use SECURITY DEFINER to query membership without depending on caller table p
 and anon execution is revoked; authenticated execution is granted only for policy checks. The narrow
 rating aggregate is also SECURITY DEFINER with explicit grants. No helper accepts a viewer identity.
 
-`schema_smoke.sql` includes `communication_reputation.sql` and `room_policies.sql`, which switch into real PostgreSQL roles and set
+`schema_smoke.sql` includes `api_privileges.sql` and `profile_contacts.sql`, which check table
+privileges, contact visibility and the room roster as `anon` and as signed-in users, plus
+`communication_reputation.sql` and `room_policies.sql`, which switch into real PostgreSQL roles and set
 JWT subject claims. It tests driver/two passengers/new passengers, denial states, forged data,
 immutable rows, send expiry, cancellation, and aggregate privacy. Every fixture rolls back.
 
