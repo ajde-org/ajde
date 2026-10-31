@@ -2,7 +2,7 @@ import "server-only";
 
 import { getCurrentUser } from "../auth/session";
 import { calculateRideEstimate } from "../rides/ride-estimate";
-import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 
 export type ImpactTotal = {
   savedCo2Kg: number;
@@ -49,7 +49,9 @@ export async function getPublicImpactSummary() {
 }
 
 async function collectImpact(userId: string | null, excludeDemo = false) {
-  const supabase = await createClient();
+  // Totals span every user's completed rides and accepted bookings, which RLS hides from any one
+  // viewer, so this reads with the service role. Only aggregates may leave this module.
+  const supabase = createAdminClient();
   const participants = new Set<string>();
   let savedFuelLitres = 0;
   const personal = emptyTotal();

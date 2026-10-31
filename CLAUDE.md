@@ -20,8 +20,11 @@ Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `
 
 ## Data and security
 
-- Change the database only through migration files in `ride-share-app/supabase/migrations/`, never the Supabase SQL editor.
+- Change the database only through migration files in `ride-share-app/supabase/migrations/`, never the Supabase SQL editor. Apply them to production with `supabase db push` only after the PR is merged, and never push migrations from an unmerged branch.
 - Every new table enables RLS and gets its policies in the same migration.
+- Test migrations locally (`supabase start`, `supabase db reset --local`, `npm run test:db`), never against production.
+- Contact details (`phone`, `instagram`, `facebook`, `social_url`) are private: read them only through `getContactDetails()` (`lib/profiles/contact-details.ts`), and write them with a plain update or insert, not an upsert.
+- Use the user's Supabase client so RLS applies. The admin client (`lib/supabase/admin.ts`) is only for server code that must read across users, and returns only what the caller may see.
 - Server-side modules import `server-only`. Secrets never go in `NEXT_PUBLIC_*` variables.
 - Validate input with zod in every server action and API route.
 - Preview deployments use the production database: don't test destructive actions on previews.

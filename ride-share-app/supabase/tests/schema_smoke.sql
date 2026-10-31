@@ -1,15 +1,17 @@
 -- Run with:
--- psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/tests/schema_smoke.sql
+-- npm run test:db (local Supabase by default; TEST_DATABASE_URL overrides). Never run it against production.
 -- Every fixture is rolled back.
 
 begin;
 
 do $$
 declare
-  demo_profile_count integer;
+  seeded_profile_count integer;
   demo_ride_count integer;
+  history_ride_count integer;
 begin
-  select count(*) into demo_profile_count
+  -- 25 demo-feed students plus 35 trip-history students share this id prefix.
+  select count(*) into seeded_profile_count
   from public.profiles
   where id::text like '20000000-0000-4000-8000-%';
 
@@ -17,9 +19,13 @@ begin
   from public.rides
   where details @> '{"demo_seed": true}'::jsonb;
 
-  if demo_profile_count <> 25 or demo_ride_count <> 50 then
-    raise exception 'Expected 25 demo profiles and 50 demo rides, got % and %',
-      demo_profile_count, demo_ride_count;
+  select count(*) into history_ride_count
+  from public.rides
+  where details @> '{"seeded_history": true}'::jsonb;
+
+  if seeded_profile_count <> 60 or demo_ride_count <> 50 or history_ride_count <> 72 then
+    raise exception 'Expected 60 seeded profiles, 50 demo rides and 72 history rides, got %, % and %',
+      seeded_profile_count, demo_ride_count, history_ride_count;
   end if;
 end;
 $$;
@@ -261,3 +267,7 @@ rollback;
 \ir ride_offers.sql
 
 \ir chat_ai.sql
+
+\ir api_privileges.sql
+
+\ir profile_contacts.sql

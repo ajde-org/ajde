@@ -6,6 +6,7 @@ import { ChatIcon } from "@/components/chat-icon";
 import { RatingControl } from "@/components/ratings/rating-control";
 import { getRatingControls } from "@/lib/ratings/queries";
 import { formatDeparture } from "@/lib/rides/ride-presentation";
+import { getContactDetails } from "@/lib/profiles/contact-details";
 import { createClient } from "@/lib/supabase/server";
 
 import { cancelBooking } from "../actions";
@@ -41,12 +42,17 @@ export async function PassengerTrips({ userId, filter }: { userId: string; filte
     const ride = rides?.find((entry) => entry.id === booking.ride_id);
     return ride?.driver_id ? [ride.driver_id] : [];
   }))];
-  const [{ data: cities }, { data: drivers }] = await Promise.all([
+  const [{ data: cities }, { data: drivers }, { data: driverContacts, error: contactError }] = await Promise.all([
     cityIds.length ? supabase.from("cities").select("id, name_en").in("id", cityIds) : Promise.resolve({ data: [] }),
-    acceptedDriverIds.length ? supabase.from("profiles").select("id, full_name, phone, instagram, facebook").in("id", acceptedDriverIds) : Promise.resolve({ data: [] }),
+    acceptedDriverIds.length ? supabase.from("profiles").select("id, full_name").in("id", acceptedDriverIds) : Promise.resolve({ data: [] }),
+    getContactDetails(supabase, acceptedDriverIds),
   ]);
+  if (contactError) throw new Error("Unable to load your trips.");
   const cityMap = new Map((cities ?? []).map((city) => [city.id, city.name_en]));
-  const driverMap = new Map((drivers ?? []).map((driver) => [driver.id, driver]));
+  const driverMap = new Map((drivers ?? []).map((driver) => {
+    const contact = driverContacts.get(driver.id);
+    return [driver.id, { ...driver, phone: contact?.phone ?? null, instagram: contact?.instagram ?? null, facebook: contact?.facebook ?? null }];
+  }));
   const ratingControls = await getRatingControls(userId, rides ?? [], (bookings ?? []).map((booking) => ({ ...booking, passenger_id: userId })));
   // Request-time expiry is intentional in this uncached Server Component.
   // eslint-disable-next-line react-hooks/purity
