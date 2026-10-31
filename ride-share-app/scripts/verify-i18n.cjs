@@ -84,8 +84,14 @@ async function main() {
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(output, 'landing-mk-mobile-menu.png'), fullPage: false });
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Кој било ден' }).click();
+    const dateTrigger = page.getByRole('button', { name: 'Кој било ден' });
+    await dateTrigger.focus();
+    assert.notEqual(await dateTrigger.evaluate(element => getComputedStyle(element).outlineStyle), 'none', 'Keyboard focus is visible');
+    await page.keyboard.press('Enter');
     await page.getByRole('dialog', { name: 'Изберете датум на поаѓање' }).waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog', { name: 'Изберете датум на поаѓање' }).waitFor({ state: 'hidden' });
+    await dateTrigger.click();
     await page.getByRole('button', { name: 'Утре', exact: true }).click();
     await page.screenshot({ path: path.join(output, 'landing-mk-mobile.png'), fullPage: true });
     await page.screenshot({ path: path.join(output, 'landing-mk-mobile-viewport.png') });

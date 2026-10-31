@@ -1,7 +1,7 @@
 # AJDE-29: Macedonian language support
 
-Status: implementation in progress, through the second checkpoint. Localization infrastructure, shared shell/date controls, landing/login, onboarding, discovery's fixed UI and ride-detail/seat-request UI are implemented. Remaining flows, API/AI localization, authenticated lifecycle verification and human review are pending.
-Updated: 2026-10-27.
+Status: implementation in progress. Phase 2 application UI is implemented, including offer/import, trips/profile/ratings, chat/sharing and safe error fallbacks. Match explanations and chat answers now follow the selected locale. The final code/contract audit and controlled cross-flow verification are complete. Real authenticated lifecycle verification, external auth-email scope and human review remain open.
+Updated: 2026-10-31.
 Ticket: [AJDE-29](https://linear.app/ajde-app/issue/AJDE-29/i18n-add-macedonian-mk-language-support).
 Branch: `feat/AJDE-29-macedonian-language-support`.
 Base: freshly fetched `origin/dev`, commit `71a804e85d172bef744d1fbd193038bc91d03665`.
@@ -56,7 +56,7 @@ These describe the starting state, not the current implementation. See the curre
 - [x] User reviews the plan and requests implementation; record changes to the proposed decisions.
 - [x] Recheck the ticket for changed requirements and blocking relations; repeated at the second checkpoint, with no requirement changes.
 - [x] Create the initial coverage inventory with candidate files, proposed namespaces/areas and migration status; 162 original candidate source files enumerated.
-- [ ] Finish the detailed full-string-surface audit, including embedded image text, metadata, loading/error/not-found files, tooltips, placeholders, aria labels and live regions. File enumeration alone does not complete this audit.
+- [x] Finish the detailed full-string-surface audit, including embedded image text, metadata, loading/error/not-found files, tooltips, placeholders, aria labels and live regions. File enumeration alone does not complete this audit.
 
 ## Phase 1 — Localization foundation
 
@@ -77,35 +77,38 @@ For each item: migrate all visible and assistive text, supply both catalogs, ver
 - [x] Onboarding: `app/onboarding/*` UI/metadata, field/help text, photo/contact validation and stable profile-action message keys. Controlled EN/MK tests verify existing-error translation and unsaved-field preservation.
 - [ ] Complete the authentication lifecycle audit, including successful callbacks and sign-out. Inventory external Supabase auth-email text and record its localization or an agreed exclusion.
 - [x] Discovery's fixed UI: feed metadata/headings, filters, localized cities, ride cards/routes/seats/prices, interpretation criteria and deterministic warning labels, natural-language-search controls/failures, welcome and empty states.
-- [ ] Complete discovery's generated match explanations, locale propagation/cache keys and API error audit. The discovery flow as a whole is not complete.
-- [ ] Offer and import: `app/rides/new/*`, `app/rides/import/*`, ride forms, car selection, screenshot controls, price/distance/ride-check summaries, recovery and publish messages.
-- [x] Ride-detail and seat-request UI: `app/rides/[id]/(detail)/*`, booking action notices, localized statuses/tags/routes/prices/seats, availability/permission text and ride not-found state. Controlled EN/MK fixtures and notice-compatibility tests pass.
-- [ ] Finish shared contact details and ride completion/cancellation controls with the trips/profile migration. The broader booking lifecycle remains incomplete.
-- [ ] Trips and profiles: `app/dashboard/*`, `app/profile/[id]/*`, status filters, driver/passenger views, impact summaries, rating forms and summaries.
-- [ ] Chat and sharing: `app/rides/[id]/chat/*`, `components/chat/*`, `app/trip/[token]/*`, `components/trip-share-controls.tsx`, copy/share feedback, unavailable/expired states.
-- [ ] Audit all route-level loading/error/not-found text and unmounted error fallbacks; verify they do not fail when a translation provider is unavailable.
+- [x] Complete discovery's generated match explanations, locale propagation/cache keys and API error audit. Explanations use the request cookie, localized city facts, locale-aware fallback templates and locale-specific client request keys; failed API responses remain optional and never replace ride results.
+- [x] Offer and import: `app/rides/new/*`, `app/rides/import/*`, ride forms, car selection, screenshot controls, price/distance/ride-check summaries, recovery and publish messages.
 
-  Implemented so far: root error/not-found, ride not-found, profile error/not-found and ride-chat error screens. Offer/import loading headings and provider-unavailable behavior remain pending.
+  Verified with form/action/component tests and controlled EN/MK phone/desktop fixtures. Saved car errors retranslate while unsaved fields remain intact. No real ride publication was performed.
+- [x] Ride-detail and seat-request UI: `app/rides/[id]/(detail)/*`, booking action notices, localized statuses/tags/routes/prices/seats, availability/permission text and ride not-found state. Controlled EN/MK fixtures and notice-compatibility tests pass.
+- [x] Finish shared contact details and ride completion/cancellation controls with the trips/profile migration. State-changing behavior is tested with mocks; real authenticated lifecycle validation remains separate.
+- [x] Trips and profiles: `app/dashboard/*`, `app/profile/[id]/*`, status filters, driver/passenger views, impact summaries, rating forms and summaries.
+- [x] Chat and sharing: `app/rides/[id]/chat/*`, `components/chat/*`, `app/trip/[token]/*`, `components/trip-share-controls.tsx`, copy/share feedback, unavailable/expired states.
+- [x] Audit all route-level loading/error/not-found text and unmounted error fallbacks; verify they do not fail when a translation provider is unavailable.
+
+  Error boundaries use a small bilingual fallback catalog when the provider is absent. `/rides` no longer renders English heading/subtitle in its Macedonian loading state; server-render tests cover the pre-hydration output. Offer/import/chat/profile/shared metadata and loading states were audited.
 
 ## Phase 3 — Errors, formatting, domain labels, and AI
 
-- [ ] Audit server actions and `app/api/*` for user-facing messages; map known failures to translation keys/codes and parameters while preserving response status and machine contracts. Replace displayed raw provider/database errors with appropriate localized user messages; retain useful server diagnostics.
-- [ ] Localize Zod and other validation at the presentation boundary. Test failures and successful action results in both languages, including locale changes with an existing validation error.
-- [ ] Localize date picker weekdays/months/aria labels, departures, relative dates, counts, seats, distances, ratings, CO2, and money. Verify zero/one/multiple counts and `Europe/Skopje` DST boundaries; preserve current scheduling semantics.
-- [ ] Audit city/pickup names and other database-backed labels. Read `supabase/DATABASE_MODELS.md` before changing those features; use existing localized display data if available and preserve canonical IDs/search aliases. Record gaps rather than renaming stored data opportunistically.
-- [ ] Audit generated vs deterministic AI text in each flow. Thread validated locale through relevant calls and cache keys; preserve structured schemas, IDs, source text, and multilingual input support. Define how previously saved generated text displays after a language change.
-- [ ] Add mocked AI tests for locale propagation and localized failure/fallback output. If prompts or AI behavior change, run the relevant documented live evals, record costs/results where available, and include results in the eventual PR. Do not run paid evals just for dictionary changes.
+- [x] Audit server actions and `app/api/*` for user-facing messages; map known failures to translation keys/codes and parameters while preserving response status and machine contracts. Replace displayed raw provider/database errors with appropriate localized user messages; retain useful server diagnostics.
+- [x] Localize Zod and other validation at the presentation boundary. Test failures and successful action results in both languages, including locale changes with an existing validation error.
+- [x] Localize date picker weekdays/months/aria labels, departures, relative dates, counts, seats, distances, ratings, CO2, and money. Verify zero/one/multiple counts and `Europe/Skopje` DST boundaries; preserve current scheduling semantics.
+- [x] Audit city/pickup names and other database-backed labels. Read `supabase/DATABASE_MODELS.md` before changing those features; use existing localized display data if available and preserve canonical IDs/search aliases. Record gaps rather than renaming stored data opportunistically.
+- [x] Audit generated vs deterministic AI text in each flow. Thread validated locale through relevant calls and cache keys; preserve structured schemas, IDs, source text, and multilingual input support. Define how previously saved generated text displays after a language change. See `docs/AI.md` and `docs/I18N.md` for the implemented policy.
+- [x] Add mocked AI tests for locale propagation and localized failure/fallback output. Relevant paid locale evaluation passed: two locale cases, four synthetic-data provider calls for match explanations and cited chat answers. Exact provider cost was not reported. Original parser/offer/checker prompts were not changed.
 
 ## Phase 4 — Regression and visual verification
 
-- [ ] Add colocated tests for new logic and adapt meaningful existing component/action tests to both locales. Check catalog completeness without relying solely on snapshots or a hardcoded-text scan.
-- [ ] Exercise EN → MK → reload → EN for logged-out and authenticated journeys, including direct links, query filters, auth callbacks, shared trip tokens, and unsaved forms.
-- [ ] Check landing, auth, discovery, offer/import, detail/booking, trips, profile/ratings, chat, and sharing at approximately 375px and desktop in both languages. Record tested routes, screenshots/evidence, and any unavailable flows.
-- [ ] Verify Cyrillic fonts, long-label wrapping, navigation, calendars, keyboard use, focus, accessible names, contrast, and screen-reader/live status text. Keep UI changes mobile-first and use Tailwind utilities where possible.
+- [x] Add colocated tests for new logic and adapt meaningful existing component/action tests to both locales. Check catalog completeness without relying solely on snapshots or a hardcoded-text scan.
+- [x] Exercise EN → MK → reload → EN locally for logged-out journeys, direct links, query filters, invalid callbacks and unsaved forms; verify authenticated/shared-token contracts with mocks and controlled fixtures.
+- [ ] Repeat successful authenticated and shared-token browser journeys in an isolated environment with test access.
+- [x] Check landing, auth, discovery, offer/import, detail/booking, trips, profile/ratings, chat, and sharing at approximately 375px and desktop in both languages. Record tested routes, screenshots/evidence, and any unavailable flows.
+- [x] Verify Cyrillic fonts, long-label wrapping, navigation, calendars, keyboard use, focus, accessible names, contrast, and screen-reader/live status text. Keep UI changes mobile-first and use Tailwind utilities where possible.
 - [x] Run the second-checkpoint checks from `ride-share-app/`: test runner (907/907 tests across 74 files), repository lint, TypeScript and production build all pass. Direct Node entry points were used for the equivalent package commands because of sandbox access restrictions.
-- [ ] Re-run required checks after the remaining implementation and record final ticket-wide results. Checkpoint passes do not complete final regression verification.
-- [ ] Audit remaining English literals and classify intentional exceptions (user content, brands, internal logs, protocol values). Confirm no missing keys or unintended English fallback in completed Macedonian flows.
-- [ ] Keep preview testing non-destructive because previews use the production database. Use controlled local/test fixtures for state-changing regression checks.
+- [x] Re-run required checks after the remaining implementation and record final ticket-wide results. Checkpoint passes do not complete final regression verification.
+- [x] Audit remaining English literals and classify intentional exceptions (user content, brands, internal logs, protocol values). Confirm no missing keys or unintended English fallback in completed Macedonian flows.
+- [x] Keep preview testing non-destructive because previews use the production database. Use controlled local/test fixtures for state-changing regression checks.
 
 ## Phase 5 — Human language review (required before PR)
 
@@ -119,30 +122,30 @@ For each item: migrate all visible and assistive text, supply both catalogs, ver
 
 - [x] Update the existing `CLAUDE.md` English-only rule with the implemented locale/message workflow, default, and instructions for adding reviewed text. Keep shared rules in their existing source file.
 - [x] Document locale persistence, formatting, catalog organization, and translation review in an appropriate existing app/developer document. Update `docs/AI.md` if locale affects AI behavior.
-- [ ] Review the final diff for ticket scope, complete the coverage inventory, and update this checklist and handoff log.
+- [x] Review the final diff for ticket scope, complete the coverage inventory, and update this checklist and handoff log.
 - [x] Commit the first implementation checkpoint, including the saved plan: `8651610 feat(i18n): add AJDE-29 locale foundation and initial translations`.
 - [x] Commit the second implementation checkpoint as scoped Conventional Commits: `a40fe7c` (responsive UI/language switching) and `db4b0ce` (onboarding/discovery/ride-detail localization).
-- [ ] Commit the remaining implementation as scoped Conventional Commits as its unchecked tasks are completed.
-- [ ] Prepare a PR targeting `dev`: `feat: [AJDE-29] add Macedonian language support`, using the repository PR template and Ticket/Solution convention, with validation and human review evidence.
+- [x] Commit the remaining implementation as scoped Conventional Commits as its unchecked tasks are completed.
+- [x] Prepare local PR text (not published; see [PR draft](AJDE-29-pr-draft.md)) targeting `dev`: `feat: [AJDE-29] add Macedonian language support`, using the repository PR template and Ticket/Solution convention, with validation and human review evidence.
 - [ ] Ask for approval before pushing or opening/editing the PR, as required by `CLAUDE.md`. Human translation review must already be complete before opening it. Require one reviewer approval and squash merge into `dev`.
 
 ## Acceptance checklist
 
 - [ ] English and Macedonian are selectable and persist across navigation/reload without breaking auth or shared links.
 - [ ] Every inventoried application UI flow, validation message, accessible label, and failure state is covered; exceptions are explicitly documented and agreed.
-- [ ] Locale-specific formatting is correct while underlying ride times, prices, IDs, and user content remain intact.
-- [ ] Both languages work at phone and desktop widths with accessible navigation and controls.
+- [x] Locale-specific formatting is correct while underlying ride times, prices, IDs, and user content remain intact.
+- [x] Both languages work at phone and desktop widths with accessible navigation and controls in controlled fixtures and the logged-out browser smoke; real authenticated validation remains separately open.
 - [ ] Required checks pass, relevant AI changes have evaluation evidence, and every fixed translated sentence has recorded human approval before PR creation.
 
 ## Current checkpoint and evidence
 
-- [x] 354 draft catalog message pairs implemented; matching keys/placeholders checked. See [translation review](AJDE-29-translation-review.md).
-- [x] [Coverage inventory](AJDE-29-coverage.md) created for 162 candidate source files. File enumeration is complete; detailed migration/audit of remaining flows is still pending (phase 0's full-surface audit stays unchecked).
-- [x] Latest implementation checkpoint: 907 tests across 74 files pass; lint, type checking and production build pass. These are second-checkpoint results, not final validation of the remaining ticket scope. The first checkpoint's 893-test result remains in its historical log.
+- [x] 907 draft catalog message pairs implemented; matching keys/placeholders checked. See [translation review](AJDE-29-translation-review.md).
+- [x] [Coverage inventory](AJDE-29-coverage.md) created for 162 candidate source files. Detailed string/contract audit is complete; see [final audit](AJDE-29-final-audit.md) for presentation boundaries and intentional exceptions.
+- [x] Final local verification: 942 tests across 81 files pass; lint, type checking and production build pass. Two additional paid live locale evaluations pass. These results do not replace real authenticated journey checks or human review. Earlier checkpoint results remain in the historical log.
 - [x] Read-only local browser smoke test passes: cookie persistence, English default, independent sessions, scroll/URL/query preservation, unsaved form values, translated existing errors, invalid callback/protected-route redirects, mobile menu/calendar and EN/MK navbar/savings layouts at 375/768/1024/1280/1440px. Signed-in navbar checks use DOM fixtures.
 - [x] Screenshot review of landing/login and controlled onboarding/discovery/ride-detail fixtures in English/Macedonian at phone/desktop sizes; Cyrillic fonts load and labels wrap. Evidence is in ignored `.scratch/ajde-29/` and `.scratch/ajde-29/flows/`. Rerun `node scripts/verify-i18n.cjs` for landing/login/navbar checks; `scripts/i18n-flows.test.tsx` generates controlled feature-page HTML when `I18N_FIXTURE_DIR` is set.
-- [ ] Authenticated sign-in/sign-out lifecycle, all feature screens, and destructive flow regression checks in an isolated test environment. Initial smoke tests do not create accounts, send emails, or modify production data.
-- [ ] Human wording approval: none yet. All 354 review rows remain Pending.
+- [ ] Real authenticated sign-in/sign-out lifecycle and state-changing cross-flow browser checks in an isolated test environment. Initial smoke tests do not create accounts, send emails, or modify production data.
+- [ ] Human wording approval: none recorded. All review rows remain Pending; existing user copy edits are preserved but are not treated as approval of the entire register.
 
 ## Session log
 
@@ -199,3 +202,44 @@ For each item: migrate all visible and assistive text, supply both catalogs, ver
 - Documentation and the translation-review synchronization script are grouped in `docs(i18n): record AJDE-29 checkpoint and review coverage`. Updated the live checklist to record the implementation commits; earlier session-log references to uncommitted changes describe their state at those earlier checkpoints.
 - Validation: staged diff/whitespace checks pass. This commit-only task changes no application behavior; prior checkpoint validation remains 907 tests, lint, TypeScript, production build and browser checks. Human review and remaining implementation stay pending.
 - Delivery: local commits only; no push, PR or Linear mutation.
+
+### 2026-10-27 — Offer-composition workspace checkpoint
+
+- Continued on the existing `feat/AJDE-29-macedonian-language-support` branch with a clean starting tree. Chose the offer-composition workspace as the next coherent part of phase 2; the wider offer/import checkbox remains open.
+- Added paired `offer-en.ts` and `offer-mk.ts` catalogs, localized the new-ride and loading headings, description and import controls, draft tabs, recovery/storage notices, distance feedback, map attribution and accessible labels. Draft tab labels use localized city names while distance requests keep canonical English city names. Recovery keeps the existing storage schema and maps older English distance/warning values for display.
+- Replaced displayed raw interpretation API errors with a fixed localized failure notice. Macedonian generated-warning presentation uses validated warning codes; known recovery warnings retain more specific translations. English keeps the generated warning detail. AI prompts and response schemas did not change, so paid evals were not run.
+- Added a Macedonian workspace test covering generated warning text, a provider error, retry and preservation of the driver's typed description. Adjusted one existing discovery test to use the runtime's `Intl` Macedonian date format instead of a hardcoded numeric format; its prior expectation differed from this runtime's output.
+- Changed files: `app/rides/new/offer-heading.tsx`, `offer-distance.tsx`, `offer-workspace.tsx` and its test; `components/discovery/search-interpretation.test.tsx`; `lib/i18n/messages/{offer-en,offer-mk,en,mk}.ts`; this plan, coverage inventory and translation review register.
+- Verification: 908/908 tests across 74 files, repository ESLint, TypeScript and production Next.js build pass. The focused offer workspace test (14/14) also passes after its last assertion update. `git diff --check` passes. No authenticated browser session or offer publication was performed; preview data remains untouched.
+- Review register synchronized to 410 draft message pairs; all remain Pending human review. No human translation approval is claimed. Remaining work: ride form/car selection and publish action errors, price/estimate UI, import, AI locale propagation, full authenticated/visual regression, human review and delivery gates.
+- Delivery: local working-tree changes in this checkpoint; no push, PR or Linear mutation.
+
+### 2026-10-28 — Phase 2 continuation (in progress)
+
+- User requested the remaining Phase 2 implementation and continuation into Phase 3 where human review or environment access blocks verification.
+- Confirmed the reported `/rides` English flash comes from the hardcoded feed loading heading/subtitle. The skeleton now uses the selected catalog before hydration; an immediate server-render regression test covers both languages.
+- Offer/car forms, import/screenshot controls and review summaries, dashboard views/status filters, profile/ratings and ride lifecycle controls are being migrated. Validation and action notices use catalog codes so existing errors can retranslate. Implementation and verification are still in progress; these broad checkboxes remain unchecked until the affected flows are verified.
+- Preserving the earlier local checkpoint changes. No push, PR, production mutation or human translation approval.
+
+### 2026-10-30 — Phase 2 UI completion and Phase 3 AI/notice implementation
+
+- Continued the existing branch and preserved the user's latest Macedonian wording edits. Completed offer/car forms, import/screenshot controls and evidence summaries, trip filters and driver/passenger views, profile/contact/impact/rating UI, completion/cancellation controls, private chat and shared itineraries. New/import/profile/chat/shared route metadata is localized. Feature catalogs are separated by area; the review register now has 907 matching EN/MK pairs.
+- Fixed `/rides` loading heading/subtitle using the request's selected catalog before hydration. Added server-render regression coverage. Error boundaries now work without the normal provider using a small bilingual fallback catalog; tests cover EN/MK recovery controls without leaking error details.
+- Added stable action/validation notice keys and render-time translation, including safe fallback for unknown or parameterized messages. Car-form tests verify an existing error retranslates while typed details survive switching. Known chat API codes drive localized messages; import/evidence failures never display raw provider/database text. Machine response fields and statuses remain compatible.
+- Localized city/pickup display queries for shared itineraries without changing bearer-token authorization or returned private data. Other route names, fuel/gender/status labels, dates, money, seats, ratings, impact numbers and plural variants use the existing locale helpers. Numeric input serialization and Skopje scheduling calculations are unchanged.
+- Implemented request-cookie locale propagation for match explanations and chat answers. Explanations have localized factual fallbacks, private/no-store responses and a client request key containing locale; a regression test rejects late old-language results. Chat switches hide old generated text behind an explicit refresh notice and preserve questions without issuing an automatic paid request. Original excerpts and IDs are unchanged. Stored interpretations/drafts keep their schemas and use deterministic warning-code presentation in Macedonian; no saved content is rewritten.
+- Verification: 928/928 tests across 79 files; ESLint; TypeScript; production Next.js build. Relevant live evaluation passed 2/2 locale cases with four synthetic-data provider calls (EN/MK explanations and cited chat answers); exact provider cost was not reported. Logs are in ignored `.scratch/ajde-29/verified-{tests,lint,build}.log` and `live-i18n.log`.
+- Read-only responsive fixtures cover offer form, import, driver/passenger trips, chat, rating/lifecycle/share controls and shared itinerary at 375/1024/1440px in both languages. HTML and screenshots are under `.scratch/ajde-29/remaining-flows/`; generated by `scripts/i18n-remaining-flows.test.tsx`. No horizontal page overflow was found. Fixed small inline spacing defects found during screenshot review. Missing fixture avatars are synthetic image placeholders, not production image requests.
+- Auth audit: mocked successful code/token callbacks and sign-out preserve the locale cookie and expected redirects. Real session verification remains blocked on an isolated test environment/account; preview data is production. No account, email, ride, booking, rating, cancellation or sharing record was created. Supabase-managed signup/magic-link/invite/recovery/email-change templates have no source in this repository; their wording and localization require owner inspection or an explicitly agreed exclusion. Neither is claimed complete.
+- Remaining work: finish the Phase 3 API/action and validation/domain audit, final whole-app English-literal/accessibility and authenticated journey verification, human review of all fixed wording and generated-output samples, then checkpoint commits and approved PR delivery. Do not replay the ignored migration scripts: catalogs have since been split and user copy edits must be preserved. No new commit, push, PR or Linear mutation in this checkpoint.
+
+### 2026-10-31 — Complete unblocked implementation and verification
+
+- Completed the Phase 0 string-surface audit and Phase 3 action/API/validation/format/domain-label audit. The coverage inventory now classifies all candidate files; no generic Pending audit rows remain. See [final audit](AJDE-29-final-audit.md) for producer/consumer mappings, intentional English literals and data gaps.
+- Added validation-path tests and sharing success/revocation/error-switch tests. Unknown provider errors remain hidden, and existing notices retranslate without repeating actions. Preserved all existing user Macedonian edits; the review register remains 907 Pending pairs.
+- Extended controlled fixtures to full profile and zero/one/multiple-trip impact counters. Added reusable `scripts/verify-i18n-fixtures.cjs`: 52 EN/MK layouts at 375/1440px, exposed control names, image alternatives, focus observations and 896 opaque-background contrast measurements. Fixed four measured contrast classes using Tailwind utilities; final measured failures: zero. Profile ratings are exercised separately from the profile page's nested async summary.
+- Final checks: 942/942 tests across 81 files; ESLint; TypeScript; production build; diff whitespace check. Read-only browser smoke passes including EN→MK→reload→EN, cookies, independent sessions, URL/query/scroll/form state, existing validation, invalid callbacks/protected redirects, mobile navigation, calendar Enter/Escape and visible focus. No account, email, booking, ride or production database mutations.
+- AI prompts are unchanged from the October 30 live evaluation (two cases, four synthetic-data calls); no additional paid calls were needed. Generated output and fixed translations still need human review.
+- Local commits: `434e16d` application flows/safe notices/loading-flash fix and `50e87f5` locale-aware AI behavior. Final verification scripts, coverage, review register and this handoff are saved in the following documentation/test commit. No push or PR was made.
+- Prepared [local PR text](AJDE-29-pr-draft.md) using Ticket/Solution/Screenshots, targeting dev. Publication is blocked on recorded wording approval and explicit permission, per CLAUDE.md.
+- Remaining work requires external access or human review: real successful auth and state-changing browser journeys in an isolated test environment; Supabase-managed email-template inspection/localization or agreed exclusion; contextual approval of every translation and AI prompt/sample; revalidation after resulting copy edits; push/PR approval. Phase 3 and locally executable Phase 4 work are complete. The broader acceptance items that depend on these requirements remain unchecked.
