@@ -14,28 +14,64 @@ The executable source of truth remains `supabase/migrations/`; generated applica
   `ON DELETE CASCADE`; historical relationships that must remain valid use `ON DELETE RESTRICT`.
 - `cars` stores a snapshot of make, model, fuel type, and consumption even when it references a
   catalog entry. This preserves the actual vehicle details and permits manual entries.
-- `messages` and `ratings` have table-specific RLS. Other public tables still lack RLS;
-  application checks are not a substitute for database protection. In particular, direct
-  mutation of unprotected rides/bookings can undermine the membership facts these policies use.
-- Interim API privileges (`20261031210000_revoke_anonymous_writes.sql`, until full RLS): `anon`
-  has no INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES or TRIGGER on any public table, and default
-  privileges stop new tables from granting them again. `authenticated` has no TRUNCATE anywhere,
-  cannot write `cities`, `pickup_points` or `car_models`, and has no access to the unused
-  `ride_comments` and `reports` tables. Profile INSERT and UPDATE are column grants that exclude
-  `verified_at`, `created_at` and `updated_at`, so a new user-writable profile column needs its own
-  grant.
-- Contact details (`phone`, `instagram`, `facebook`, `social_url`) are read only through
-  `profile_contacts(uuid[])`, never selected from `profiles` directly. It returns a profile's own
-  contacts, those of passengers with a requested or accepted booking on a ride the viewer drives,
-  and the driver and accepted co-passengers of a ride the viewer is accepted on. It accepts at most
-  200 ids and raises `22023` beyond that; `getContactDetails()` batches lookups of 100. Write
-  contacts with a plain UPDATE or INSERT, not an upsert: once RLS withholds SELECT on these columns,
-  an upsert's conflict branch cannot re-read them.
-- Chat rooms read their accepted members through `ride_room_roster(uuid)`, which returns passenger
-  ids and decision times to room members only, so co-passengers never need each other's bookings.
-- The service role is used only by server-only code that must read across users: sign-in links
-  (`app/login`), platform impact totals (`lib/impact/queries.ts`, aggregates only) and share links
-  (`lib/sharing/queries.ts`, looked up by token).
+- Every public table has RLS enabled; see "Access control" below. Application checks are not a
+  substitute for database protection: a new table enables RLS and gets its policies in the same
+  migration, and `supabase/tests/rls_policies.sql` gains cases for it.
+
+## Access control
+
+The API roles are `anon` (logged out) and `authenticated`. The service role bypasses RLS and is used
+only by server-only code: sign-in links (`app/login`), platform impact totals
+(`lib/impact/queries.ts`, aggregates only) and share links (`lib/sharing/queries.ts`, looked up by
+token).
+
+| Table | Read | Write |
+| --- | --- | --- |
+| `cities`, `pickup_points`, `car_models` | everyone | migrations only |
+| `profiles` | everyone, except contact columns | own row: insert and update, never `verified_at`, `created_at`, `updated_at` |
+| `rides` | signed in: all except other users' drafts | driver updates `status` of own rides, following the lifecycle below; insert only via `create_ride_offer()` |
+| `bookings` | the passenger and the ride's driver | passenger requests (`can_request_seat()`) and cancels own while the ride is published or full; driver accepts or declines requests before departure |
+| `cars` | owner, and cars attached to visible rides | owner inserts |
+| `imports` | creator | creator inserts |
+| `trip_shares` | the booking's passenger | the booking's passenger creates and deletes |
+| `messages`, `ratings` | ride room members / rater and ratee | see their sections |
+| `ride_comments`, `reports`, `chat_ai_budgets`, `ride_routing_gate` | nobody | nobody (definer functions only) |
+
+- Contact columns (`phone`, `instagram`, `facebook`, `social_url`) are withheld by column grants
+  and read only through `profile_contacts(uuid[])`: a profile's own contacts, passengers with a
+  requested or accepted booking on a ride the viewer drives, and the driver and accepted
+  co-passengers of a ride the viewer is accepted on. Column grants do not cover new columns, so a
+  new public `profiles` column needs a SELECT grant, and a user-writable one INSERT/UPDATE grants.
+  Writes to contact columns must be plain UPDATE or INSERT: an upsert's conflict branch re-reads
+  the values and is denied.
+- Ride status changes made through the API follow the lifecycle enforced by
+  `guard_ride_status_change()`: published ↔ full only when availability matches, published/full →
+  completed only after departure, published/full → cancelled only before departure, draft →
+  published only for a future departure, and draft → cancelled. Completed and cancelled are final.
+  Migrations, the service role and SECURITY DEFINER functions are not restricted.
+- Chat rooms read their accepted members through `ride_room_roster(uuid)`, which returns only
+  passenger ids and decision times to room members. Co-passengers never see each other's bookings,
+  whose `message` is a private note to the driver.
+- Bookings are written through column grants (`ride_id`, `passenger_id`, `seats`, `message` on
+  insert; `status`, `decided_at` on update); seat counts follow through triggers. A driver's
+  decision must carry a `decided_at` within five minutes of the statement time.
+- `anon` holds no INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES or TRIGGER on any public table, and
+  no API role has TRUNCATE.
+- New tables and sequences start with no `anon`/`authenticated` privileges (default privileges for
+  `postgres` in `public`). A migration adding one grants exactly what it needs next to its RLS
+  policies, including USAGE on an identity sequence the API inserts into.
+- Functions keep PostgreSQL's PUBLIC execute by default (revoking it would also hide extension
+  functions from the API), so every new function revokes PUBLIC/`anon`/`authenticated` execute and
+  grants only what it needs. `api_privileges.sql` pins the functions the API roles may call and
+  fails on any other callable one.
+- `profile_contacts(uuid[])` accepts at most 200 ids and raises `22023` beyond that;
+  `getContactDetails()` batches lookups of 100 and returns an error instead of partial results.
+- Policy helpers `is_ride_driver(uuid)`, `is_booking_passenger(uuid)`,
+  `is_ride_active(uuid, boolean)` and `can_request_seat(uuid, integer)` are SECURITY DEFINER with fixed empty search paths, derive the
+  caller from `auth.uid()`, and are executable by `authenticated` only. They keep rides and bookings
+  policies from evaluating each other recursively. `can_request_seat` mirrors the app's request
+  rules: a published, future ride by another driver with enough seats, and a matching usable gender
+  when the ride is `same_as_driver`.
 
 ## Storage
 
@@ -291,9 +327,9 @@ and use SECURITY DEFINER to query membership without depending on caller table p
 and anon execution is revoked; authenticated execution is granted only for policy checks. The narrow
 rating aggregate is also SECURITY DEFINER with explicit grants. No helper accepts a viewer identity.
 
-`schema_smoke.sql` includes `api_privileges.sql` and `profile_contacts.sql`, which check table
-privileges, contact visibility and the room roster as `anon` and as signed-in users, plus
-`communication_reputation.sql` and `room_policies.sql`, which switch into real PostgreSQL roles and set
+`schema_smoke.sql` includes `api_privileges.sql`, `profile_contacts.sql` and `rls_policies.sql`, which
+check table privileges, contact visibility and every table's policies as `anon` and as signed-in users,
+plus `communication_reputation.sql` and `room_policies.sql`, which switch into real PostgreSQL roles and set
 JWT subject claims. It tests driver/two passengers/new passengers, denial states, forged data,
 immutable rows, send expiry, cancellation, and aggregate privacy. Every fixture rolls back.
 
