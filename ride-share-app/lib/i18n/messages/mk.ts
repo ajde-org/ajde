@@ -15,7 +15,7 @@ import { chatMk } from "./chat-mk";
 import { sharingMk } from "./sharing-mk";
 import { explanationsMk } from "./explanations-mk";
 
-// Draft Macedonian copy. Human approval is tracked in docs/plans/AJDE-29-translation-review.md.
+// Draft Macedonian copy. Record human wording review in the ticket or pull request.
 export const mk = {
   ...carColorsMk,
   ...errorsMk,

@@ -135,3 +135,20 @@ and text import skips the checker.
 4. **Evidence guard:** a finding is kept only if it cites a successful tool call. Code writes the
    warning wording and never changes the driver's fields. If the model or a tool fails, the draft
    still continues to review.
+## Dynamic offer/import warning translation (AJDE-29)
+
+The original `parse-ride-post.ts` and `parse-offer-description.ts` requests generate both warning languages. Their shared `warning-instructions.ts` prompt requires English `message` and Macedonian Cyrillic `messageMk`, preserving quoted evidence, numbers, negation, approximation and uncertainty. The provider schema requires both nonempty strings. `normalizeModelWarning` converts them to the existing `message` plus `translationMk: { source, text }` storage contract; only matching-source translations are displayed. Import JSON and session drafts remain compatible without database migrations.
+
+The separate translation request has been removed. Both languages are returned regardless of UI locale, so switching languages adds no request. This adds output text to the original interpretation, but removes the former translation round trip. Source posts remain untrusted data, and user notes are not translated. Missing bilingual provider output follows the existing parser error path. Existing imports are not backfilled; legacy untranslated warnings retain their original meaning until reinterpreted.
+
+The plausibility checker never exposes model prose directly: it builds warnings from validated tool evidence. Those warnings, plus code-generated parser validation warnings, use catalog translations. Fair-price warnings preserve their calculated amounts, fuel assumptions, default markers and excluded tolls in both languages. Human contextual review of Macedonian wording remains pending before PR submission.
+
+Validation on 2026-11-01: both live cases in `tests/live/draft-warnings.live.test.ts` passed (approximate `11 casot` import and weekday-only offer). The first pass exposed internal field names in generated prose; the shared prompt now explicitly excludes implementation details. The import time guard also recognizes Latin `casot`/`chasot` and Cyrillic `часот`, preventing a false missing-time warning. Mocked tests cover required bilingual output, persistence, locale switching without another request, legacy compatibility and deterministic checks. The full suite passed 1,030 tests with one outdated provider fixture failure; updating that fixture to include Macedonian output made all three affected integration tests pass. Type checking and lint passed. Live evidence is in `.scratch/ajde-29/bilingual-warnings-live.log` (ignored).
+
+## Driver-note translation (AJDE-29)
+
+Status: the driver-note translation UI was removed at the user's request on 2026-10-31. Ride details now show original notes only and do not call this action. The implementation and validation below describe the retained, unused translation service.
+
+Ride details offer an explicit translation action for free-form driver notes, in English or Macedonian Cyrillic. `lib/ai/translate-ride-notes.ts` uses the configured `OPENAI_MODEL` (default `gpt-5.4-mini`), structured output, a 15-second timeout, no automatic retries and `store: false`. The input is limited to the authorized ride's saved notes (2,000 characters); it is treated as untrusted text to translate. The prompt preserves conditions, negations, amounts, times and names. There are no tools and no database writes.
+
+The action repeats ride-detail authorization before contacting the provider. UI output is plain text, explicitly marked automatic, with the original always recoverable. A local result is reused when toggling original/translation; no shared persistent translation cache is introduced. Errors are generic localized notices. `tests/live/ride-notes.live.test.ts` makes two paid calls using synthetic notes; both EN/MK cases passed on 2026-10-31, preserving luggage, 18:30 and no-smoking conditions. Human contextual prompt/output review remains Pending.
