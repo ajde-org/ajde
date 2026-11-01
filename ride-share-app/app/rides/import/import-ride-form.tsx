@@ -1,5 +1,6 @@
 "use client";
 
+import { translateDraftWarning } from "@/lib/i18n/draft-warning";
 import { useI18n } from "@/lib/i18n/provider";
 import { formatMoney, formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
@@ -178,7 +179,7 @@ function ParsedReview({ result, cities, pipelineEnabled }: { result: ParseRespon
         <ul className="mt-4 space-y-2 text-sm text-amber-900">
           {parsed.draft.warnings.map((warning, index) => (
             <li className="rounded-lg bg-amber-100 px-3 py-2" key={`${warning.code}-${index}`}>
-              {t(`offer.warning.${warning.code}`)}
+              {translateDraftWarning(warning, locale, t)}
             </li>
           ))}
         </ul>

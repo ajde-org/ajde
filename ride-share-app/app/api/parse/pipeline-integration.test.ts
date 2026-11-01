@@ -40,7 +40,7 @@ it("carries a real parser result through guards, model-selected routing, persist
       origin: { cityId: 1, pickupPointId: null, rawText: "Skopje" },
       destination: { cityId: 2, pickupPointId: null, rawText: "Veles" },
       departureAt: "2026-09-23T15:00:00Z", seatsTotal: 3, pricePerSeatMkd: 200, confidence: 0.8,
-      notes: "private notes for the driver", warnings: [{ field: "departureAt", code: "needs_review", message: "Confirm departure." }],
+      notes: "private notes for the driver", warnings: [{ field: "departureAt", code: "needs_review", message: "Confirm departure.", messageMk: "Потврди го поаѓањето." }],
     },
   } }).mockResolvedValueOnce({ output: [{ type: "function_call", call_id: "route-1", name: "road_distance", arguments: '{"originCityId":1,"destinationCityId":2}' }] })
     .mockResolvedValueOnce({ output: [], output_parsed: { findings: [] } });
@@ -51,7 +51,8 @@ it("carries a real parser result through guards, model-selected routing, persist
   const body = await response.json();
   expect(body.check).toMatchObject({ status: "checked", trace: [{ callId: "route-1", result: { distanceKm: 52.1 } }] });
   expect(body.parsed.draft).toMatchObject({ distanceKm: 52.1, pricePerSeatMkd: 200, confidence: 0.8 });
-  expect(body.parsed.draft.warnings).toContainEqual({ field: "departureAt", code: "needs_review", message: "Confirm departure." });
+  expect(body.parsed.draft.warnings).toContainEqual({ field: "departureAt", code: "needs_review", message: "Confirm departure.", translationMk: { source: "Confirm departure.", text: "Потврди го поаѓањето." } });
+  expect(service.model).toHaveBeenCalledTimes(3); // Parser and two checker rounds; no translation round.
   expect(service.rpc).toHaveBeenCalledWith("try_ride_routing_request");
   expect(transport.mock.calls[0][0]).toContain("21.43141,41.99646;21.77556,41.71556");
   const checkerInput = JSON.stringify(service.model.mock.calls[1][0].input);

@@ -1,6 +1,8 @@
 "use client";
 
 import { emptyOfferDraft, offerInterpretationSchema } from "@/lib/rides/offer-interpretation";
+import { translateDraftWarning } from "@/lib/i18n/draft-warning";
+import { formatNumber } from "@/lib/i18n/format";
 import { useI18n } from "@/lib/i18n/provider";
 import { offerRecoverySchema, validateRecoveredTab } from "@/lib/rides/offer-recovery";
 import { applyOfferTrip, createOfferTab, editOfferTab, type OfferTab } from "@/lib/rides/offer-tabs";
@@ -18,12 +20,7 @@ const idle: CreateRideFormState = { status: "idle", message: "", fieldErrors: {}
 const subscribeHydration = () => () => {};
 type Snapshot = { tabs: OfferTab[]; activeId: string; filled: boolean };
 type OfferNotice = "offer.restored" | "offer.restoreFailed" | "offer.draftDeleted" | "offer.draftsCleared" | "offer.draftsRestored" | "offer.previousRestored" | "offer.descriptionChanged" | "offer.formChanged" | "offer.interpretFailed" | "offer.filled";
-const recoveredWarningKeys = {
-  "A saved city is no longer available. Choose it again.": "offer.warning.savedCity",
-  "Choose a currently available saved car.": "offer.warning.savedCar",
-  "Choose a currently available car model.": "offer.warning.carModel",
-  "The recovered departure has passed. Choose a future time.": "offer.warning.departurePassed",
-} as const;
+
 
 /** A blank tab seeded from the page's draft, preselecting the driver's car when that is unambiguous. */
 function freshTab(props: OfferWorkspaceProps, id: string) {
@@ -93,6 +90,18 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
   }, [storageKey, props.userId, drafts, tab, text, filled, router]);
 
   function change(values: OfferValues) {
+    if (values.originCityId !== tab.values.originCityId || values.destinationCityId !== tab.values.destinationCityId) {
+      setStates(previous => {
+        const state = previous[tab.id];
+        if (!state || state.status !== "error") return previous;
+        if (!state.fieldErrors["origin.cityId"] && !state.fieldErrors["destination.cityId"]) return previous;
+        const fieldErrors = { ...state.fieldErrors };
+        // City validation checks the pair, so either selection invalidates both errors.
+        delete fieldErrors["origin.cityId"];
+        delete fieldErrors["destination.cityId"];
+        return { ...previous, [tab.id]: Object.keys(fieldErrors).length ? { ...state, fieldErrors } : idle };
+      });
+    }
     update(tab.id, previous => previous.publishedId ? previous : editOfferTab(previous, values));
   }
   function carSaved(car: Car) {
@@ -178,6 +187,11 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     return t("offer.tabLabel", { origin: origin ?? t("offer.rideNumber", { number: index + 1 }), destination: destination ?? t("offer.chooseDestination"), departure: item.values.departureLocal.replace("T", " ") });
   }
   if (!tab) return <p role="status">{t("offer.allSaved")}</p>;
+  // Imported/checker prose describes an earlier snapshot. The route lookup owns
+  // distance in this form, so only its current result can describe the estimate.
+  const warnings = tab.warnings.filter(warning => warning.field !== "distanceKm");
+  const distance = Number(tab.values.distanceKm);
+  const hasRoutingEstimate = tab.distanceMode === "resolved" && Number.isFinite(distance) && distance > 0;
   return <div className="space-y-5">
     {drafts.map(item => <OfferDistance key={item.id} tab={item}
       origin={props.cities.find(city => String(city.id) === item.values.originCityId)?.name_en}
@@ -236,7 +250,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
           setUndo(current => { const next = { ...current }; delete next[tab.id]; return next; });
           setMessage("offer.previousRestored");
         }}>{t("offer.undoFill")}</button>}
-        {tab.warnings.length > 0 && <div role="status" className="mb-4 rounded-xl bg-amber-50 p-3"><p>{t("offer.reviewDetails")}</p><ul>{tab.warnings.map((warning, i) => <li key={i}>{warning.message in recoveredWarningKeys ? t(recoveredWarningKeys[warning.message as keyof typeof recoveredWarningKeys]) : locale === "en" ? warning.message : t(`offer.warning.${warning.code}`)}</li>)}</ul></div>}
+        {(warnings.length > 0 || hasRoutingEstimate) && <div role="status" className="mb-4 rounded-xl bg-amber-50 p-3"><p>{t("offer.reviewDetails")}</p><ul>{warnings.map((warning, i) => <li key={i}>{translateDraftWarning(warning, locale, t)}</li>)}{hasRoutingEstimate ? <li>{t("warning.routingEstimate", { distance: formatNumber(locale, distance) })}</li> : null}</ul></div>}
         {tab.distanceMessage && <p role="status" className="mb-3">{offerDistanceMessage(tab.distanceMessage, t)} {tab.distanceMode === "error" && <button type="button" className="underline" onClick={() => update(tab.id, previous => ({ ...previous, distanceMode: "auto", distanceEpoch: previous.distanceEpoch + 1 }))}>{t("offer.retryDistance")}</button>}</p>}
         <fieldset disabled={savingCar || publishing.includes(tab.id)} className="min-w-0">
           <RideForm {...props} cars={cars} onCarSaved={carSaved} onCarSaving={setSavingCar} key={tab.id} submissionId={tab.id} initialDraft={{ ...emptyOfferDraft(), source: tab.source, importId: tab.importId }}

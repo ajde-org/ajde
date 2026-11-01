@@ -1,5 +1,5 @@
-import { carColorsMk } from "./car-colors-mk";
 import { errorsMk } from "./errors-mk";
+import { carColorsMk } from "./car-colors-mk";
 import { onboardingMk } from "./onboarding-mk";
 import { detailMk } from "./detail-mk";
 import { discoveryMk } from "./discovery-mk";
@@ -115,4 +115,23 @@ export const mk = {
     "{count} завршено заедничко патување не е вклучено во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
   "landing.excluded.other":
     "{count} завршени заеднички патувања не се вклучени во проценетите заштеди поради недостасувачки или неподдржани податоци за возилото или растојанието.",
+  "warning.postMissingTime": "Во објавата не е наведено време на поаѓање; избери го рачно.",
+  "warning.parserConfidence": "Сигурноста на автоматското толкување е ниска; внимателно провери го секое поле.",
+  "warning.stubRoute": "Пробниот обработувач не ги препозна двата града; потврди ја рутата рачно.",
+  "warning.stubDate": "За релативни датуми е потребна обработка со AI; избери го точното време на поаѓање.",
+  "warning.negotiablePrice": "Во објавата пишува дека цената е по договор; внеси цена по место.",
+  "warning.wholeCarPrice": "Во објавата е наведена цена за целото возило; внеси ја предвидената цена по место.",
+  "warning.canonicalCity": "Полето „{field}“ не одговара на град од списокот; избери го рачно.",
+  "warning.pickupCity": "Местото во полето „{field}“ не припаѓа на избраниот град; избери го рачно.",
+  "warning.unresolvedPlace": "Местото во полето „{field}“ не беше препознаено; избери го рачно.",
+  "warning.unlinkedPickup": "Местото во полето „{field}“ не можеше да се поврзе со град; избери го рачно.",
+  "warning.origin": "Поаѓање",
+  "warning.destination": "Пристигнување",
+  "warning.duplicates": "Пронајдени се {count} понуди за превоз на истата рута во интервал од три часа. Можно е да се дупликати; провери ги совпаѓањата пред објавување.",
+  "warning.fairPrice": "Цената по место од {price} ден. е {level} во споредба со пресметаните {estimate} ден. Основа: {distance} km, {seats} слободни места, {fuel}{fuelDefault}, {consumption} L/100 km{consumptionDefault}, {fuelPrice} ден./L; патарините не се вклучени. Провери ја цената.",
+  "warning.priceHigh": "висока",
+  "warning.petrol": "бензин",
+  "warning.diesel": "дизел",
+  "warning.priceLow": "ниска",
+  "warning.default": " (стандардна вредност)",
 } satisfies Messages;

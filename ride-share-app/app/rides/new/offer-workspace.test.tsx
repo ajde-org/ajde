@@ -3,9 +3,74 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@/lib/i18n/tes
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { RideDraft } from "@/lib/rides/ride-draft";
 import { OfferWorkspace } from "./offer-workspace";
+import { mk } from "@/lib/i18n/messages/mk";
 
 const publish = vi.hoisted(() => vi.fn());
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
+
+it("localizes the completed fill panel and the reported missing weekday time warning", async () => {
+  const warning = 'Weekday mentioned as "petok" (Friday), but no time was provided.';
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret")
+    ? Response.json({ trips: [{ ...trip, draft: { ...trip.draft, warnings: [{ field: null, code: "low_confidence", message: warning }] } }] })
+    : Response.json({ distanceKm: 174.3 })));
+  render(<OfferWorkspace {...props} />, { locale: "mk" });
+  fireEvent.change(screen.getByLabelText(mk["offer.describe"]), { target: { value: "Skopje Bitola petok" } });
+  fireEvent.click(screen.getByRole("button", { name: mk["offer.fill"] }));
+  await screen.findByText(mk["offer.filled"]);
+  expect(screen.getByRole("button", { name: mk["offer.undoFill"] })).toBeTruthy();
+  expect(screen.getByText(mk["offer.reviewDetails"])).toBeTruthy();
+  expect(screen.getByText("Денот е наведен како „petok“ (петок), но не е наведено време на поаѓање.")).toBeTruthy();
+  expect(screen.queryByText(mk["offer.warning.low_confidence"])).toBeNull();
+  expect(screen.queryByText(warning)).toBeNull();
+});
+
+it.each(["form.from", "form.to"] as const)("clears paired city errors when %s changes, preserving other errors", async field => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ distanceKm: 60 })));
+  publish.mockResolvedValue({ status: "error", message: "form.saveFailed", fieldErrors: {
+    "origin.cityId": ["validation.city"], "destination.cityId": ["validation.city"], departureAt: ["validation.departure"],
+  } });
+  render(<OfferWorkspace {...props} />, { locale: "mk" });
+  fireEvent.submit(screen.getByRole("button", { name: mk["form.publish"] }).closest("form")!);
+  await screen.findAllByText(mk["validation.city"]);
+  fireEvent.change(screen.getByRole("combobox", { name: name => name.startsWith(`${mk[field]} `) }), { target: { value: "1" } });
+  expect(screen.queryByText(mk["validation.city"])).toBeNull();
+  expect(screen.getAllByText(mk["validation.departure"]).length).toBeGreaterThan(0);
+  expect(screen.getByLabelText(mk["form.from"]).getAttribute("aria-invalid")).toBeNull();
+  expect(screen.getByLabelText(mk["form.to"]).getAttribute("aria-invalid")).toBeNull();
+});
+
+it("shows specific Macedonian warnings from an incomplete description", async () => {
+  render(<OfferWorkspace {...props} initialDraft={{ ...blank, warnings: [
+    { field: "departureAt", code: "missing", message: "No date or time provided." },
+    { field: "distanceKm", code: "ambiguous", message: "Routing supplied an editable city-to-city estimate of 172 km; it is not exact pickup-to-drop-off travel." },
+  ] }} />, { locale: "mk" });
+  await screen.findByText(mk["warning.noDeparture"]);
+  expect(screen.queryByText(/Пресметана е процена од 172 km/)).toBeNull();
+  expect(screen.queryByText(mk["offer.warning.ambiguous"])).toBeNull();
+});
+
+it("uses the current route result instead of stale imported distance prose", async () => {
+  let resolveChangedRoute!: (response: Response) => void;
+  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ distanceKm: 174.3 }))
+    .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveChangedRoute = resolve; }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<OfferWorkspace {...props} cities={[...props.cities, { id: 8, name_en: "Veles", name_mk: "Велес" }]}
+    initialDraft={{ ...trip.draft, warnings: [{ field: "distanceKm", code: "ambiguous", message: "Routing supplied an editable city-to-city estimate of 172 km; it is not exact pickup-to-drop-off travel." }] }} />, { locale: "mk" });
+  await screen.findByText(/Пресметана е процена од 174,3 km/);
+  expect(screen.queryByText(/Пресметана е процена од 172 km/)).toBeNull();
+  fireEvent.change(screen.getByLabelText(mk["form.to"]), { target: { value: "8" } });
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ originCity: "Skopje", destinationCity: "Veles" });
+  expect(screen.queryByText(/Пресметана е процена од/)).toBeNull();
+  await act(async () => resolveChangedRoute(Response.json({ distanceKm: 53.6 })));
+  await screen.findByText(/Пресметана е процена од 53,6 km/);
+  const input = screen.getByLabelText(mk["estimate.distance"]);
+  expect(input).toHaveProperty("value", "53.6");
+  fireEvent.change(input, { target: { value: "60" } });
+  expect(screen.queryByText(/Пресметана е процена од/)).toBeNull();
+  expect(input).toHaveProperty("value", "60");
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("./actions", () => ({ createRide: publish }));
 const blank: RideDraft = { source: "native", importId: null,
@@ -129,8 +194,7 @@ it("preserves manual fields and description on interpretation failure and offers
 it("shows Macedonian offer notices and keeps the author's description after an API failure", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "Raw provider error" }, { status: 502 })));
   render(<OfferWorkspace {...props} initialDraft={{ ...blank, warnings: [{ field: "departureAt", code: "needs_review", message: "Old English generated warning" }] }} />, { locale: "mk" });
-  expect(screen.getByText("Еден податок треба да се провери. Провери го формуларот пред објавување.")).toBeTruthy();
-  expect(screen.queryByText("Old English generated warning")).toBeNull();
+  expect(screen.getByText("Old English generated warning")).toBeTruthy();
   const description = screen.getByLabelText("Опиши ги патувањата");
   fireEvent.change(description, { target: { value: "Скопје до Битола во сабота" } });
   fireEvent.click(screen.getByRole("button", { name: "Пополни формулар" }));

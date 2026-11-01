@@ -1,18 +1,52 @@
 export const offerMk = {
+  "warning.weekdayWithoutTime": "Денот е наведен како „{source}“ ({weekday}), но не е наведено време на поаѓање.",
+  "warning.weekday.Monday": "понеделник",
+  "warning.weekday.Tuesday": "вторник",
+  "warning.weekday.Wednesday": "среда",
+  "warning.weekday.Thursday": "четврток",
+  "warning.weekday.Friday": "петок",
+  "warning.weekday.Saturday": "сабота",
+  "warning.weekday.Sunday": "недела",
+  "warning.noDeparture": "Не се наведени датум и време на поаѓање.",
+  "warning.departureDate": "Наведи го датумот на поаѓање.",
+  "warning.departureTime": "Наведи јасно време на поаѓање, на пример 16:00.",
+  "warning.departurePast":
+    "Времето на поаѓање е во минатото. Избери иден датум.",
+  "warning.location": "Избери поддржан град или место за поаѓање.",
+  "warning.carVariant":
+    "Избери ја точната варијанта, горивото и потрошувачката на возилото; описот е нецелосен или двосмислен.",
+  "warning.checkUnavailable":
+    "Автоматската проверка на податоците не беше достапна.",
+  "warning.routingEstimate":
+    "Пресметана е процена од {distance} km меѓу градовите, која можеш да ја измениш; ова не е точното растојание од местото на поаѓање до местото на пристигнување.",
+  "warning.checkedDistance":
+    "Провереното патно растојание меѓу градовите е {distance} km. Провери ја процената и приспособи ја на твојата рута.",
+  "warning.distanceField": "Растојание на рутата",
+  "warning.tagsField": "Претпочитања за превозот",
+  "warning.genderField": "Претпочитан пол на патниците",
+  "warning.field.missing":
+    "{field}: недостига овој податок. Дополни го пред објавување.",
+  "warning.field.ambiguous":
+    "{field}: описот е двосмислен. Провери го ова поле пред објавување.",
+  "warning.field.low_confidence":
+    "{field}: толкувањето е несигурно. Провери го ова поле.",
+  "warning.field.needs_review": "{field}: провери го ова поле пред објавување.",
+  "warning.field.unsupported":
+    "{field}: податокот не можеше да се протолкува. Внеси го рачно.",
   "offer.title": "Понуди превоз",
   "offer.intro": "Одреди ја рутата, избери возило и понуди слободно место.",
-  "offer.restoring": "Се враќаат нацртите за превоз…",
-  "offer.restored": "Нацртите за превоз се вратени за оваа сесија.",
+  "offer.restoring": "Се враќаат драфтите за превоз…",
+  "offer.restored": "Драфтите за превоз се вратени за оваа сесија.",
   "offer.restoreFailed":
-    "Зачуваните нацрти не можеа да се вратат. Можеш рачно да го пополниш формуларот.",
+    "Зачуваните драфти не можеа да се вратат. Можеш рачно да го пополниш формуларот.",
   "offer.savedSession": "Зачувано за оваа сесија",
   "offer.sessionUnavailable":
-    "Враќањето на нацртите не е достапно. Остави ја страницата отворена додека не го објавиш превозот.",
-  "offer.draftDeleted": "Нацртот е избришан.",
+    "Враќањето на драфтите не е достапно. Остави ја страницата отворена додека не го објавиш превозот.",
+  "offer.draftDeleted": "Драфтот е избришан.",
   "offer.draftsCleared":
-    "Нацртите се исчистени. Уреди го описот и повторно пополни го формуларот.",
-  "offer.draftsRestored": "Нацртите се вратени.",
-  "offer.previousRestored": "Претходниот нацрт е вратен.",
+    "Драфтите се исчистени. Уреди го описот и повторно пополни го формуларот.",
+  "offer.draftsRestored": "Драфтите се вратени.",
+  "offer.previousRestored": "Претходниот драфт е вратен.",
   "offer.descriptionChanged":
     "Описот е променет. Обиди се повторно за да се примени новиот текст.",
   "offer.formChanged":
@@ -23,9 +57,9 @@ export const offerMk = {
     "Податоците се пополнети. Уреди го формуларот и провери го секое патување пред објавување.",
   "offer.publishFailed": "Објавувањето не успеа. Обиди се повторно.",
   "offer.savedContinue":
-    "Превозот е зачуван како нацрт. Продолжи со преостанатите нацрти.",
+    "Превозот е зачуван како драфт. Продолжи со преостанатите драфти.",
   "offer.publishedContinue":
-    "Превозот е објавен. Продолжи со преостанатите нацрти.",
+    "Превозот е објавен. Продолжи со преостанатите драфти.",
   "offer.allSaved": "Сите патувања се зачувани. Се отвораат Моите патувања…",
   "offer.describe": "Опиши ги патувањата",
   "offer.placeholder":
@@ -39,16 +73,16 @@ export const offerMk = {
   "offer.importTitle": "Веќе имаш објава во група?",
   "offer.importHint":
     "Префрли ја објавата од Facebook или Viber и ќе ја претвориме во понуда за превоз.",
-  "offer.importLink": "Поднеси ја објавата",
+  "offer.importLink": "Прикачи ја објавата",
   "offer.undo": "Врати",
   "offer.retry": "Обиди се повторно",
-  "offer.draftTabs": "Нацрти за превоз",
+  "offer.draftTabs": "Драфти за превоз",
   "offer.rideNumber": "Патување {number}",
   "offer.chooseDestination": "избери одредиште",
   "offer.tabLabel": "{origin} до {destination} {departure}",
-  "offer.deleteDraft": "Избриши нацрт: {label}",
-  "offer.deleteDraftTitle": "Избриши нацрт",
-  "offer.undoFill": "Врати го пополнувањето",
+  "offer.deleteDraft": "Избриши драфт: {label}",
+  "offer.deleteDraftTitle": "Избриши драфт",
+  "offer.undoFill": "Ресетирај го пополнувањето",
   "offer.reviewDetails": "Провери ги овие податоци:",
   "offer.warning.ambiguous":
     "Еден податок од описот е двосмислен. Провери го формуларот пред објавување.",
@@ -65,7 +99,7 @@ export const offerMk = {
   "offer.warning.savedCar": "Избери зачувано возило што е достапно.",
   "offer.warning.carModel": "Избери модел на возило што е достапен.",
   "offer.warning.departurePassed":
-    "Времето на поаѓање од вратениот нацрт е поминато. Избери идно време.",
+    "Времето на поаѓање од вратениот драфт е поминато. Избери идно време.",
   "offer.retryDistance": "Повтори го пресметувањето на растојанието",
   "offer.distanceCalculating":
     "Се пресметува патното растојание меѓу градовите…",

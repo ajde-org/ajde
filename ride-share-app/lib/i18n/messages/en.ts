@@ -1,5 +1,5 @@
-import { carColorsEn } from "./car-colors-en";
 import { errorsEn } from "./errors-en";
+import { carColorsEn } from "./car-colors-en";
 import { onboardingEn } from "./onboarding-en";
 import { detailEn } from "./detail-en";
 import { discoveryEn } from "./discovery-en";
@@ -108,6 +108,25 @@ export const en = {
   "loading.login": "Loading sign in…",
   "landing.excluded.one": "{count} completed shared trip excluded from savings estimates because vehicle or distance data is missing or unsupported.",
   "landing.excluded.other": "{count} completed shared trips excluded from savings estimates because vehicle or distance data is missing or unsupported.",
+  "warning.postMissingTime": "The post did not include a departure time; choose it manually.",
+  "warning.parserConfidence": "The parser has low confidence in this result; review every field carefully.",
+  "warning.stubRoute": "The stub could not identify both cities; confirm the route manually.",
+  "warning.stubDate": "Relative dates require the live parser; choose the exact departure time.",
+  "warning.negotiablePrice": "The post says the price is negotiable; enter a per-seat amount.",
+  "warning.wholeCarPrice": "The post gives a whole-car price; enter the intended per-seat amount.",
+  "warning.canonicalCity": "The {field} did not match a canonical city; choose it manually.",
+  "warning.pickupCity": "The {field} pickup did not belong to its city; choose it manually.",
+  "warning.unresolvedPlace": "The {field} place could not be resolved; choose it manually.",
+  "warning.unlinkedPickup": "The {field} pickup could not be linked to a city; choose it manually.",
+  "warning.origin": "origin",
+  "warning.destination": "destination",
+  "warning.duplicates": "Found {count} ride offers on the same route within three hours. These are possible duplicates; review the matches before publishing.",
+  "warning.fairPrice": "Per-seat price {price} MKD is {level} versus calculated {estimate} MKD. Basis: {distance} km, {seats} available seats, {fuel}{fuelDefault}, {consumption} L/100 km{consumptionDefault}, {fuelPrice} MKD/L; tolls excluded. Review your price.",
+  "warning.priceHigh": "high",
+  "warning.petrol": "petrol",
+  "warning.diesel": "diesel",
+  "warning.priceLow": "low",
+  "warning.default": " (default)",
 } as const;
 
 export type MessageKey = keyof typeof en;
