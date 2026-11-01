@@ -1,7 +1,8 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
 import { useI18n } from "@/lib/i18n/provider";
-import { intlLocale } from "@/lib/i18n/config";
+
 import { useState, useTransition } from "react";
 import { createTripShare, revokeTripShare } from "@/lib/sharing/actions";
 import type { OwnedTripShare } from "@/lib/sharing/types";
@@ -55,7 +56,7 @@ export function TripShareControls({ bookingId, expiresAt, expired }: { bookingId
   return <section className="mt-4" aria-label={t("share.label")}>
     <h2 className="font-semibold">{t("share.title")}</h2>
     <p className="mt-3 text-sm text-slate-600">{t("share.privacy")}</p>
-    <p className="mt-1 text-sm text-slate-600">{expired ? t("share.expired") : t("share.expires", { date: new Date(expiresAt).toLocaleString(intlLocale(locale), { timeZone: "Europe/Skopje" }) })}</p>
+    <p className="mt-1 text-sm text-slate-600">{expired ? t("share.expired") : t("share.expires", { date: formatDateTime(locale, expiresAt) })}</p>
     <div className="mt-3 flex flex-wrap gap-3">
       {!share ? <button type="button" disabled={pending || expired} onClick={create} className="btn-primary disabled:opacity-50">{pending ? t("share.creating") : t("share.create")}</button> : <>
         <button type="button" disabled={pending || expired} onClick={copy} className="btn-primary disabled:opacity-50">{t("share.copy")}</button>

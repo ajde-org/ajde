@@ -29,7 +29,7 @@ export function DatePill({ name }: { name: string }) {
     </button>
 
     <Popover open={open} onClose={close} trigger={trigger} panel={panel} label={t("date.chooseDate")}>
-      <ChipRow options={[{ label: t("date.any"), value: "" }, ...quickDatePicks(today, t)]} value={value} onChoose={choose} />
+      <ChipRow options={[{ id: "any", label: t("date.any"), value: "" }, ...quickDatePicks(today, t)]} value={value} onChoose={choose} />
       <div className="mt-4"><MonthCalendar value={value} onChoose={choose} today={today} /></div>
     </Popover>
   </div>;

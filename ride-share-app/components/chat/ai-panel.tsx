@@ -1,8 +1,8 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
-import { intlLocale, type Locale } from "@/lib/i18n/config";
-import { formatNumber, plural } from "@/lib/i18n/format";
+import { type Locale } from "@/lib/i18n/config";
+import { formatDateTime, formatNumber, plural } from "@/lib/i18n/format";
 import { useEffect, useId, useRef, useState } from "react";
 import { aiResultSchema, type AiAnswer, type AiRequest } from "@/lib/chat/ai-contract";
 import { compareMessages, type Cursor } from "@/lib/chat/contract";
@@ -14,7 +14,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
   rideId: string; latest: Cursor | null; onUnavailable: () => void;
 }) {
   const { locale, t, notice } = useI18n();
-  const date = (value: string) => new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Skopje" }).format(new Date(value));
+  const date = (value: string) => formatDateTime(locale, value, { dateStyle: "short", timeStyle: "short" });
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);

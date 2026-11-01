@@ -2,8 +2,8 @@
 
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
-import { intlLocale } from "@/lib/i18n/config";
-import { formatNumber, plural } from "@/lib/i18n/format";
+
+import { formatDateTime, formatNumber, plural } from "@/lib/i18n/format";
 import Link from "next/link";
 import { ContactDetails } from "@/components/contact-details";
 import { loadRoom, sendRoomMessage } from "@/lib/chat/actions";
@@ -36,7 +36,7 @@ export function MessageList({ messages, viewerId }: { messages: Message[]; viewe
           <img src={message.sender.photo_url} alt="" className="size-6 rounded-full object-cover" />
         </> : null}
         <span className="font-semibold">{message.sender?.full_name ?? t("chat.former")}</span>
-        <time dateTime={message.created_at}>{new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Skopje" }).format(new Date(message.created_at))}</time>
+        <time dateTime={message.created_at}>{formatDateTime(locale, message.created_at, { dateStyle: "short", timeStyle: "short" })}</time>
       </div>
       <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">{message.body}</p>
     </li>)}

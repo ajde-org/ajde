@@ -1,9 +1,6 @@
-import { intlLocale, type Locale } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n/config";
+import { formatDateTime } from "@/lib/i18n/format";
 
 export function formatDeparture(value: string, locale: Locale = "en") {
-  return new Intl.DateTimeFormat(intlLocale(locale), {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Skopje",
-  }).format(new Date(value));
+  return formatDateTime(locale, value);
 }

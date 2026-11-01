@@ -44,6 +44,14 @@ describe("presentation formatting", () => {
     expect([0, 1, 2, 11, 21].map(count => plural("mk", count))).toEqual(["other", "one", "other", "other", "one"]);
     expect(plural("en", 21)).toBe("other");
   });
+  it("formats Macedonian prices, decimals and rounded counts deterministically", () => {
+    expect(formatMoney("mk", 250)).toBe("250\u00a0ден.");
+    expect(formatMoney("mk", 1250.5)).toBe("1.251\u00a0ден.");
+    expect(formatMoney("mk", 0)).toBe("0\u00a0ден.");
+    expect(formatNumber("mk", -1234.5, { minimumFractionDigits: 2 })).toBe("-1.234,50");
+    expect(formatNumber("mk", 1234.5, { useGrouping: false })).toBe("1234,5");
+    expect([1.1, 1.11, 1.21, 0.0001, 1.0001, -21].map(count => plural("mk", count))).toEqual(["one", "other", "one", "other", "one", "one"]);
+  });
   it("keeps departures in Skopje time across DST transitions", () => {
     for (const locale of ["en", "mk"] as const) {
       expect(formatDateTime(locale, "2026-03-29T00:30:00Z")).toContain("01:30");

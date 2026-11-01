@@ -1,8 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
-import { intlLocale } from "@/lib/i18n/config";
-import { formatMoney } from "@/lib/i18n/format";
+import { formatDateTime, formatMoney } from "@/lib/i18n/format";
 import { localizedName } from "@/lib/i18n/locations";
 ﻿import Link from "next/link";
 
@@ -14,8 +13,8 @@ import { isFreeRide } from "@/lib/rides/ride-price";
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
   const { locale, t } = useI18n();
   const departure = new Date(ride.departure_at);
-  const date = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "short", weekday: "short", timeZone: "Europe/Skopje" }).format(departure);
-  const time = new Intl.DateTimeFormat(intlLocale(locale), { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Skopje" }).format(departure);
+  const date = formatDateTime(locale, departure, { day: "numeric", month: "short", weekday: "short" });
+  const time = formatDateTime(locale, departure, { hour: "2-digit", minute: "2-digit" });
 
   return (
     <article className="ride-choice-card surface-card flex min-w-0 flex-col gap-2 p-4 text-slate-950">
