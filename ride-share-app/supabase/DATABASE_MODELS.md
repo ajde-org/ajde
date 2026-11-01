@@ -66,6 +66,9 @@ token).
   fails on any other callable one.
 - `profile_contacts(uuid[])` accepts at most 200 ids and raises `22023` beyond that;
   `getContactDetails()` batches lookups of 100 and returns an error instead of partial results.
+  Profile-completion and onboarding callers must distinguish read errors from missing rows:
+  failed profile/contact reads show a retryable error, never an incomplete-profile redirect or
+  an empty edit form. The request guard responds with 503 and retains refreshed session cookies.
 - Policy helpers `is_ride_driver(uuid)`, `is_booking_passenger(uuid)`,
   `is_ride_active(uuid, boolean)` and `can_request_seat(uuid, integer)` are SECURITY DEFINER with fixed empty search paths, derive the
   caller from `auth.uid()`, and are executable by `authenticated` only. They keep rides and bookings
