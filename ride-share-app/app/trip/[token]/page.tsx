@@ -1,3 +1,4 @@
+import { localizedCarColor } from "@/lib/i18n/car-color";
 import { getI18n } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 import type { Metadata } from "next";
@@ -40,7 +41,7 @@ export default async function SharedTripPage({ params }: { params: Promise<{ tok
         <img src={itinerary.driver.photoUrl} alt={t("shared.driver")} referrerPolicy="no-referrer" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
         <div><p className="text-sm text-slate-600">{t("shared.driver")}</p><p className="font-semibold">{itinerary.driver.name}</p></div>
       </div> : <p className="mt-5 text-sm">{t("shared.driverUnavailable")}</p>}
-      <p className="mt-4 text-sm"><span className="font-semibold">{t("shared.car")}</span>{" "}{itinerary.car ? [itinerary.car.make, itinerary.car.model, itinerary.car.color].filter(Boolean).join(" · ") : t("shared.unspecified")}</p>
+      <p className="mt-4 text-sm"><span className="font-semibold">{t("shared.car")}</span>{" "}{itinerary.car ? [itinerary.car.make, itinerary.car.model, localizedCarColor(itinerary.car.color, t)].filter(Boolean).join(" · ") : t("shared.unspecified")}</p>
     </section>
     <p className="mt-4 text-sm text-slate-600">{t("shared.expiry")}</p>
   </main>;

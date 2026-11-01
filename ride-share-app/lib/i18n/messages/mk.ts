@@ -1,3 +1,4 @@
+import { carColorsMk } from "./car-colors-mk";
 import { errorsMk } from "./errors-mk";
 import { onboardingMk } from "./onboarding-mk";
 import { detailMk } from "./detail-mk";
@@ -16,6 +17,7 @@ import { explanationsMk } from "./explanations-mk";
 
 // Draft Macedonian copy. Human approval is tracked in docs/plans/AJDE-29-translation-review.md.
 export const mk = {
+  ...carColorsMk,
   ...errorsMk,
   ...rideFormMk,
   ...importFlowMk,

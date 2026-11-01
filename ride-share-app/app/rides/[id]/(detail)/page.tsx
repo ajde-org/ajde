@@ -1,3 +1,4 @@
+import { localizedCarColor } from "@/lib/i18n/car-color";
 import { getI18n } from "@/lib/i18n/server";
 import { localizedName } from "@/lib/i18n/locations";
 import { formatMoney } from "@/lib/i18n/format";
@@ -92,7 +93,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
                   <img src={ride.driver.photo_url} alt="" width={64} height={64} className="size-16 shrink-0 rounded-full bg-blue-50 object-cover" />
                   <div><p className="text-sm font-medium text-slate-500">{t("detail.driver")}</p>{ride.driver.verified_at ? <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">{t("ride.verified")}</span> : null}</div>
                 </div>
-                <Link href={`/profile/${ride.driver.id}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${ride.car.color} ` : ""}{ride.car.make} {ride.car.model}</p> : null}
+                <Link href={`/profile/${ride.driver.id}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${localizedCarColor(ride.car.color, t)} ` : ""}{ride.car.make} {ride.car.model}</p> : null}
               </> : <p className="p-5 text-sm text-slate-600">{t("detail.awaitingDriver")}</p>}
             </section>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedCarColor } from "@/lib/i18n/car-color";
 import { useI18n } from "@/lib/i18n/provider";
 import { formatDateTime, formatMoney } from "@/lib/i18n/format";
 import { localizedName } from "@/lib/i18n/locations";
@@ -61,7 +62,7 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
               </svg>
             ) : null}
           </p>
-          <p className="truncate text-[.6875rem] text-slate-500">{ride.car ? `${ride.car.color ? `${ride.car.color} ` : ""}${ride.car.make} ${ride.car.model}` : ride.driver?.university ?? t("ride.driverSoon")}</p>
+          <p className="truncate text-[.6875rem] text-slate-500">{ride.car ? `${ride.car.color ? `${localizedCarColor(ride.car.color, t)} ` : ""}${ride.car.make} ${ride.car.model}` : ride.driver?.university ?? t("ride.driverSoon")}</p>
         </div>
         <div className="col-span-2 shrink-0"><SeatAvailability available={ride.seats_available} total={ride.seats_total} compact /></div>
         <Link className="btn-primary min-h-11 shrink-0 px-3 py-2 text-[.8125rem]" href={`/rides/${ride.id}`} aria-label={t("ride.view", { origin: localizedName(ride.originCity, locale), destination: localizedName(ride.destinationCity, locale) })}>{t("ride.choose")}</Link>

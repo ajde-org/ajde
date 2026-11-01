@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedCarColor } from "@/lib/i18n/car-color";
 import { useI18n } from "@/lib/i18n/provider";
 import { formatNumber, formatMoney } from "@/lib/i18n/format";
 import { localizedName } from "@/lib/i18n/locations";
@@ -354,7 +355,7 @@ export function RideForm({
             <div>
               <p className="font-semibold text-slate-900">{selectedExistingCar.make} {selectedExistingCar.model}</p>
               <p className="mt-1 text-sm text-slate-500">
-                {t("form.savedCar")}{selectedExistingCar.color ? ` · ${selectedExistingCar.color}` : ""}
+                {t("form.savedCar")}{selectedExistingCar.color ? ` · ${localizedCarColor(selectedExistingCar.color, t)}` : ""}
                 {selectedExistingCar.plate_last3 ? ` · •••${selectedExistingCar.plate_last3}` : ""}
               </p>
             </div>
@@ -418,7 +419,7 @@ export function RideForm({
                   {cars.map((car) => (
                     <option key={car.id} value={car.id}>
                       {car.make} {car.model}
-                      {car.color ? ` · ${car.color}` : ""}
+                      {car.color ? ` · ${localizedCarColor(car.color, t)}` : ""}
                       {car.plate_last3 ? ` · •••${car.plate_last3}` : ""}
                     </option>
                   ))}

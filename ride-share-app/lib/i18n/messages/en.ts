@@ -1,3 +1,4 @@
+import { carColorsEn } from "./car-colors-en";
 import { errorsEn } from "./errors-en";
 import { onboardingEn } from "./onboarding-en";
 import { detailEn } from "./detail-en";
@@ -14,6 +15,7 @@ import { sharingEn } from "./sharing-en";
 import { explanationsEn } from "./explanations-en";
 
 export const en = {
+  ...carColorsEn,
   ...errorsEn,
   ...rideFormEn,
   ...importFlowEn,
