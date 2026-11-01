@@ -61,8 +61,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
     ? supabase.storage.from('profile-photos').getPublicUrl(input.storagePath).data.publicUrl
     : existing?.photo_url
   if (!photoUrl) return { ok: false, messageKey: 'onboarding.photoRequired' }
-  const { error } = await supabase.from('profiles').upsert({
-    id: user.id,
+  const profile = {
     full_name: fullName,
     photo_url: photoUrl,
     phone: contacts.data.phone,
@@ -70,7 +69,16 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
     university,
     bio: bio || null,
     gender: input.gender || null,
-  })
+  }
+  // Update, then insert if there was no row. An upsert's ON CONFLICT branch re-reads the written
+  // values, which needs SELECT on the private contact columns the API roles do not have.
+  const updated = await supabase.from('profiles').update(profile).eq('id', user.id).select('id')
+  let error = updated.error
+  if (!error && !updated.data?.length) {
+    error = (await supabase.from('profiles').insert({ id: user.id, ...profile })).error
+    // A concurrent submission created the row first; apply this one on top of it.
+    if (error?.code === '23505') error = (await supabase.from('profiles').update(profile).eq('id', user.id)).error
+  }
 
   if (error) {
     return { ok: false, messageKey: 'onboarding.saveFailed' }

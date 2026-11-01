@@ -1,13 +1,15 @@
 import "server-only";
-import { createClient } from "../supabase/server";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedName } from "@/lib/i18n/locations";
+import { createAdminClient } from "../supabase/admin";
 import type { SharedItinerary } from "./types";
 
 /** Called per request; never cache bearer-token access or return database records. */
 export async function getSharedItinerary(token: string, locale: Locale = "en"): Promise<SharedItinerary | null> {
   if (!/^[a-f0-9]{48}$/.test(token)) return null;
-  const supabase = await createClient();
+  // Share links are opened without signing in, so RLS would hide the passenger's booking. The
+  // token is the credential: read with the service role and return only the itinerary fields below.
+  const supabase = createAdminClient();
   const { data: share, error } = await supabase.from("trip_shares")
     .select("booking_id, expires_at").eq("token", token).maybeSingle();
   if (error || !share || !(Date.parse(share.expires_at) > Date.now())) return null;
