@@ -256,9 +256,10 @@ export function RideForm({
             <FieldError id="destination-error" errors={state.fieldErrors["destination.cityId"]} />
           </label>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="font-medium text-slate-800 col-span-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <div className="col-span-2 row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
             <span id="departure-label">{t("form.departure")}</span>
+            <div>
             <DateTimeField
               labelledBy="departure-label"
               className={inputClass}
@@ -270,9 +271,11 @@ export function RideForm({
             />
             <FieldError id="departure-error" errors={state.fieldErrors.departureAt} />
             {departureLocal && !departureAt && <p className="mt-2 text-sm text-amber-800">{t("form.incompleteDeparture", { value: departureLocal.split("T").filter(Boolean).join(" ") })}</p>}
+            <p className="mt-1 text-[.75rem] font-normal text-slate-500">{t("form.timeZone")}</p>
+            </div>
           </div>
-          <label className="font-medium text-slate-800">
-            {t("form.seats")}<input
+          <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+            <span>{t("form.seats")}</span><div><input
               className={inputClass}
               max={Math.min(selectedCarCapacity ?? RIDE_LIMITS.seats.max, RIDE_LIMITS.seats.max)}
               min={RIDE_LIMITS.seats.min}
@@ -288,9 +291,11 @@ export function RideForm({
             />
             <span id="seats-hint" className="sr-only">{t("form.seatsHint")}</span>
             <FieldError id="seats-error" errors={state.fieldErrors.seatsTotal} />
+            </div>
           </label>
-          <label className="font-medium text-slate-800">
-            {t("form.price")}{/* <span className="font-normal text-slate-500">(optional)</span> */}
+          <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+            <span>{t("form.price")}</span>
+            <div>
             <input
               ref={priceRef}
               className={`${inputClass} ${priceFilled ? "ring-4 ring-brand-200" : ""}`}
@@ -308,9 +313,9 @@ export function RideForm({
             />
             <span id="price-hint" className="mt-1 block text-[.75rem] font-normal text-slate-500">{t("form.freeHint")}</span>
             <FieldError id="price-error" errors={state.fieldErrors.pricePerSeatMkd} />
+            </div>
           </label>
         </div>
-        <p className="text-[.75rem] text-slate-500">{t("form.timeZone")}</p>
         <details className="ride-form-options" open={Boolean(originPickupId || destinationPickupId || state.fieldErrors["origin.pickupPointId"] || state.fieldErrors["destination.pickupPointId"])}>
         <summary>{t("form.pickups")}{" "}<span className="font-normal text-slate-500">{t("form.optional")}</span></summary>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -703,9 +708,9 @@ function RideEstimatePanel({
       <h2 className="font-semibold text-brand-950">{t("estimate.title")}</h2>
       <p className="mt-1 text-sm text-brand-900/75">
         {t("estimate.intro")}</p>
-      <div className="mt-4 grid max-w-xl gap-4 sm:grid-cols-2">
-        <label className="block font-medium text-slate-800">
-          {t("estimate.distance")}<input
+      <div className="mt-4 grid max-w-xl gap-x-4 gap-y-2 sm:grid-cols-2">
+        <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+          <span>{t("estimate.distance")}</span><input
             className={inputClass}
             min={RIDE_LIMITS.distanceKm.min}
             max={RIDE_LIMITS.distanceKm.max}
@@ -718,8 +723,8 @@ function RideEstimatePanel({
             value={distanceKm}
           />
         </label>
-        <label className="block font-medium text-slate-800">
-          {t("estimate.tolls")}<input
+        <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+          <span className="self-end">{t("estimate.tolls")}</span><input
             className={inputClass}
             inputMode="numeric"
             min={RIDE_LIMITS.tollsMkd.min}
@@ -803,9 +808,9 @@ function NewCarFields({
 }: NewCarFieldsProps) {
   const { locale, t } = useI18n();
   return (
-    <>
-      <label className="font-medium text-slate-800">
-        {t("form.consumption")}<input
+    <div className="grid gap-x-5 gap-y-2 md:col-span-2 md:grid-cols-2">
+      <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+        <span>{t("form.consumption")}</span><input
           className={inputClass}
           min={RIDE_LIMITS.consumptionL100Km.min}
           max={RIDE_LIMITS.consumptionL100Km.max}
@@ -819,8 +824,8 @@ function NewCarFields({
           value={consumption}
         />
       </label>
-      <label className="font-medium text-slate-800">
-        {t("form.carSeats")}<input
+      <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+        <span>{t("form.carSeats")}</span><input
           className={inputClass}
           value={values.carSeatsTotal}
           onChange={(event) => onChange({ ...values, carSeatsTotal: event.target.value })}
@@ -832,8 +837,8 @@ function NewCarFields({
           type="number"
         />
       </label>
-      <label className="font-medium text-slate-800">
-        {t("form.color")}<input
+      <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+        <span className="self-end">{t("form.color")}</span><input
           className={inputClass}
           value={values.carColor}
           onChange={(event) => onChange({ ...values, carColor: event.target.value })}
@@ -841,8 +846,8 @@ function NewCarFields({
           maxLength={RIDE_LIMITS.colorLength}
         />
       </label>
-      <label className="font-medium text-slate-800">
-        {t("form.plate")}<input
+      <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+        <span>{t("form.plate")}</span><input
           className={inputClass}
           value={values.plateLast3}
           onChange={(event) => onChange({ ...values, plateLast3: event.target.value })}
@@ -854,6 +859,6 @@ function NewCarFields({
           placeholder="123"
         />
       </label>
-    </>
+    </div>
   );
 }

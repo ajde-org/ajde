@@ -64,7 +64,7 @@ export async function PassengerTrips({ userId, filter }: { userId: string; filte
   const now = Date.now();
 
   return <TripStatusFilterNav view="passenger" filter={filter} counts={counts}>
-      <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {trips.map(({ booking, ride, status }) => {
           const driver = ride.driver_id ? driverMap.get(ride.driver_id) : null;
           const contact = driver?.phone || driver?.instagram || driver?.facebook;
@@ -78,7 +78,7 @@ export async function PassengerTrips({ userId, filter }: { userId: string; filte
           const statusColor = status.filter === "cancelled" || booking.status === "declined"
             ? "bg-red-50 text-red-800"
             : booking.status === "accepted" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600";
-          return <article key={booking.id} className="surface-card min-w-0 p-5 text-slate-950 sm:p-6">
+          return <article key={booking.id} className="surface-card flex min-w-0 flex-col p-5 text-slate-950 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className={`inline-flex rounded-full px-3 py-1 text-[.8125rem] font-semibold ${statusColor}`}>{t(status.label)}</span>
               <span className="text-[.8125rem] font-medium text-slate-600">{t(`trips.seats.${booking.status === "accepted" ? "booked" : booking.status === "requested" ? "requested" : "other"}.${plural(locale, booking.seats)}`, { count: formatNumber(locale, booking.seats) })}</span>
@@ -107,18 +107,20 @@ export async function PassengerTrips({ userId, filter }: { userId: string; filte
               <p className="font-semibold">{driver?.full_name ?? t("trips.driverUnavailable")}</p>
               <p className="mt-1 text-sm text-slate-600"><span className="font-medium">{t("trips.contact")}</span> {contact || t("trips.arrangeChat")}</p>
             </div> : null}
-            <nav aria-label={t("trips.actions")} className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1">{t("trips.view")}</Link>
-              {booking.status === "accepted" && ride.driver_id ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
+            {booking.status === "requested" && canCancel ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{t("trips.chatWhenAccepted")}</p> : null}
+            <div className="mt-auto pt-4">
+            <nav aria-label={t("trips.actions")} className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1 lg:min-h-20">{t("trips.view")}</Link>
+              {booking.status === "accepted" && ride.driver_id ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1 lg:min-h-20" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
               {rideIsCompleted || rideIsCancelled ? <Link href="/rides" className="btn-secondary w-full">{t("trips.next")}</Link> : null}
             </nav>
-            {booking.status === "requested" && canCancel ? <p className="mt-3 text-sm text-slate-600">{t("trips.chatWhenAccepted")}</p> : null}
             {booking.status === "accepted" && ride.driver_id ? <RatingControl state={ratingControls.get(ride.id)?.get(ride.driver_id)} rideId={ride.id} rateeId={ride.driver_id} targetName={driver?.full_name ?? t("trips.driverFallback")} /> : null}
             {canCancel || canShare ? <details className="card-options mt-4">
               <summary>{t("trips.bookingOptions")}</summary>
               {canShare ? <TripShareControls bookingId={booking.id} expiresAt={new Date(Date.parse(ride.departure_at) + 86400000).toISOString()} expired={Date.parse(ride.departure_at) + 86400000 <= now} /> : null}
               {canCancel ? <form action={cancelBooking.bind(null, booking.id)} className="mt-4"><SubmitButton pendingLabel={t("trips.cancelling")} className="btn-quiet text-red-700 disabled:opacity-60">{t("trips.cancelBooking")}</SubmitButton></form> : null}
             </details> : null}
+            </div>
           </article>;
         })}
         {!trips.length ? <div className="journey-card dashboard-empty"><h2>{allTrips.length ? emptyStates[filter].title : emptyStates.all.title}</h2><p>{allTrips.length ? emptyStates[filter].body : emptyStates.all.body}</p><Link href="/rides" className="btn-primary">{allTrips.length ? t("trips.find") : t("trips.firstRide")}</Link></div> : null}
