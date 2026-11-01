@@ -1,4 +1,5 @@
 import { ContactDetails } from "@/components/contact-details";
+import { PublishDraftButton } from "@/components/publish-draft-button";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
@@ -83,6 +84,7 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
               {confirmedSeats > 0 ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
             </nav>
             {isOpen && hasDeparted ? <CompleteRideButton rideId={ride.id} /> : null}
+            {ride.status === "draft" ? <PublishDraftButton rideId={ride.id} /> : null}
             <details className="card-options" open={(canDecide && pendingRequests > 0) || ratingControls.has(ride.id)}>
               <summary>{ride.status === "completed" ? t("trips.feedback") : t("trips.manage")}{canDecide && pendingRequests > 0 ? <span className="ml-3 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">{t("trips.pending", { count: formatNumber(locale, pendingRequests) })}</span> : null}</summary>
               <h3 className="text-xl font-medium">{t("trips.requests")}</h3>

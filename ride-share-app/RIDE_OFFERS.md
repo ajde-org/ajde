@@ -16,6 +16,11 @@ After AI fills a draft, edit its fields directly in the form. There is no separa
 input or correction API mode. **Undo fill** can restore the draft from before its initial fill,
 including manual kilometres. **Create more drafts** appends new trips.
 
+Saved drafts can be published from **My trips → Driver** or their ride-details page using
+**Publish ride**. The action publishes the existing ID, checks ownership, future departure
+within 90 days, required ride fields and owned vehicle capacity, and rejects concurrent edits.
+Expired/invalid drafts remain private; create a new offer if their saved details need changing.
+
 After both cities are selected in the form, the browser POSTs exactly
 `{originCity: "Skopje", destinationCity: "Bitola"}` to `/api/rides/distance`. The authenticated
 server resolves these names to catalog city-centre coordinates, then requests OSRM driving

@@ -1,4 +1,6 @@
 export const offerEn = {
+  "draftPublish.failed": "This draft could not be published. Refresh the page and try again.",
+  "draftPublish.invalid": "This draft is no longer ready to publish. Check its route, vehicle and departure; departure must be within the next 90 days. Create a new offer if these details need changing.",
   "warning.weekdayWithoutTime": "Weekday mentioned as \"{source}\" ({weekday}), but no time was provided.",
   "warning.weekday.Monday": "Monday",
   "warning.weekday.Tuesday": "Tuesday",
