@@ -31,7 +31,8 @@ export async function getProfileCompletion(userId: string): Promise<ProfileCompl
     getContactDetails(supabase, [userId]),
   ])
 
-  if (error || contacts.error || !data) return { complete: false, profileId: null }
+  if (error || contacts.error) throw new Error('Unable to load profile completion', { cause: error ?? contacts.error })
+  if (!data) return { complete: false, profileId: null }
   const phone = contacts.data.get(userId)?.phone
 
   return {

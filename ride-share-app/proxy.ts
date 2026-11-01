@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isAllowedStudentEmail } from '@/lib/auth/email-domain'
+import type { Database } from '@/lib/supabase/database.types'
 
 /**
  * Refreshes the Supabase auth session on every request and writes the rotated
@@ -23,7 +24,7 @@ export async function proxy(request: NextRequest) {
   // Not configured yet — let the request through rather than 500 every route.
   if (!url || !key) return response
 
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -67,7 +68,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // Phone is a private contact column, readable only through profile_contacts().
-    const [{ data: profile }, { data: contacts, error: contactsError }] = await Promise.all([
+    const [{ data: profile, error: profileError }, { data: contacts, error: contactsError }] = await Promise.all([
       supabase
         .from('profiles')
         .select('full_name, photo_url, university')
@@ -75,16 +76,21 @@ export async function proxy(request: NextRequest) {
         .maybeSingle(),
       supabase.rpc('profile_contacts', { profile_ids: [user.id] }),
     ])
-    const phone = (contacts as { phone: string | null }[] | null)?.[0]?.phone
+    if (profileError || contactsError) {
+      const unavailable = new NextResponse('We could not load this page. Please try again.', {
+        status: 503, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
+      })
+      for (const cookie of response.cookies.getAll()) unavailable.cookies.set(cookie)
+      return unavailable
+    }
+    const phone = contacts?.find(contact => contact.id === user.id)?.phone
 
     const profileComplete = Boolean(
       profile?.full_name.trim() && profile.photo_url.trim() && profile.university.trim() && phoneSchema.safeParse(phone).success,
     )
 
 
-    // A failed lookup is not an incomplete profile: let the page load rather than wrongly sending
-    // the user to onboarding (pages re-check completeness themselves).
-    if (pathname !== '/onboarding' && !profileComplete && !contactsError) {
+    if (pathname !== '/onboarding' && !profileComplete) {
       return redirectWithCookies(new URL('/onboarding', request.url), response)
     }
   }
