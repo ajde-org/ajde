@@ -1,4 +1,5 @@
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "mk" }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const service = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/chat/ai-service", () => ({ assistRoom: service, aiFailure: (code: string) => ({ ok: false, code, error: code }) }));
@@ -18,7 +19,7 @@ it("returns private no-store errors with retry metadata and forwards the abort s
   expect(response.status).toBe(429);
   expect(response.headers.get("cache-control")).toBe("private, no-store");
   expect(response.headers.get("retry-after")).toBe("60");
-  expect(service).toHaveBeenCalledWith({}, req.signal);
+  expect(service).toHaveBeenCalledWith({}, req.signal, "mk");
 });
 
 it("blocks disabled AI before calling the service", async () => {

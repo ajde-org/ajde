@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createClient } from "@/lib/supabase/server";
+import { formatMoney } from "@/lib/i18n/format";
 import { PassengerTrips } from "./passenger-trips";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
 import { parseTripStatusFilter, type TripStatusFilter } from "./trip-tabs";
 
+vi.mock("@/lib/i18n/server", async () => {
+  const { en } = await import("@/lib/i18n/messages/en");
+  const { createTranslator, createNoticeTranslator } = await import("@/lib/i18n/translate");
+  return { getI18n: async () => ({ locale: "en", t: createTranslator(en), notice: createNoticeTranslator(en) }) };
+});
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/ratings/queries", () => ({ getRatingControls: vi.fn(async () => new Map()) }));
@@ -89,8 +95,8 @@ it("separates the departure, seat price, total and contact on confirmed cards", 
   const confirmed = within(screen.getAllByRole("article")[0]);
   expect(confirmed.getByRole("heading", { name: "Skopje to Bitola" })).toBeTruthy();
   expect(confirmed.getByText("14:30")).toBeTruthy();
-  expect(confirmed.getByText("300 MKD")).toBeTruthy();
-  expect(confirmed.getByText("600 MKD total")).toBeTruthy();
+  expect(confirmed.getByText(formatMoney("en", 300).replace(/\s/g, " "))).toBeTruthy();
+  expect(confirmed.getByText(`${formatMoney("en", 600)} total`.replace(/\s/g, " "))).toBeTruthy();
   expect(confirmed.getByText("2 seats booked")).toBeTruthy();
   expect(confirmed.getByText("Test Driver")).toBeTruthy();
   expect(confirmed.getByRole("link", { name: /Open ride chat/ })).toBeTruthy();

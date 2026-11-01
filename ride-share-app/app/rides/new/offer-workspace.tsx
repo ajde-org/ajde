@@ -1,6 +1,9 @@
 "use client";
 
 import { emptyOfferDraft, offerInterpretationSchema } from "@/lib/rides/offer-interpretation";
+import { translateDraftWarning } from "@/lib/i18n/draft-warning";
+import { formatNumber } from "@/lib/i18n/format";
+import { useI18n } from "@/lib/i18n/provider";
 import { offerRecoverySchema, validateRecoveredTab } from "@/lib/rides/offer-recovery";
 import { applyOfferTrip, createOfferTab, editOfferTab, type OfferTab } from "@/lib/rides/offer-tabs";
 import { type OfferValues } from "@/lib/rides/offer-values";
@@ -8,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { createRide, type CreateRideFormState } from "./actions";
-import { OfferDistance, type UpdateOfferTab } from "./offer-distance";
+import { OfferDistance, offerDistanceMessage, type UpdateOfferTab } from "./offer-distance";
 import { RideForm, type Car, type RideFormProps } from "./ride-form";
 
 export type OfferWorkspaceProps = Omit<RideFormProps, "values" | "onChange" | "onSubmit" | "state" | "pending" | "onCarSaved" | "onCarSaving"> & { userId: string };
@@ -16,6 +19,8 @@ const idle: CreateRideFormState = { status: "idle", message: "", fieldErrors: {}
 
 const subscribeHydration = () => () => {};
 type Snapshot = { tabs: OfferTab[]; activeId: string; filled: boolean };
+type OfferNotice = "offer.restored" | "offer.restoreFailed" | "offer.draftDeleted" | "offer.draftsCleared" | "offer.draftsRestored" | "offer.previousRestored" | "offer.descriptionChanged" | "offer.formChanged" | "offer.interpretFailed" | "offer.filled";
+
 
 /** A blank tab seeded from the page's draft, preselecting the driver's car when that is unambiguous. */
 function freshTab(props: OfferWorkspaceProps, id: string) {
@@ -27,31 +32,34 @@ function freshTab(props: OfferWorkspaceProps, id: string) {
   return tab;
 }
 export function OfferWorkspace(props: OfferWorkspaceProps) {
+  const { t } = useI18n();
   const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
-  return hydrated ? <WorkspaceSession key={`${props.userId}:${props.initialDraft.importId ?? "native"}`} {...props} /> : <p role="status">Restoring ride drafts…</p>;
+  return hydrated ? <WorkspaceSession key={`${props.userId}:${props.initialDraft.importId ?? "native"}`} {...props} /> : <p role="status">{t("offer.restoring")}</p>;
 }
 
 function WorkspaceSession(props: OfferWorkspaceProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const [cars, setCars] = useState(props.cars);
   const [savingCar, setSavingCar] = useState(false);
   const storageKey = `ride-offers:v1:${props.userId}:${props.initialDraft.importId ?? "native"}`;
   const [initial] = useState(() => {
-    const fresh = { tabs: [freshTab(props, props.submissionId)], activeId: props.submissionId, text: "", filled: false, message: "" };
+    const fresh = { tabs: [freshTab(props, props.submissionId)], activeId: props.submissionId, text: "", filled: false, message: null as OfferNotice | null };
     try {
       const raw = sessionStorage.getItem(storageKey);
       if (!raw) return fresh;
       const recovered = offerRecoverySchema.parse(JSON.parse(raw));
       if (recovered.userId !== props.userId) throw new Error("Different account");
-      return { ...recovered, tabs: recovered.tabs.map(tab => validateRecoveredTab(tab, props)), message: "Your ride drafts were restored for this session." };
-    } catch { return { ...fresh, message: "Saved drafts could not be restored. You can still complete the form manually." }; }
+      return { ...recovered, tabs: recovered.tabs.map(tab => validateRecoveredTab(tab, props)), message: "offer.restored" as OfferNotice };
+    } catch { return { ...fresh, message: "offer.restoreFailed" as OfferNotice }; }
   });
   const [tabs, setTabs] = useState(initial.tabs);
   const [activeId, setActiveId] = useState(initial.activeId);
   const [text, setText] = useState(initial.text);
   const [undo, setUndo] = useState<Record<string, OfferTab>>({});
   const [message, setMessage] = useState(initial.message);
-  const [storageMessage, setStorageMessage] = useState("");
+  const [storageMessage, setStorageMessage] = useState<"offer.savedSession" | "offer.sessionUnavailable" | null>(null);
+  const [publishNotice, setPublishNotice] = useState<"draft" | "published" | null>(null);
   const [interpreting, setInterpreting] = useState(false);
   const [filled, setFilled] = useState(initial.filled);
   const [retry, setRetry] = useState(false);
@@ -69,12 +77,12 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     setTabs(previous => previous.map(item => item.id === id ? transform(item) : item));
   }, []);
   useEffect(() => {
-    let status: string;
+    let status: "offer.savedSession" | "offer.sessionUnavailable";
     try {
       if (!drafts.length) sessionStorage.removeItem(storageKey);
       else sessionStorage.setItem(storageKey, JSON.stringify({ version: 1, userId: props.userId, tabs: drafts, activeId: tab.id, text, filled }));
-      status = "Saved for this session";
-    } catch { status = "Session recovery is unavailable. Keep this page open until you publish."; }
+      status = "offer.savedSession";
+    } catch { status = "offer.sessionUnavailable"; }
     // This effect synchronizes browser storage and reports the external write result.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStorageMessage(status);
@@ -82,6 +90,18 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
   }, [storageKey, props.userId, drafts, tab, text, filled, router]);
 
   function change(values: OfferValues) {
+    if (values.originCityId !== tab.values.originCityId || values.destinationCityId !== tab.values.destinationCityId) {
+      setStates(previous => {
+        const state = previous[tab.id];
+        if (!state || state.status !== "error") return previous;
+        if (!state.fieldErrors["origin.cityId"] && !state.fieldErrors["destination.cityId"]) return previous;
+        const fieldErrors = { ...state.fieldErrors };
+        // City validation checks the pair, so either selection invalidates both errors.
+        delete fieldErrors["origin.cityId"];
+        delete fieldErrors["destination.cityId"];
+        return { ...previous, [tab.id]: Object.keys(fieldErrors).length ? { ...state, fieldErrors } : idle };
+      });
+    }
     update(tab.id, previous => previous.publishedId ? previous : editOfferTab(previous, values));
   }
   function carSaved(car: Car) {
@@ -89,22 +109,22 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     update(tab.id, previous => editOfferTab(previous, { ...previous.values, carMode: "existing", existingCarId: car.id }));
   }
   /** Removes unpublished drafts while keeping a copy so the driver can undo. */
-  function replaceDrafts(next: OfferTab[], notice: string) {
+  function replaceDrafts(next: OfferTab[], notice: OfferNotice) {
     setSnapshot({ tabs: drafts, activeId: tab.id, filled });
     setTabs(previous => [...previous.filter(item => item.publishedId), ...next]);
     setActiveId(next[0]?.id ?? "");
-    setMessage(notice); setRetry(false);
+    setMessage(notice); setPublishNotice(null); setRetry(false);
   }
   function deleteDraft(id: string) {
     const index = drafts.findIndex(item => item.id === id);
     const remaining = drafts.filter(item => item.id !== id);
-    replaceDrafts(remaining, "Draft deleted.");
+    replaceDrafts(remaining, "offer.draftDeleted");
     if (id === tab.id) setActiveId(remaining[Math.min(index, remaining.length - 1)].id);
     else setActiveId(tab.id);
   }
   function startOver() {
     interpretationEpoch.current += 1;
-    replaceDrafts([freshTab(props, crypto.randomUUID())], "Drafts cleared. Edit your description and fill the form again.");
+    replaceDrafts([freshTab(props, crypto.randomUUID())], "offer.draftsCleared");
     setFilled(false); setUndo({});
     descriptionRef.current?.focus();
   }
@@ -113,26 +133,27 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     interpretationEpoch.current += 1;
     setTabs(previous => [...previous.filter(item => item.publishedId), ...snapshot.tabs]);
     setActiveId(snapshot.activeId); setFilled(snapshot.filled);
-    setSnapshot(null); setMessage("Drafts restored.");
+    setSnapshot(null); setMessage("offer.draftsRestored");
   }
   async function fill() {
     const target = tab;
     const epoch = ++interpretationEpoch.current;
-    setInterpreting(true); setMessage(""); setRetry(false); setSnapshot(null);
+    setInterpreting(true); setMessage(null); setPublishNotice(null); setRetry(false); setSnapshot(null);
+    let failure: OfferNotice = "offer.interpretFailed";
     try {
       const response = await fetch("/api/rides/interpret", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, mode: "create" }), signal: AbortSignal.timeout(25000) });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Interpretation failed. Retry or complete the form manually.");
+      if (!response.ok) throw new Error("Interpretation failed");
       const result = offerInterpretationSchema.parse(body);
-      if (epoch !== interpretationEpoch.current) throw new Error("The description changed. Retry to apply the new text.");
+      if (epoch !== interpretationEpoch.current) { failure = "offer.descriptionChanged"; throw new Error("Description changed"); }
       const current = tabsRef.current.find(item => item.id === target.id);
-      if (!current || current.revision !== target.revision || current.publishedId || locks.current.has(target.id)) throw new Error("The form changed. Retry to apply your description.");
+      if (!current || current.revision !== target.revision || current.publishedId || locks.current.has(target.id)) { failure = "offer.formChanged"; throw new Error("Form changed"); }
       setUndo(previous => ({ ...previous, [target.id]: current }));
       const extra = result.trips.slice(1).map(trip => applyOfferTrip(createOfferTab(emptyOfferDraft(), crypto.randomUUID()), trip));
       setTabs(previous => [...previous.map(item => item.id === target.id && item.revision === target.revision && !item.publishedId ? applyOfferTrip(item, result.trips[0]) : item), ...extra]);
-      setFilled(true); setMessage("Details filled. Edit the form directly and review each ride before publishing.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Interpretation failed. Retry."); setRetry(true); }
+      setFilled(true); setMessage("offer.filled");
+    } catch { setMessage(failure); setRetry(true); }
     finally { setInterpreting(false); }
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -151,52 +172,61 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
         interpretationEpoch.current += 1;
         setSnapshot(null);
         update(id, previous => ({ ...previous, publishedId: result.rideId!, revision: previous.revision + 1 }));
-        setMessage(`${result.message} Continue with your remaining drafts.`);
+        setPublishNotice(intent === "save_draft" ? "draft" : "published");
+        setMessage(null);
       }
     } catch {
-      setStates(previous => ({ ...previous, [id]: { ...idle, status: "error", message: "Publication failed. Please retry." } }));
+      setStates(previous => ({ ...previous, [id]: { ...idle, status: "error", message: "offer.publishFailed" } }));
     } finally { locks.current.delete(id); setPublishing(previous => previous.filter(value => value !== id)); }
   }
   function label(item: OfferTab, index: number) {
-    const origin = props.cities.find(city => String(city.id) === item.values.originCityId)?.name_en;
-    const destination = props.cities.find(city => String(city.id) === item.values.destinationCityId)?.name_en;
-    return `${origin ?? "Ride " + (index + 1)} to ${destination ?? "choose destination"} ${item.values.departureLocal.replace("T", " ")}`;
+    const originCity = props.cities.find(city => String(city.id) === item.values.originCityId);
+    const destinationCity = props.cities.find(city => String(city.id) === item.values.destinationCityId);
+    const origin = locale === "mk" ? originCity?.name_mk : originCity?.name_en;
+    const destination = locale === "mk" ? destinationCity?.name_mk : destinationCity?.name_en;
+    return t("offer.tabLabel", { origin: origin ?? t("offer.rideNumber", { number: index + 1 }), destination: destination ?? t("offer.chooseDestination"), departure: item.values.departureLocal.replace("T", " ") });
   }
-  if (!tab) return <p role="status">All rides saved. Opening My trips…</p>;
+  if (!tab) return <p role="status">{t("offer.allSaved")}</p>;
+  // Imported/checker prose describes an earlier snapshot. The route lookup owns
+  // distance in this form, so only its current result can describe the estimate.
+  const warnings = tab.warnings.filter(warning => warning.field !== "distanceKm");
+  const distance = Number(tab.values.distanceKm);
+  const hasRoutingEstimate = tab.distanceMode === "resolved" && Number.isFinite(distance) && distance > 0;
   return <div className="space-y-5">
     {drafts.map(item => <OfferDistance key={item.id} tab={item}
       origin={props.cities.find(city => String(city.id) === item.values.originCityId)?.name_en}
       destination={props.cities.find(city => String(city.id) === item.values.destinationCityId)?.name_en} update={update} />)}
     <div className="rounded-xl bg-slate-50 p-4">
     <div className="flex items-center gap-2">
-      <label htmlFor="offer-description" className="text-sm font-semibold text-slate-900">Describe your rides</label>
+      <label htmlFor="offer-description" className="text-sm font-semibold text-slate-900">{t("offer.describe")}</label>
       <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[.6875rem] font-semibold text-brand-700" aria-hidden="true">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9L19 14z" /></svg>
         AI
       </span>
     </div>
-    <textarea id="offer-description" ref={descriptionRef} rows={2} className="field mt-2 resize-y bg-white font-normal" maxLength={6000} placeholder="e.g. Going Skopje to Bitola 4pm Saturday in my Clio, 3 seats, back Sunday evening" aria-describedby="offer-description-hint" value={text} onChange={event => { setText(event.target.value); interpretationEpoch.current += 1; }} />
+    <textarea id="offer-description" ref={descriptionRef} rows={2} className="field mt-2 resize-y bg-white font-normal" maxLength={6000} placeholder={t("offer.placeholder")} aria-describedby="offer-description-hint" value={text} onChange={event => { setText(event.target.value); interpretationEpoch.current += 1; }} />
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-    <p id="offer-description-hint" className="text-[.8125rem] text-slate-500">{filled ? "Review the details below before publishing." : "Write it like a message and AI fills in the form for you. Or enter the details below."}</p>
+    <p id="offer-description-hint" className="text-[.8125rem] text-slate-500">{filled ? t("offer.reviewBeforePublish") : t("offer.describeHint")}</p>
     {filled
-      ? <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || publishing.length > 0} onClick={startOver}>Start over</button>
+      ? <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || publishing.length > 0} onClick={startOver}>{t("offer.startOver")}</button>
       : <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || !text.trim() || publishing.length > 0}
-        onClick={() => { void fill(); }}>{interpreting ? "Filling…" : "Fill form"}</button>}
+        onClick={() => { void fill(); }}>{interpreting ? t("offer.filling") : t("offer.fill")}</button>}
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-white p-3 sm:flex-nowrap">
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-900">Already posted in a group?</p>
-        <p className="text-[.8125rem] text-slate-500">Paste your Facebook or Viber post and we’ll turn it into a ride.</p>
+        <p className="text-sm font-semibold text-slate-900">{t("offer.importTitle")}</p>
+        <p className="text-[.8125rem] text-slate-500">{t("offer.importHint")}</p>
       </div>
-      <Link href="/rides/import" className="btn-secondary min-h-11 w-full border-brand-200 px-4 py-2 text-[.8125rem] text-brand-800 hover:bg-brand-50 sm:w-auto">Import your post</Link>
+      <Link href="/rides/import" className="btn-secondary min-h-11 w-full border-brand-200 px-4 py-2 text-[.8125rem] text-brand-800 hover:bg-brand-50 sm:w-auto">{t("offer.importLink")}</Link>
     </div>
     </div>
-    {message && <p role="status">{message}{snapshot && <> <button type="button" className="font-semibold underline" onClick={restoreSnapshot}>Undo</button></>}</p>}
-    {retry && <button type="button" className="btn-secondary" disabled={savingCar || interpreting || publishing.length > 0 || Boolean(tab.publishedId)} onClick={() => { void fill(); }}>Retry</button>}
-    <div role="tablist" aria-label="Ride drafts" className={drafts.length === 1 ? "sr-only" : "flex flex-wrap gap-2"}>
+    {message && <p role="status">{t(message)}{snapshot && <> <button type="button" className="font-semibold underline" onClick={restoreSnapshot}>{t("offer.undo")}</button></>}</p>}
+    {publishNotice && <p role="status">{t(publishNotice === "draft" ? "offer.savedContinue" : "offer.publishedContinue")}</p>}
+    {retry && <button type="button" className="btn-secondary" disabled={savingCar || interpreting || publishing.length > 0 || Boolean(tab.publishedId)} onClick={() => { void fill(); }}>{t("offer.retry")}</button>}
+    <div role="tablist" aria-label={t("offer.draftTabs")} className={drafts.length === 1 ? "sr-only" : "flex flex-wrap gap-2"}>
       {drafts.map((item, index) => <div key={item.id} role="presentation" className={`inline-flex min-w-0 max-w-full items-center rounded-full border ${item.id === tab.id ? "bg-brand-600 border-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
         <button type="button" role="tab" id={`tab-${item.id}`} aria-controls={`panel-${item.id}`}
           aria-selected={item.id === tab.id} tabIndex={drafts.length > 1 && item.id === tab.id ? 0 : -1}
@@ -206,7 +236,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
             const next = event.key === "ArrowRight" ? (index + 1) % drafts.length : event.key === "ArrowLeft" ? (index + drafts.length - 1) % drafts.length : event.key === "Home" ? 0 : event.key === "End" ? drafts.length - 1 : -1;
             if (next >= 0) { event.preventDefault(); setActiveId(drafts[next].id); document.getElementById(`tab-${drafts[next].id}`)?.focus(); }
           }}>{label(item, index)}</button>
-        {drafts.length > 1 && <button type="button" aria-label={`Delete draft: ${label(item, index)}`} title="Delete draft"
+        {drafts.length > 1 && <button type="button" aria-label={t("offer.deleteDraft", { label: label(item, index) })} title={t("offer.deleteDraftTitle")}
           disabled={savingCar || publishing.includes(item.id)} onClick={() => deleteDraft(item.id)}
           className={`mr-1.5 grid size-8 min-h-0 shrink-0 place-items-center rounded-full disabled:opacity-40 ${item.id === tab.id ? "hover:bg-white/20" : "hover:bg-slate-200"}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -218,16 +248,16 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
           const previous = undo[tab.id];
           update(tab.id, current => current.publishedId ? current : { ...previous, revision: current.revision + 1, distanceEpoch: current.distanceEpoch + 1 });
           setUndo(current => { const next = { ...current }; delete next[tab.id]; return next; });
-          setMessage("Previous draft restored.");
-        }}>Undo fill</button>}
-        {tab.warnings.length > 0 && <div role="status" className="mb-4 rounded-xl bg-amber-50 p-3"><p>Review these details:</p><ul>{tab.warnings.map((warning, i) => <li key={i}>{warning.message}</li>)}</ul></div>}
-        {tab.distanceMessage && <p role="status" className="mb-3">{tab.distanceMessage} {tab.distanceMode === "error" && <button type="button" className="underline" onClick={() => update(tab.id, previous => ({ ...previous, distanceMode: "auto", distanceEpoch: previous.distanceEpoch + 1 }))}>Retry distance</button>}</p>}
+          setMessage("offer.previousRestored");
+        }}>{t("offer.undoFill")}</button>}
+        {(warnings.length > 0 || hasRoutingEstimate) && <div role="status" className="mb-4 rounded-xl bg-amber-50 p-3"><p>{t("offer.reviewDetails")}</p><ul>{warnings.map((warning, i) => <li key={i}>{translateDraftWarning(warning, locale, t)}</li>)}{hasRoutingEstimate ? <li>{t("warning.routingEstimate", { distance: formatNumber(locale, distance) })}</li> : null}</ul></div>}
+        {tab.distanceMessage && <p role="status" className="mb-3">{offerDistanceMessage(tab.distanceMessage, t)} {tab.distanceMode === "error" && <button type="button" className="underline" onClick={() => update(tab.id, previous => ({ ...previous, distanceMode: "auto", distanceEpoch: previous.distanceEpoch + 1 }))}>{t("offer.retryDistance")}</button>}</p>}
         <fieldset disabled={savingCar || publishing.includes(tab.id)} className="min-w-0">
           <RideForm {...props} cars={cars} onCarSaved={carSaved} onCarSaving={setSavingCar} key={tab.id} submissionId={tab.id} initialDraft={{ ...emptyOfferDraft(), source: tab.source, importId: tab.importId }}
             isImportedDraft={tab.source === "imported"} values={tab.values} onChange={change} onSubmit={submit} pending={publishing.includes(tab.id)} state={states[tab.id] ?? idle} />
         </fieldset>
     </section>
-    {storageMessage && <p role="status" className="text-[.75rem] text-slate-500">{storageMessage}</p>}
-    <p className="text-xs text-slate-500">City-to-city routing by <a href="https://project-osrm.org/" className="underline">OSRM</a>, data © <a href="https://www.openstreetmap.org/copyright" className="underline">OpenStreetMap contributors</a>. <a href="https://www.openstreetmap.org/fixthemap" className="underline">Fix the map</a>. Estimates may differ from your journey.</p>
+    {storageMessage && <p role="status" className="text-[.75rem] text-slate-500">{t(storageMessage)}</p>}
+    <p className="text-xs text-slate-500"><a href="https://project-osrm.org/" className="underline">{t("offer.routingCredit")}</a>{" "}<a href="https://www.openstreetmap.org/copyright" className="underline">{t("offer.mapCredit")}</a>{" "}<a href="https://www.openstreetmap.org/fixthemap" className="underline">{t("offer.fixMap")}</a>. {t("offer.estimateCaveat")}</p>
   </div>;
 }

@@ -1,7 +1,6 @@
-export function formatDeparture(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Skopje",
-  }).format(new Date(value));
+import type { Locale } from "@/lib/i18n/config";
+import { formatDateTime } from "@/lib/i18n/format";
+
+export function formatDeparture(value: string, locale: Locale = "en") {
+  return formatDateTime(locale, value);
 }

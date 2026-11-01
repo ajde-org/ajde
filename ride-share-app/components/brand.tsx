@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/provider";
 
 export function Brand({ inverse = false }: { inverse?: boolean }) {
-  return <Link href="/" className="brand inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2" aria-label="ajde home">
+  const { t } = useI18n();
+  return <Link href="/" className="brand inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2" aria-label={t("nav.home")}>
     <Image src="/brand/ajde-car.png" alt="" width={132} height={108} priority className="brand-mark h-7 w-auto" />
     <span className="brand-label">
       <Image src="/brand/ajde-wordmark.png" alt="" width={223} height={108} priority className={`h-7 w-auto max-w-none${inverse ? " brightness-0 invert" : ""}`} />

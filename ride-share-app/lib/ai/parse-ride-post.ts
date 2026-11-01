@@ -9,6 +9,11 @@ import {
   type LocationModelFallback,
 } from "./resolve-location";
 import type { ImportedRideDraft } from "../rides/ride-draft";
+import { importedRideDraftSchema, modelRideDraftWarningSchema, normalizeModelWarning } from "../rides/ride-draft";
+import { bilingualWarningInstructions } from "./warning-instructions";
+import { z } from "zod";
+
+const parserModelSchema = parsedRidePostSchema.extend({ draft: importedRideDraftSchema.extend({ warnings: z.array(modelRideDraftWarningSchema) }) });
 
 export type ParserCity = {
   id: number;
@@ -70,7 +75,8 @@ Only choose city and pickup IDs from the candidate list in the user message. Pre
 source words that name each place in rawText; exclude dates, times, route separators, and surrounding
 sentences. Set source to imported, importId and carId to null. Do not invent vehicle
 details, distance, gender preference, tags, or exact times that are not present. Confidence and
-fieldConfidence must reflect actual certainty, not optimism.`;
+fieldConfidence must reflect actual certainty, not optimism.
+${bilingualWarningInstructions}`;
 }
 
 function candidatesPrompt(cities: ParserCity[], pickupPoints: ParserPickupPoint[]) {
@@ -253,7 +259,7 @@ export function removeDepartureWithoutTime(
       text,
     ) ||
     /\b(?:[01]?\d|2[0-3]):[0-5]\d\b/.test(text) ||
-    /\b(?:[01]?\d|2[0-3])\s*(?:h|ч|час(?:от)?)\b/i.test(text) ||
+    /\b(?:[01]?\d|2[0-3])\s*(?:h|ч|час(?:от)?|cas(?:ot)?|chas(?:ot)?)(?=$|[\s,.;!?])/i.test(text) ||
     /полноќ|polnok|midnight/i.test(text);
 
   if (!departure || hasTime) {
@@ -289,20 +295,20 @@ export async function parseRidePost(
         },
       ],
       reasoning: { effort: "none" },
-      text: { format: zodTextFormat(parsedRidePostSchema, "parsed_ride_post") },
+      text: { format: zodTextFormat(parserModelSchema, "parsed_ride_post") },
     });
 
     if (!response.output_parsed) {
       throw new RideParserError("The model did not return a structured result.", "refusal");
     }
 
-    const parsed = parsedRidePostSchema.safeParse(response.output_parsed);
+    const parsed = parserModelSchema.safeParse(response.output_parsed);
     if (!parsed.success) {
       throw new RideParserError("The model returned an invalid ride draft.", "invalid_output");
     }
 
     const resolved = await resolveParsedLocations(
-      parsed.data,
+      { ...parsed.data, draft: { ...parsed.data.draft, warnings: parsed.data.draft.warnings.map(normalizeModelWarning) } },
       context,
       context.locationFallback,
     );

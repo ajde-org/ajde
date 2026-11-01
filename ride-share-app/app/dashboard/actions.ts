@@ -12,7 +12,7 @@ function dashboardUrl(path: "driver" | "trips", type: "success" | "error", messa
 
 export async function decideBooking(bookingId: string, decision: "accepted" | "declined") {
   const validation = bookingDecisionSchema.safeParse({ bookingId, decision });
-  if (!validation.success) redirect(dashboardUrl("driver", "error", "Invalid booking decision."));
+  if (!validation.success) redirect(dashboardUrl("driver", "error", "tripAction.invalidDecision"));
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -23,20 +23,20 @@ export async function decideBooking(bookingId: string, decision: "accepted" | "d
     .select("id, ride_id, seats, status")
     .eq("id", bookingId)
     .maybeSingle();
-  if (error || !booking) redirect(dashboardUrl("driver", "error", "Booking request not found."));
+  if (error || !booking) redirect(dashboardUrl("driver", "error", "tripAction.notFound"));
 
   const { data: ride } = await supabase
     .from("rides")
     .select("id, driver_id, seats_available, status, departure_at")
     .eq("id", booking.ride_id)
     .maybeSingle();
-  if (!ride || ride.driver_id !== user.id) redirect(dashboardUrl("driver", "error", "You cannot manage this request."));
+  if (!ride || ride.driver_id !== user.id) redirect(dashboardUrl("driver", "error", "tripAction.forbidden"));
   if (!["published", "full"].includes(ride.status) || Date.parse(ride.departure_at) <= Date.now()) {
-    redirect(dashboardUrl("driver", "error", "This ride is no longer accepting booking decisions."));
+    redirect(dashboardUrl("driver", "error", "tripAction.closed"));
   }
-  if (booking.status !== "requested") redirect(dashboardUrl("driver", "error", "This request was already decided."));
+  if (booking.status !== "requested") redirect(dashboardUrl("driver", "error", "tripAction.decided"));
   if (decision === "accepted" && booking.seats > ride.seats_available) {
-    redirect(dashboardUrl("driver", "error", "The ride no longer has enough available seats."));
+    redirect(dashboardUrl("driver", "error", "tripAction.noSeats"));
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -48,8 +48,8 @@ export async function decideBooking(bookingId: string, decision: "accepted" | "d
     .maybeSingle();
   if (updateError || !updated) {
     const message = updateError?.code === "23514"
-      ? "Another accepted request filled the ride. Refresh and review the remaining seats."
-      : "The request could not be updated.";
+      ? "tripAction.race"
+      : "tripAction.failed";
     redirect(dashboardUrl("driver", "error", message));
   }
 
@@ -57,12 +57,12 @@ export async function decideBooking(bookingId: string, decision: "accepted" | "d
   revalidatePath(`/rides/${booking.ride_id}`);
   revalidatePath("/dashboard/driver");
   revalidatePath("/dashboard/trips");
-  redirect(dashboardUrl("driver", "success", `Request ${decision}.`));
+  redirect(dashboardUrl("driver", "success", decision === "accepted" ? "tripAction.accepted" : "tripAction.declined"));
 }
 
 export async function cancelBooking(bookingId: string) {
   const validation = bookingCancelSchema.safeParse({ bookingId });
-  if (!validation.success) redirect(dashboardUrl("trips", "error", "Invalid booking."));
+  if (!validation.success) redirect(dashboardUrl("trips", "error", "tripAction.invalid"));
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -74,10 +74,10 @@ export async function cancelBooking(bookingId: string) {
     .eq("id", bookingId)
     .maybeSingle();
   if (error || !booking || booking.passenger_id !== user.id) {
-    redirect(dashboardUrl("trips", "error", "You cannot cancel this booking."));
+    redirect(dashboardUrl("trips", "error", "tripAction.cannotCancel"));
   }
   if (!['requested', 'accepted'].includes(booking.status)) {
-    redirect(dashboardUrl("trips", "error", "This booking is already closed."));
+    redirect(dashboardUrl("trips", "error", "tripAction.alreadyClosed"));
   }
 
   const { error: updateError } = await supabase
@@ -86,11 +86,11 @@ export async function cancelBooking(bookingId: string) {
     .eq("id", bookingId)
     .eq("passenger_id", user.id)
     .in("status", ["requested", "accepted"]);
-  if (updateError) redirect(dashboardUrl("trips", "error", "The booking could not be cancelled."));
+  if (updateError) redirect(dashboardUrl("trips", "error", "tripAction.cancelFailed"));
 
   revalidatePath("/rides");
   revalidatePath(`/rides/${booking.ride_id}`);
   revalidatePath("/dashboard/driver");
   revalidatePath("/dashboard/trips");
-  redirect(dashboardUrl("trips", "success", "Booking cancelled."));
+  redirect(dashboardUrl("trips", "success", "tripAction.cancelled"));
 }

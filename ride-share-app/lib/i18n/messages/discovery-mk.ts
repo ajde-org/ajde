@@ -1,0 +1,88 @@
+export const discoveryMk = {
+  "discovery.title": "Најди превоз",
+  "discovery.welcome":
+    "Профилот е подготвен. Добредојде — најди го првото патување подолу.",
+  "discovery.intro": "Слободно место, добро друштво и пат до дома.",
+  "discovery.filters": "Избери град, датум или време",
+  "discovery.filterLabel": "Филтри за превоз",
+  "discovery.anywhere": "Каде било",
+  "discovery.fromDate": "Од датум",
+  "discovery.throughDate": "До датум",
+  "discovery.afterTime": "Во или по",
+  "discovery.beforeTime": "Пред",
+  "discovery.optional": "(незадолжително)",
+  "discovery.filterHelp":
+    "Датумите се незадолжителни. Со избор на само почетен датум, се избира еден ден; крајниот датум е вклучен во опсегот. Часовите важат секој ден според времето во Скопје. Ако крајниот час е порано, периодот продолжува по полноќ.",
+  "discovery.sameGender": "Возачи од ист пол",
+  "discovery.reset": "Исчисти",
+  "discovery.apply": "Примени филтри",
+  "discovery.genderUnavailable":
+    "За овој филтер треба да наведеш пол на профилот. Бидејќи не е наведен, се прикажуваат сите возачи.",
+  "discovery.next": "Твоето следно патување",
+  "discovery.matches.one":
+    "{count} соодветно патување · Прво се прикажуваат најблиските поаѓања",
+  "discovery.matches.other":
+    "{count} соодветни патувања · Прво се прикажуваат најблиските поаѓања",
+  "discovery.empty": "Сè уште нема соодветен превоз",
+  "discovery.emptyBody":
+    "Прошири го пребарувањето или остави го датумот празен за да ги видиш сите претстојни патувања.",
+  "discovery.all": "Прикажи ги сите патувања",
+  "discovery.describe": "Опиши каков превоз бараш",
+  "discovery.placeholder": "На пример „Скопје до Битола утре“",
+  "discovery.shortQuery": "Опиши каков превоз бараш со најмалку два знака.",
+  "discovery.unavailable":
+    "Пребарувањето со вештачка интелигенција е недостапно. Користи ги филтрите подолу.",
+  "discovery.invalidResult":
+    "Пребарувањето не е правилно протолкувано. Користи ги филтрите подолу.",
+  "discovery.offline":
+    "Нема врска со пребарувањето со вештачка интелигенција. Користи ги филтрите подолу.",
+  "discovery.interpreting": "Се толкува…",
+  "discovery.search": "Пребарај",
+  "discovery.clear": "Исчисти го пребарувањето",
+  "search.interpretation": "Толкување на пребарувањето",
+  "search.from": "Од {city}",
+  "search.to": "До {city}",
+  "search.unknownCity": "непознат град",
+  "search.anyDate": "Кој било претстоен датум",
+  "search.window": "{after}–{before} секој ден (Скопје)",
+  "search.overnight": "{after}–{before} (преку полноќ) секој ден (Скопје)",
+  "search.afterTime": "Во или по {time} секој ден (Скопје)",
+  "search.beforeTime": "Пред {time} секој ден (Скопје)",
+  "search.after": "По {date}",
+  "search.before": "Пред {date}",
+  "search.noFilters": "Не се препознаени сигурни критериуми за пребарување",
+  "search.confidence": "{percent}% сигурност на толкувањето",
+  "search.manual": "Рачно избраните филтри имаат предност пред ова толкување.",
+  "search.warning.ambiguous":
+    "Дел од пребарувањето е двосмисленo. Провери ги филтрите пред да продолжиш.",
+  "search.warning.invalid_range":
+    "Бараниот период не е важечки. Избери ги датумите и часовите рачно.",
+  "search.warning.needs_review":
+    "Дел од пребарувањето треба да се провери. Потврди ги местата, датумите и часовите рачно.",
+  "search.warning.unsupported":
+    "Дел од пребарувањето не е поддржан. Користи ги достапните рачни филтри.",
+  "ride.to": "до",
+  "ride.time": "Време во Скопје",
+  "ride.departureTime": "{date}, време во Скопје",
+  "ride.free": "Бесплатно",
+  "ride.noCharge": "без надомест",
+  "ride.perSeat": "по место",
+  "ride.pickup": "Поаѓање:",
+  "ride.dropoff": "Пристигнување:",
+  "ride.arrange": "Договор со возачот",
+  "ride.arrangeBoth":
+    "Местата за поаѓање и пристигнување се договараат со возачот",
+  "ride.imported": "Увезено патување",
+  "ride.verified": "Потврден возач",
+  "ride.driverSoon": "Податоците за возачот ќе бидат достапни наскоро",
+  "ride.choose": "Избери превоз",
+  "ride.view": "Погледни го превозот од {origin} до {destination}",
+  "ride.seats": "Слободни места: {available} од {total}",
+  "ride.full": "Пополнето",
+  "ride.seatsLeft.one": "Уште {count} слободно место",
+  "ride.seatsLeft.other": "Уште {count} слободни места",
+  "ride.departure": "Поаѓање",
+  "ride.destination": "Пристигнување",
+  "ride.agreePickup": "Договори го местото на поаѓање со возачот",
+  "ride.agreeDropoff": "Договори го местото на пристигнување со возачот",
+} as const;

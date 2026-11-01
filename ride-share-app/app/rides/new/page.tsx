@@ -1,3 +1,4 @@
+import { getI18n } from "@/lib/i18n/server";
 import { randomUUID } from "node:crypto";
 
 import { redirect } from "next/navigation";
@@ -64,6 +65,11 @@ function developmentImportFixture(): RideDraft {
       },
     ],
   };
+}
+
+export async function generateMetadata() {
+  const { t } = await getI18n();
+  return { title: t("offer.title") };
 }
 
 export default async function NewRidePage({ searchParams }: NewRidePageProps) {

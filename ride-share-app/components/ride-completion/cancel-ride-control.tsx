@@ -1,5 +1,8 @@
 "use client";
 
+
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber, plural } from "@/lib/i18n/format";
 import { useState, useTransition } from "react";
 
 import { cancelRide } from "@/lib/ride-completion/actions";
@@ -11,12 +14,13 @@ type CancelRideControlProps = {
 };
 
 export function CancelRideControl({ rideId, isFull, confirmedSeats }: CancelRideControlProps) {
+  const { locale, t, notice } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  if (result?.success) return <p role="status" className="mt-4 text-sm text-emerald-800">{result.message}</p>;
+  if (result?.success) return <p role="status" className="mt-4 text-sm text-emerald-800">{notice(result.message, "cancel.failed")}</p>;
 
   function submitCancellation() {
     startTransition(async () => {
@@ -25,24 +29,24 @@ export function CancelRideControl({ rideId, isFull, confirmedSeats }: CancelRide
         setResult(nextResult);
         if (!nextResult.success) setConfirming(false);
       } catch {
-        setResult({ success: false, message: "Could not cancel the ride. Please try again." });
+        setResult({ success: false, message: "cancel.failed" });
       }
     });
   }
 
   return (
-    <section className={`mt-5 border-t pt-5 ${confirming ? "border-red-200 text-red-950" : "border-slate-100 text-slate-700"}`} aria-label="Cancel ride">
-      <h2 className="text-sm font-semibold">Change of plans?</h2>
-      <p className="mt-1 text-sm text-slate-600">Passengers will see that the ride was cancelled and will need to make other plans.</p>
-      {isFull ? <p className="mt-2 text-sm font-semibold text-red-950">This ride is full with {confirmedSeats} confirmed seat{confirmedSeats === 1 ? "" : "s"}. Cancelling affects every confirmed passenger.</p> : null}
-      {!confirming ? <button type="button" onClick={() => setConfirming(true)} className="mt-3 min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">Cancel ride</button> : <div className="mt-3 space-y-3">
-        {isFull ? <label className="flex gap-2 text-sm text-red-950"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />I understand that confirmed passengers will need other plans.</label> : null}
+    <section className={`mt-5 border-t pt-5 ${confirming ? "border-red-200 text-red-950" : "border-slate-100 text-slate-700"}`} aria-label={t("cancel.title")}>
+      <h2 className="text-sm font-semibold">{t("cancel.change")}</h2>
+      <p className="mt-1 text-sm text-slate-600">{t("cancel.warning")}</p>
+      {isFull ? <p className="mt-2 text-sm font-semibold text-red-950">{t(`cancel.full.${plural(locale, confirmedSeats)}`, { count: formatNumber(locale, confirmedSeats) })}</p> : null}
+      {!confirming ? <button type="button" onClick={() => setConfirming(true)} className="mt-3 min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">{t("cancel.title")}</button> : <div className="mt-3 space-y-3">
+        {isFull ? <label className="flex gap-2 text-sm text-red-950"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />{t("cancel.ack")}</label> : null}
         <div className="flex flex-wrap gap-3">
-          <button type="button" disabled={pending || (isFull && !acknowledged)} onClick={submitCancellation} className="min-h-11 rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60">{pending ? "Cancelling…" : "Confirm cancellation"}</button>
-          <button type="button" disabled={pending} onClick={() => setConfirming(false)} className="btn-secondary">Keep ride</button>
+          <button type="button" disabled={pending || (isFull && !acknowledged)} onClick={submitCancellation} className="min-h-11 rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60">{pending ? t("cancel.pending") : t("cancel.confirm")}</button>
+          <button type="button" disabled={pending} onClick={() => setConfirming(false)} className="btn-secondary">{t("cancel.keep")}</button>
         </div>
       </div>}
-      {result ? <p role="alert" className="mt-3 text-sm text-red-800">{result.message}</p> : null}
+      {result ? <p role="alert" className="mt-3 text-sm text-red-800">{notice(result.message, "cancel.failed")}</p> : null}
     </section>
   );
 }

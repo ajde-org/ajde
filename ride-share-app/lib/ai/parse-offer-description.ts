@@ -7,14 +7,22 @@ import { normalizeLocation } from "./resolve-location";
 import { resolveLocationFromRawText } from "./parse-ride-post";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { RideDraft, RideDraftField } from "@/lib/rides/ride-draft";
+import { rideDraftSchema, modelRideDraftWarningSchema, normalizeModelWarning } from "@/lib/rides/ride-draft";
+import { bilingualWarningInstructions } from "./warning-instructions";
 
 export const offerModelOutputSchema = z.object({ recurring: z.boolean(), trips: z.array(offerTripSchema.extend({
+  draft: rideDraftSchema,
   dateLocal: localDateSchema.nullable(), timeLocal: localTimeSchema.nullable(),
   weekday: z.number().int().min(0).max(6).nullable().describe("Bare weekday: Sunday/nedela/недела=0 through Saturday/sabota/сабота=6. REQUIRED when a weekday occurs; leave dateLocal null because code calculates its next occurrence."),
   dateEvidence: z.string().nullable().describe("Exact date or weekday phrase from this trip, e.g. Saturday, Sunday, сабота. Preserve it even though departureAt/dateLocal are null."),
   timeEvidence: z.string().nullable(), carText: z.string().nullable(),
 })) });
 export type OfferModelOutput = z.infer<typeof offerModelOutputSchema>;
+const offerProviderOutputSchema = offerModelOutputSchema.extend({
+  trips: z.array(offerModelOutputSchema.shape.trips.element.extend({
+    draft: rideDraftSchema.extend({ warnings: z.array(modelRideDraftWarningSchema) }),
+  })),
+});
 type City = Pick<Tables<"cities">, "id" | "name_en" | "name_mk" | "aliases">;
 type Pickup = Pick<Tables<"pickup_points">, "id" | "city_id" | "name_en" | "name_mk" | "aliases">;
 type Car = Pick<Tables<"cars">, "id" | "make" | "model" | "fuel_type" | "consumption_l_100km" | "seats_total">;
@@ -42,12 +50,16 @@ Preserve location rawText from the user, including pickup names. Only use catalo
 carText is the exact vehicle phrase. Preserve make/model when recognizable, but do not infer fuel or consumption from a family such as Clio. Never guess offered seats or price.
 Price is MKD per passenger seat. An explicitly free ride (free, besplatno, бесплатно, gratis, falas) has pricePerSeatMkd=0 and pricePerSeatMkd in mentioned. Preserve explicit supported notes/tags/preferences; do not reinterpret 'women only' as same gender unless that is explicitly the intended preference.
 All drafts are native with importId=null, distanceKm=null. Never compute distance, publish, or invoke tools. Surface uncertainty in warnings.
-Return all schema fields. 'departureAt' can be null: code derives it from validated local date/time.`,
+Return all schema fields. 'departureAt' can be null: code derives it from validated local date/time.
+${bilingualWarningInstructions}`,
     input: JSON.stringify({ request, catalog, now: now.toISOString(), localNow: skopjeLocal(now.toISOString()) }),
-    text: { format: zodTextFormat(offerModelOutputSchema, "ride_offers") },
+    text: { format: zodTextFormat(offerProviderOutputSchema, "ride_offers") },
   });
   if (!response.output_parsed) throw new OfferDescriptionError("The description could not be interpreted. Try simpler wording.");
-  return response.output_parsed;
+  const result = offerProviderOutputSchema.parse(response.output_parsed);
+  return { ...result, trips: result.trips.map(trip => ({ ...trip,
+    draft: { ...trip.draft, warnings: trip.draft.warnings.map(normalizeModelWarning) },
+  })) };
 }
 
 export async function parseOfferDescription(input: OfferRequest, context: Context) {

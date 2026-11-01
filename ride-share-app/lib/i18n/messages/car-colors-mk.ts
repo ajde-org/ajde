@@ -1,0 +1,16 @@
+export const carColorsMk = {
+  "carColor.black": "црн",
+  "carColor.white": "бел",
+  "carColor.gray": "сив",
+  "carColor.silver": "сребрен",
+  "carColor.blue": "син",
+  "carColor.red": "црвен",
+  "carColor.green": "зелен",
+  "carColor.yellow": "жолт",
+  "carColor.orange": "портокалов",
+  "carColor.brown": "кафеав",
+  "carColor.beige": "беж",
+  "carColor.gold": "златен",
+  "carColor.purple": "виолетов",
+  "carColor.pink": "розов",
+} as const;
