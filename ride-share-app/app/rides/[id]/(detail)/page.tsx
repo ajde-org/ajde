@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SeatAvailability } from "@/components/seat-availability";
+import { DriverNotes } from "@/components/driver-notes";
 import { RideRoute } from "@/components/ride-route";
 import { SubmitButton } from "@/components/submit-button";
 import { ChatIcon } from "@/components/chat-icon";
@@ -70,7 +71,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
               <SeatAvailability available={ride.seats_available} total={ride.seats_total} />
               <div className="text-right"><p className="font-display text-2xl font-extrabold tracking-tight">{isFreeRide(ride.price_per_seat_mkd) ? t("ride.free") : formatMoney(locale, ride.price_per_seat_mkd!)}</p><p className="text-sm text-slate-500">{isFreeRide(ride.price_per_seat_mkd) ? t("ride.noCharge") : t("ride.perSeat")}</p></div>
             </div>
-            {ride.notes ? <div className="mt-6"><h2 className="font-bold">{t("detail.notes")}</h2><p className="mt-2 whitespace-pre-wrap text-slate-600">{ride.notes}</p></div> : null}
+            {ride.notes ? <DriverNotes notes={ride.notes} /> : null}
             {ride.tags.length ? <div className="mt-5 flex flex-wrap gap-2">{ride.tags.map((tag) => {
               const key = rideTagKey(tag);
               return <span key={tag} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">{key ? t(key) : tag}</span>;

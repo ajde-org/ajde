@@ -1,4 +1,10 @@
 export const detailMk = {
+  "notes.toMk": "Преведи на македонски",
+  "notes.toEn": "Преведи на англиски",
+  "notes.translating": "Се преведува…",
+  "notes.original": "Прикажи го оригиналот",
+  "notes.machineTranslation": "Автоматски превод",
+  "notes.failed": "Преводот не е достапен. Прикажани се оригиналните белешки. Обиди се повторно.",
   "profile.label": "Профил",
   "profile.notFound": "Студентот не е пронајден",
   "profile.notFoundBody":
@@ -43,7 +49,7 @@ export const detailMk = {
   "detail.notFoundBody": "Можеби е отстрането или веќе не е јавно достапно.",
   "detail.browse": "Прегледај превози",
   "ride.route": "{origin} до {destination}",
-  "status.draft": "Нацрт",
+  "status.draft": "Драфт",
   "status.published": "Објавено",
   "status.full": "Пополнето",
   "status.completed": "Завршено",

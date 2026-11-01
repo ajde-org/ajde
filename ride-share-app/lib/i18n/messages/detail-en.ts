@@ -1,4 +1,10 @@
 export const detailEn = {
+  "notes.toMk": "Translate to Macedonian",
+  "notes.toEn": "Translate to English",
+  "notes.translating": "Translating…",
+  "notes.original": "Show original",
+  "notes.machineTranslation": "Automatic translation",
+  "notes.failed": "Translation is unavailable. The original notes are shown. Try again.",
 
   "profile.label": "Profile",
   "profile.notFound": "Student not found",
