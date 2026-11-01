@@ -3,11 +3,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { I18nProvider } from "@/lib/i18n/provider";
 import { createTranslator } from "@/lib/i18n/translate";
 import { en } from "@/lib/i18n/messages/en";
 import { mk } from "@/lib/i18n/messages/mk";
 import type { RideView } from "@/lib/rides/ride-view";
+vi.mock("@/lib/rides/translate-notes-action", () => ({ translateRideNotes: vi.fn() }));
 
 const state = vi.hoisted(() => ({ locale: "en" as "en" | "mk", empty: false }));
 vi.mock("@/lib/i18n/server", () => ({
@@ -28,6 +30,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
+    rpc: async (_name: string, args: { profile_ids: string[] }) => ({ data: args.profile_ids.map(id => ({ id, phone: "+38970123456", social_url: null })), error: null }),
     from: (table: string) => {
       const query = {
         select: () => query,
@@ -196,3 +199,4 @@ it("localizes the empty feed and never displays arbitrary query-string errors", 
   expect(html).not.toContain("arbitrary untrusted notice");
   expect(html).toContain(mk["booking.failed"]);
 });
+vi.mock("@/lib/rides/publish-draft", () => ({ publishDraft: vi.fn() }));

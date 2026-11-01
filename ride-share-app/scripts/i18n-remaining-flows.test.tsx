@@ -8,6 +8,7 @@ import { createTranslator, createNoticeTranslator } from "@/lib/i18n/translate";
 import { en } from "@/lib/i18n/messages/en";
 import { mk } from "@/lib/i18n/messages/mk";
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/profiles/contact-details", () => ({ getContactDetails: async (_client: unknown, ids: string[]) => ({ data: new Map(ids.map(id => [id, { id, phone: "+38970123456", social_url: null, instagram: null, facebook: null }])), error: null }) }));
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: async () => ({ id: "profile" }) }));
 vi.mock("@/lib/profiles/public-profile", () => ({ getPublicProfile: async () => ({ id: "profile", fullName: "Original Profile Name", photoUrl: "/fixture.png", university: "Универзитет Св. Кирил и Методиј", bio: "Original authored biography", gender: "non_binary" }) }));
 vi.mock("@/lib/impact/queries", () => ({ getImpactSummary: vi.fn() }));
@@ -26,8 +27,8 @@ vi.mock("@/lib/ratings/actions", () => ({ submitRating: vi.fn() }));
 vi.mock("@/lib/ratings/queries", () => ({ getProfileRatingSummary: vi.fn(), getRatingControls: async () => new Map() }));
 vi.mock("@/app/dashboard/actions", () => ({ decideBooking: vi.fn(), cancelBooking: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: (table: string) => {
-  const data = table === "rides" ? [{ id, driver_id: "driver", departure_at: "2027-03-29T10:00:00Z", status: "published", seats_total: 3, seats_available: 2, origin_city_id: 1, dest_city_id: 2, price_per_seat_mkd: 300 }]
-    : table === "bookings" ? [{ id: "booking", ride_id: id, passenger_id: "passenger", status: "accepted", seats: 1, message: "Original booking message", created_at: "2026-10-01T10:00:00Z" }]
+  const data = table === "rides" ? [id, `${id.slice(0, -1)}2`].map(rideId => ({ id: rideId, driver_id: "driver", departure_at: "2027-03-29T10:00:00Z", status: "published", seats_total: 3, seats_available: 2, origin_city_id: 1, dest_city_id: 2, price_per_seat_mkd: 300 }))
+    : table === "bookings" ? ["accepted", "requested"].map((status, index) => ({ id: `booking-${index}`, ride_id: index ? `${id.slice(0, -1)}2` : id, passenger_id: "passenger", status, seats: 1, message: "Original booking message", created_at: "2026-10-01T10:00:00Z" }))
     : table === "cities" ? cities : [{ id: "passenger", full_name: "Original Passenger", photo_url: "/fixture.png", university: "UKIM", phone: "+38970123456" }, { id: "driver", full_name: "Original Driver", phone: "+38970123456" }];
   const query = { select: () => query, eq: () => query, in: () => query, order: () => query,
     then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => Promise.resolve({ data, error: null }).then(resolve) };
@@ -101,7 +102,7 @@ it.each(["en", "mk"] as const)("renders remaining flow fixtures and preserves au
   fixture("impact", <div className="grid gap-6 sm:grid-cols-2">{counters.map((counter, index) => <div key={index}>{counter}</div>)}</div>);
   const shared = fixture("shared", await SharedTripPage({ params: Promise.resolve({ token: "a".repeat(48) }) }));
   expect(shared).toContain(messages["shared.disclaimer"]);
-  expect(shared).toContain("Blue");
+  expect(shared).toContain(locale === "mk" ? "син" : "blue");
   const driver = fixture("driver-trips", await DriverRides({ userId: "driver", filter: "active" }));
   expect(driver).toContain("Original booking message");
   expect(driver).toContain(messages["trips.openChat"]);
