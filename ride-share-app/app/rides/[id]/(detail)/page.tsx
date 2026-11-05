@@ -78,7 +78,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
                 <h2 className="text-sm font-semibold">Ride features</h2>
                 <div className="mt-2 [&_li]:rounded-full [&_li]:bg-emerald-50 [&_li]:px-3 [&_li]:py-1 [&_li]:font-medium [&_li]:text-emerald-800 [&_ul]:gap-2"><RideFeatures tags={ride.tags} /></div>
               </div>
-              <div><h2 className="text-sm font-semibold">Driver notes</h2>{ride.notes?.trim() ? <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{ride.notes}</p> : <p className="mt-2 text-sm text-slate-500">The driver did not leave any notes</p>}</div>
+              <div><h2 className="text-sm font-semibold">Driver notes</h2>{ride.notes?.trim() ? <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{ride.notes}</p> : <p className="mt-2 text-xs text-slate-500">The driver did not leave any notes</p>}</div>
             </div>
           </section>
 
