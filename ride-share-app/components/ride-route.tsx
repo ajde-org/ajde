@@ -22,6 +22,6 @@ export function RideRoute({ origin, destination, pickup, dropoff, departureAt, d
         <dd className="mt-0.5 text-sm text-slate-600">{stop.place}</dd>
       </div>)}
     </dl>
-    {timing?.duration && <p className="mt-4 text-sm text-slate-600">About {timing.duration} · Skopje time. City-to-city estimate; traffic, stops and pickup arrangements may change arrival.</p>}
+    {timing?.duration && <p className="mt-4 text-xs text-slate-600/70">About {timing.duration} · Skopje time. City-to-city estimate; traffic, stops and pickup arrangements may change arrival.</p>}
   </div>;
 }
