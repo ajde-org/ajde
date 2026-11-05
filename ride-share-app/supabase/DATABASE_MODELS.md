@@ -93,8 +93,10 @@ token).
 
 Public bucket for profile avatars. Objects are limited to JPEG, PNG, or WebP files of at most 5 MB.
 Authenticated users may insert, update, and delete objects only inside a top-level folder matching
-their own Auth user UUID (`<auth.uid()>/<filename>`). Public reads are intentional: photos are
-shown on ride pages and on share links opened without signing in. Onboarding names uploads
+their own Auth user UUID (`<auth.uid()>/<filename>`), and may select (list) only that folder.
+The bucket is public, so files load by URL without any SELECT policy: photos are shown on ride pages
+and on share links opened without signing in. Nobody else can list the bucket, which would reveal
+every user's UUID. Onboarding names uploads
 `<auth.uid()>/<uuid>.<jpg|png|webp>` from the file's type.
 
 ## Enums
