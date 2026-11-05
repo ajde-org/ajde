@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export function ReserveSeatLink({ href, route }: { href: string; route: string }) {
-  const animationEnabled = (process.env.NEXT_PUBLIC_RIDE_CAR_ANIMATION_ENABLED ?? "true").trim().toLowerCase() === "true";
+  const animationEnabled = (process.env.NEXT_PUBLIC_RIDE_CAR_ANIMATION_ENABLED ?? "false").trim().toLowerCase() === "true";
   if (!animationEnabled) {
     return (
       <Link href={href} className="flex min-h-13 w-1/2 items-center justify-center rounded-xl border-2 border-ink bg-ink px-5 py-2.5 text-center text-base font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-700">

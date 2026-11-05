@@ -10,6 +10,6 @@ it.each([undefined, "true", "false"])("respects the animation flag %s while pres
   const html = renderToStaticMarkup(createElement(ReserveSeatLink, { href: "/rides/example", route: "from Skopje to Ohrid" }));
   expect(html).toContain('href="/rides/example"');
   expect(html).toContain("Pick ride");
-  expect(html.includes("<svg")).toBe(value !== "false");
-  expect(html.includes(">ajde<")).toBe(value !== "false");
+  expect(html.includes("<svg")).toBe(value === "true");
+  expect(html.includes(">ajde<")).toBe(value === "true");
 });

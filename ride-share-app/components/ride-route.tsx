@@ -7,8 +7,8 @@ export function RideRoute({ origin, destination, pickup, dropoff, departureAt, d
 }) {
   const timing = departureAt ? rideTiming(departureAt, durationMinutes) : null;
   const stops = [
-    { label: "Departure", city: origin, place: pickup ?? "Agree pickup with driver", time: timing?.departure, instant: departureAt },
-    { label: "Estimated arrival", city: destination, place: dropoff ?? "Agree drop-off with driver", time: timing?.arrival, instant: timing?.arrivalAt },
+    { label: "Departure", city: origin, place: pickup, time: timing?.departure, instant: departureAt },
+    { label: "Estimated arrival", city: destination, place: dropoff, time: timing?.arrival, instant: timing?.arrivalAt },
   ];
   return <div>
     <dl className="route-stops">
@@ -19,7 +19,7 @@ export function RideRoute({ origin, destination, pickup, dropoff, departureAt, d
           {index === 1 && timing?.dayLabel && <span className="text-sm text-slate-600">{timing.dayLabel}</span>}
           <span>{stop.city}</span>
         </dd>
-        <dd className="mt-0.5 text-sm text-slate-600">{stop.place}</dd>
+        {stop.place ? <dd className="mt-0.5 text-sm text-slate-600">{stop.place}</dd> : null}
       </div>)}
     </dl>
   </div>;
