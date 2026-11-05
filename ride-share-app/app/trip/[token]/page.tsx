@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSharedItinerary } from "@/lib/sharing/queries";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -31,7 +32,7 @@ export default async function SharedTripPage({ params }: { params: Promise<{ tok
       {itinerary.driver ? <div className="mt-5 flex items-center gap-3">
         {/* A plain image carries an explicit policy so the bearer URL never becomes an image referrer. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={itinerary.driver.photoUrl} alt="Driver" referrerPolicy="no-referrer" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+        <img src={profilePhotoSrc(itinerary.driver.photoUrl)} alt="Driver" referrerPolicy="no-referrer" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
         <div><p className="text-sm text-slate-600">Driver</p><p className="font-semibold">{itinerary.driver.name}</p></div>
       </div> : <p className="mt-5 text-sm">Driver details unavailable.</p>}
       <p className="mt-4 text-sm"><span className="font-semibold">Car: </span>{itinerary.car ? [itinerary.car.make, itinerary.car.model, itinerary.car.color].filter(Boolean).join(" · ") : "Not specified"}</p>

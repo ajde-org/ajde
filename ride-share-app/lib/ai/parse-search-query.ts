@@ -1,3 +1,4 @@
+import 'server-only';
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
@@ -269,7 +270,6 @@ async function runOpenAISearchModel({
     process.env.OPENAI_SEARCH_MODEL?.trim() ||
     process.env.OPENAI_MODEL?.trim() ||
     'gpt-5.4-mini';
-  console.log('[NL search] Model:', model);
   const vocabulary = candidates.map((candidate) => ({
     kind: candidate.kind,
     id: candidate.id,

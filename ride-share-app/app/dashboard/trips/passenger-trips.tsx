@@ -68,7 +68,8 @@ export async function PassengerTrips({ userId, filter }: { userId: string; filte
           const departure = new Date(ride.departure_at);
           const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", weekday: "short", timeZone: "Europe/Skopje" }).format(departure);
           const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Skopje" }).format(departure);
-          const canCancel = status.filter === "active";
+          // Cancelling after departure would let a passenger dodge the driver's rating.
+          const canCancel = status.filter === "active" && departure.getTime() > now;
           const canShare = booking.status === "accepted" && !rideIsCancelled;
           const statusColor = status.filter === "cancelled" || booking.status === "declined"
             ? "bg-red-50 text-red-800"

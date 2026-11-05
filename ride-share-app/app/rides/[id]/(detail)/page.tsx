@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { requestBooking } from "../actions";
 import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export const metadata: Metadata = { title: "Ride details" };
 
@@ -81,7 +82,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
                 <div className="flex items-center gap-4">
                   {/* User/project-specific hosts cannot use a fixed Next Image allowlist. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ride.driver.photo_url} alt="" width={64} height={64} className="size-16 shrink-0 rounded-full bg-blue-50 object-cover" />
+                  <img src={profilePhotoSrc(ride.driver.photo_url)} alt="" width={64} height={64} className="size-16 shrink-0 rounded-full bg-blue-50 object-cover" />
                   <div><p className="text-sm font-medium text-slate-500">Your driver</p>{ride.driver.verified_at ? <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">Verified driver</span> : null}</div>
                 </div>
                 <Link href={`/profile/${ride.driver.id}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${ride.car.color} ` : ""}{ride.car.make} {ride.car.model}</p> : null}

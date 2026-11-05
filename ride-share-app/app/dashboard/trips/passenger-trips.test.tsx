@@ -37,6 +37,9 @@ const contactRequests = vi.fn();
 let contactsFail = false;
 
 beforeEach(() => {
+  // The fixture rides depart on 2026-09-22; view the dashboard the day before.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-21T12:00:00Z"));
   tables = {
     bookings, rides,
     cities: [{ id: 1, name_en: "Skopje" }, { id: 2, name_en: "Bitola" }],
@@ -63,7 +66,10 @@ beforeEach(() => {
     },
   } as unknown as Awaited<ReturnType<typeof createClient>>);
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 it.each<[TripStatusFilter, number, string[]]>([
   ["active", 2, ["Confirmed", "Awaiting approval"]],
@@ -96,6 +102,13 @@ it("separates the departure, seat price, total and contact on confirmed cards", 
   expect(confirmed.getByRole("link", { name: /Open ride chat/ })).toBeTruthy();
   expect(confirmed.getByRole("button", { name: "Cancel booking", hidden: true })).toBeTruthy();
   expect(within(screen.getAllByRole("article")[1]).queryByText("Test Driver")).toBeNull();
+});
+
+it("does not offer cancellation once the ride has departed", async () => {
+  vi.setSystemTime(new Date("2026-09-22T13:00:00Z"));
+  render(await PassengerTrips({ userId: "passenger", filter: "active" }));
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.queryByRole("button", { name: "Cancel booking", hidden: true })).toBeNull();
 });
 
 it("does not offer cancellation for completed trips", async () => {

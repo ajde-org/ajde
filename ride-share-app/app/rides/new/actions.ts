@@ -5,6 +5,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 import { readCarSelection, type CarSelection } from "@/lib/rides/car-selection";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { issuesByPath, validateRideSubmission } from "@/lib/rides/ride-form";
 
@@ -125,6 +126,24 @@ export async function createRide(
       message: "Your session has expired. Sign in and try again.",
       fieldErrors: {},
     };
+  }
+  // Server actions can be invoked from any route, so the proxy's onboarding redirect does not cover
+  // this: publishing checks the profile (including the phone number) here, and the database enforces
+  // the phone too. Saving a draft does not need one.
+  if (formData.get("intent") === "publish") {
+    let complete: boolean;
+    try {
+      complete = (await getProfileCompletion(user.id)).complete;
+    } catch {
+      return { status: "error", message: "We could not check your profile. Please try again.", fieldErrors: {} };
+    }
+    if (!complete) {
+      return {
+        status: "error",
+        message: "Complete your profile, including a phone number, before publishing a ride.",
+        fieldErrors: {},
+      };
+    }
   }
 
   const carSelection = readCarSelection(formData);

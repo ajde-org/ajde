@@ -1,11 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import { contactSchema } from '@/lib/profiles/contact'
+import { profilePhotoPathPattern } from '@/lib/profiles/photo'
 import { requireUser } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
-type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not_to_say'
+const genders = ['woman', 'man', 'non_binary', 'prefer_not_to_say'] as const
+type Gender = (typeof genders)[number]
 
 export type ProfileInput = {
   fullName: string
@@ -21,46 +24,40 @@ export type SaveProfileResult =
   | { ok: true }
   | { ok: false; message: string }
 
-const genders = new Set<Gender>(['woman', 'man', 'non_binary', 'prefer_not_to_say'])
+const nameMessage = 'Enter a name between 2 and 100 characters.'
+const universityMessage = 'Enter a university between 2 and 160 characters.'
+const profileInputSchema = z.object({
+  fullName: z.string().trim().min(2, nameMessage).max(100, nameMessage),
+  university: z.string().trim().min(2, universityMessage).max(160, universityMessage),
+  bio: z.string().trim().max(500, 'Bio must be 500 characters or fewer.'),
+  storagePath: z.string().max(200),
+  gender: z.enum([...genders, ''], 'Choose a valid gender option.'),
+}).and(contactSchema)
 
 export async function saveProfile(input: ProfileInput): Promise<SaveProfileResult> {
   const user = await requireUser('/onboarding')
-  const contacts = contactSchema.safeParse(input)
-  if (!contacts.success) return { ok: false, message: contacts.error.issues[0].message }
-  const fullName = input.fullName.trim()
-  const university = input.university.trim()
-  const bio = input.bio.trim()
-
-  if (fullName.length < 2 || fullName.length > 100) {
-    return { ok: false, message: 'Enter a name between 2 and 100 characters.' }
-  }
-  if (university.length < 2 || university.length > 160) {
-    return { ok: false, message: 'Enter a university between 2 and 160 characters.' }
-  }
-  if (bio.length > 500) {
-    return { ok: false, message: 'Bio must be 500 characters or fewer.' }
-  }
-  if (input.storagePath && !input.storagePath.startsWith(`${user.id}/`)) {
+  const parsed = profileInputSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message }
+  const { fullName, university, bio, storagePath, gender, phone, socialUrl } = parsed.data
+  // The database also rejects a photo_url outside the user's own folder (guard_profile_photo).
+  if (storagePath && !profilePhotoPathPattern(user.id).test(storagePath)) {
     return { ok: false, message: 'Upload a profile photo owned by your account.' }
-  }
-  if (input.gender && !genders.has(input.gender)) {
-    return { ok: false, message: 'Choose a valid gender option.' }
   }
 
   const supabase = await createClient()
   const { data: existing } = await supabase.from('profiles').select('photo_url').eq('id', user.id).maybeSingle()
-  const photoUrl = input.storagePath
-    ? supabase.storage.from('profile-photos').getPublicUrl(input.storagePath).data.publicUrl
+  const photoUrl = storagePath
+    ? supabase.storage.from('profile-photos').getPublicUrl(storagePath).data.publicUrl
     : existing?.photo_url
   if (!photoUrl) return { ok: false, message: 'Add a profile photo to continue.' }
   const profile = {
     full_name: fullName,
     photo_url: photoUrl,
-    phone: contacts.data.phone,
-    social_url: contacts.data.socialUrl || null,
+    phone,
+    social_url: socialUrl || null,
     university,
     bio: bio || null,
-    gender: input.gender || null,
+    gender: gender || null,
   }
   // Update, then insert if there was no row. An upsert's ON CONFLICT branch re-reads the written
   // values, which needs SELECT on the private contact columns the API roles do not have.

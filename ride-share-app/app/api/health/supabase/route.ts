@@ -14,7 +14,8 @@ export async function GET() {
 
     // "Auth session missing" just means nobody is signed in; the round-trip worked.
     if (error && error.name !== 'AuthSessionMissingError') {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 502 })
+      console.error('[health] Supabase auth check failed', error)
+      return NextResponse.json({ ok: false }, { status: 502 })
     }
 
     return NextResponse.json({
@@ -23,9 +24,8 @@ export async function GET() {
       user: data.user?.id ?? null,
     })
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : String(err) },
-      { status: 500 },
-    )
+    // Log the detail on the server only: this route is public, and error text can expose config.
+    console.error('[health] Supabase check threw', err)
+    return NextResponse.json({ ok: false }, { status: 500 })
   }
 }

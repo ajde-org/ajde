@@ -6,7 +6,13 @@ import { defineConfig } from "vitest/config";
 // They cost a few cents per run and depend on model behaviour, so run them by hand when
 // changing prompts, schemas or models.
 export default defineConfig({
-  resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL(".", import.meta.url)),
+      // Tests run outside React Server Components, where `server-only` would throw on import.
+      "server-only": fileURLToPath(new URL("node_modules/server-only/empty.js", import.meta.url)),
+    },
+  },
   test: {
     include: ["tests/live/**/*.live.test.ts"],
     env: loadEnv("live", process.cwd(), ""),
