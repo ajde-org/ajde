@@ -1,10 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { Brand } from "@/components/brand";
-import { getI18n } from "@/lib/i18n/server";
+import { useI18n } from "@/lib/i18n/provider";
 
 /** Global footer. It lives in the root layout so every page ends the same way. */
-export async function SiteFooter() {
-  const { t } = await getI18n();
+export function SiteFooter({ year }: { year: number }) {
+  const { t } = useI18n();
   return <footer className="mt-auto border-t border-white/10 bg-[#0f1511]">
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 text-sm text-[#a3b8aa] sm:px-10 md:flex-row md:items-center md:justify-between">
       <Brand inverse />
@@ -13,7 +15,7 @@ export async function SiteFooter() {
         <Link href="/rides/new" className="hover:text-white">{t("nav.offer")}</Link>
         <Link href="/#about" className="hover:text-white">{t("nav.about")}</Link>
       </nav>
-      <p>{t("nav.copyright", { year: new Date().getFullYear() })}</p>
+      <p>{t("nav.copyright", { year })}</p>
     </div>
   </footer>;
 }

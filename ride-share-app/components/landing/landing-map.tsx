@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { getI18n } from "@/lib/i18n/server";
+import { useI18n } from "@/lib/i18n/provider";
 import { formatNumber } from "@/lib/i18n/format";
 import styles from "./landing.module.css";
 
@@ -15,8 +17,8 @@ function Chip({ x, y, w, children, tone = "light", className }: { x: number; y: 
 }
 
 /** Stylised map: fields, hills, a lake, roads, and a shared car driving the highlighted route. */
-export async function LandingMap() {
-  const { locale, t } = await getI18n();
+export function LandingMap() {
+  const { locale, t } = useI18n();
   return <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" className="absolute inset-x-0 top-0 h-[27rem] w-full sm:h-full" aria-hidden="true">
     <defs>
       <filter id="chip-shadow" x="-20%" y="-50%" width="140%" height="200%"><feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0b2a17" floodOpacity=".14" /></filter>

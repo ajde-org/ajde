@@ -1,5 +1,7 @@
-import { getI18n } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/config";
+"use client";
+
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber } from "@/lib/i18n/format";
 import facebookGroups from "@/public/landing/facebook-groups.png";
 import postBitolaSchedule from "@/public/landing/post-bitola-schedule.png";
 import postBitola from "@/public/landing/post-bitola.png";
@@ -22,8 +24,8 @@ function Heading({ id, children, className = "" }: { id: string; children: React
 }
 
 /** Sits in the bottom-right corner of the first screen so visitors know there is more below. */
-export async function ScrollHint() {
-  const { t } = await getI18n();
+export function ScrollHint() {
+  const { t } = useI18n();
   return <a href="#about" aria-label={t("about.scroll")} title={t("about.scroll")}
     className="absolute bottom-5 right-5 z-10 hidden size-11 place-items-center rounded-full border border-white/15 bg-white/10 text-[#86efac] backdrop-blur-md transition-colors hover:bg-white/20 lg:grid">
     <svg className={styles.nudge} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
@@ -37,8 +39,8 @@ function CarIcon() {
   </svg>;
 }
 
-export async function AboutSections() {
-  const { locale, t } = await getI18n();
+export function AboutSections() {
+  const { locale, t } = useI18n();
   // Shown beside the groups screenshot on desktop; offsets and tilts make the stack feel hand-placed.
   const posts = [
     { src: postBitola, className: "mr-8 -rotate-1", alt: t("about.bitolaAlt") },
@@ -53,7 +55,7 @@ export async function AboutSections() {
   const example = { km: 170, consumption: 6, passengers: 3, co2PerLitre: 2.31 };
   const exampleLitres = (example.km * example.consumption) / 100;
   const exampleCo2 = exampleLitres * example.co2PerLitre;
-  const one = new Intl.NumberFormat(intlLocale(locale), { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const one = (value: number) => formatNumber(locale, value, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
   const problems = [
     { title: t("about.scattered"), body: t("about.scatteredBody") },
@@ -167,10 +169,10 @@ export async function AboutSections() {
           <p className="mt-2 text-[#a3b8aa]">{t("about.exampleDetails", { distance: example.km, consumption: example.consumption, passengers: example.passengers })}</p>
           <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/10" style={{ fontVariantNumeric: "tabular-nums" }}>
             {[
-              [t("about.tripFuel"), `${one.format(exampleLitres)} L`],
-              [t("about.tripCo2"), `${one.format(exampleCo2)} kg`],
-              [t("about.savedFuel"), `${one.format(exampleLitres * example.passengers)} L`],
-              [t("about.savedCo2"), `${one.format(exampleCo2 * example.passengers)} kg`],
+              [t("about.tripFuel"), `${one(exampleLitres)} L`],
+              [t("about.tripCo2"), `${one(exampleCo2)} kg`],
+              [t("about.savedFuel"), `${one(exampleLitres * example.passengers)} L`],
+              [t("about.savedCo2"), `${one(exampleCo2 * example.passengers)} kg`],
             ].map(([label, value], index) => <div key={label} className="bg-[#16201a] p-5">
               <dt className="text-sm text-[#a3b8aa]">{label}</dt>
               <dd className={`mt-1 font-display text-2xl font-extrabold tracking-[-0.03em] ${index > 1 ? "text-[#86efac]" : ""}`}>{value}</dd>

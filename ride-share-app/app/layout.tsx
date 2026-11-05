@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <I18nProvider locale={locale} messages={messages}>
           <SiteHeader />
           {children}
-          <SiteFooter />
+          <SiteFooter year={new Date().getFullYear()} />
         </I18nProvider>
       </body>
     </html>
