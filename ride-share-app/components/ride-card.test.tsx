@@ -45,7 +45,9 @@ describe("RideCard integration", () => {
     expect(html).toContain('href="/profile/driver"');
     expect(html).toContain('href="/rides/example"');
     expect(html.match(/500 MKD/g)).toHaveLength(1);
-    expect(html.indexOf("500 MKD")).toBeLessThan(html.indexOf("</dl>"));
+    expect(html.indexOf("2 seats left")).toBeLessThan(html.indexOf('href="/profile/driver"'));
+    expect(html.indexOf("500 MKD")).toBeGreaterThan(html.indexOf("Pick ride"));
+    expect(html.match(/2 seats left/g)).toHaveLength(1);
   });
 
   it("keeps imported rides usable without timing, driver, price or features", () => {
@@ -53,6 +55,7 @@ describe("RideCard integration", () => {
     expect(html).toContain("Unavailable");
     expect(html).toContain("Imported ride");
     expect(html).toContain("Free");
+    expect(html.indexOf("Free")).toBeGreaterThan(html.indexOf("Pick ride"));
     expect(html).toContain("Pick ride");
     expect(html).not.toContain("Ride features");
     expect(html).toContain("No special requests.");
