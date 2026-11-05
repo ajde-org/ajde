@@ -5,7 +5,7 @@ import { SeatAvailability } from "@/components/seat-availability";
 import { ReserveSeatLink } from "@/components/reserve-seat-link";
 import { RideFeatures } from "@/components/ride-features";
 import type { RideView } from "@/lib/rides/ride-view";
-import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
+import { formatSeatPrice } from "@/lib/rides/ride-price";
 
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
   return (
@@ -15,15 +15,11 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
           {ride.originCity.name_en}{" "}<span className="font-medium">to</span>{" "}{ride.destinationCity.name_en}
         </Link>
       </h2>
-      <div className="flex items-start justify-between gap-3">
-        <RideSchedule departureAt={ride.departure_at} durationMinutes={ride.duration_minutes} />
-        <div className="shrink-0 text-right [&_p]:text-base [&_p]:font-semibold [&_p]:leading-6 [&_div]:justify-end">
-          <SeatAvailability available={ride.seats_available} total={ride.seats_total} compact />
-        </div>
-      </div>
+      <RideSchedule departureAt={ride.departure_at} durationMinutes={ride.duration_minutes} />
       {explanation ? <p className="text-[.8125rem] leading-snug text-slate-600">{explanation}</p> : null}
-      <div className="flex flex-wrap items-center gap-2">
-        {ride.driver ? (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {ride.driver ? (
           /* Profile-photo hosts depend on the user's project. */
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={ride.driver.photo_url} alt="" loading="lazy" width={40} height={40} className="size-10 shrink-0 rounded-full bg-slate-50 object-cover" />
@@ -41,13 +37,17 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
           </p>
           <p className="truncate text-sm text-slate-600">{ride.car ? `${ride.car.color ? `${ride.car.color} ` : ""}${ride.car.make} ${ride.car.model}` : ride.driver?.university ?? "Driver details coming soon"}</p>
         </div>
+        </div>
+        <div className="shrink-0 text-right [&_p]:text-base [&_p]:font-semibold [&_p]:leading-6 [&_div]:justify-end">
+          <SeatAvailability available={ride.seats_available} total={ride.seats_total} compact />
+        </div>
       </div>
       <RideFeatures tags={ride.tags} />
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <ReserveSeatLink href={`/rides/${ride.id}`} route={`from ${ride.originCity.name_en} to ${ride.destinationCity.name_en}`} />
         <div className="shrink-0 text-right">
-          <p className="whitespace-nowrap text-2xl font-extrabold leading-7 tracking-tight tabular-nums text-ink">{formatSeatPrice(ride.price_per_seat_mkd)}</p>
-          <p className="text-[.6875rem] leading-4 text-slate-500">{seatPriceCaption(ride.price_per_seat_mkd)}</p>
+          <p className="whitespace-nowrap text-3xl font-extrabold leading-7 tracking-tight tabular-nums text-ink">{formatSeatPrice(ride.price_per_seat_mkd)}</p>
+
         </div>
       </div>
     </article>

@@ -13,7 +13,7 @@ import { formatDeparture, getRide } from "@/lib/rides/ride-view";
 import { createClient } from "@/lib/supabase/server";
 
 import { requestBooking } from "../actions";
-import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
+import { formatSeatPrice } from "@/lib/rides/ride-price";
 
 export const metadata: Metadata = { title: "Ride details" };
 
@@ -70,7 +70,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
 
             <div className="flex flex-wrap items-center justify-between gap-5 bg-slate-50 px-6 py-5 sm:px-8">
               <SeatAvailability available={ride.seats_available} total={ride.seats_total} />
-              <div className="text-right"><p className="font-display text-2xl font-extrabold tracking-tight tabular-nums">{formatSeatPrice(ride.price_per_seat_mkd)}</p><p className="text-sm text-slate-500">{seatPriceCaption(ride.price_per_seat_mkd)}</p></div>
+              <div className="text-right"><p className="font-display text-2xl font-extrabold tracking-tight tabular-nums">{formatSeatPrice(ride.price_per_seat_mkd)}</p></div>
             </div>
 
             <div className="space-y-6 p-6 sm:p-8">
@@ -99,14 +99,14 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
                   <div><p className="text-sm font-medium text-slate-500">Your driver</p>{ride.driver.verified_at ? <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">Verified driver</span> : null}</div>
                 </div>
                 <Link href={`/profile/${ride.driver.id}`} className="mt-4 block font-display text-xl font-bold tracking-tight hover:text-brand-700">{ride.driver.full_name}</Link><p className="mt-1 text-sm text-slate-600">{ride.driver.university}</p>{ride.car ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{ride.car.color ? `${ride.car.color} ` : ""}{ride.car.make} {ride.car.model}</p> : null}
-              </> : <p className="p-5 text-sm text-slate-600">Imported ride awaiting a driver.</p>}
+              </> : <p className="p-5 text-sm text-slate-500">Imported ride awaiting a driver.</p>}
             </section>
 
             <section className="surface-card p-5">
               <h2 className="font-display text-xl font-bold tracking-tight">Request a seat</h2>
               {booking ? <div className="mt-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900"><p className="font-semibold capitalize">{booking.status}</p><p className="mt-1">Your seat request is with the driver.</p><Link className="mt-2 inline-block font-semibold underline" href="/dashboard/trips">Manage in My trips</Link></div> : null}
               {canRequest ? <form action={requestAction} className="mt-4 space-y-4">
-                <label className="block text-sm font-semibold">Message <span className="font-normal text-slate-500">(optional)</span><textarea name="message" maxLength={1000} rows={3} className="mt-1.5 w-full resize-y rounded-xl border border-slate-300 px-3 py-2.5" placeholder="Introduce yourself or mention luggage." /></label>
+                <label className="block text-sm font-semibold">Message <span className="font-normal text-slate-500">(optional)</span><textarea name="message" maxLength={1000} rows={3} className="mt-1.5 w-full resize-y rounded-xl border border-slate-300 px-3 py-2.5 font-normal" placeholder="Introduce yourself or mention luggage." /></label>
                 <p className="text-xs text-slate-500">Your phone number will be shared with the driver when you send this request.</p>
                 <SubmitButton pendingLabel="Sending request…" className="btn-primary w-full disabled:opacity-60">Request my seat</SubmitButton>
                 {ride.gender_preference === "same_as_driver" ? <p className="text-xs text-slate-500">This ride accepts same-gender requests only.</p> : null}

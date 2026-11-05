@@ -36,16 +36,23 @@ it("keeps detail-page arrival times without the journey disclaimer", () => {
 });
 
 describe("RideCard integration", () => {
+  it("shows the departure date in Skopje time even without an arrival estimate", () => {
+    const html = render({ departure_at: "2026-11-05T23:30:00Z", duration_minutes: null });
+    expect(html).toContain('dateTime="2026-11-05T23:30:00Z" class="block text-[1.375rem] font-bold leading-7 text-brand-800">Fri 6 Nov</time>');
+    expect(html).toContain("00:30");
+    expect(html).toContain("Unavailable");
+  });
+
   it("combines the new card details with adjusted next-day arrival times", () => {
     const html = render();
-    for (const text of ["23:30", "02:20", "Fri 6 Nov", "Est. arrival", "Luggage space", "No smoking", "500 MKD", "Pick ride", "Matches your route"]) {
+    for (const text of ["Thu 5 Nov", "23:30", "02:20", "Fri 6 Nov", "Luggage space", "No smoking", "500 MKD", "Pick ride", "Matches your route"]) {
       expect(html).toContain(text);
     }
     expect(html).toContain('dateTime="2026-11-06T01:20:00.000Z"');
     expect(html).toContain('href="/profile/driver"');
     expect(html).toContain('href="/rides/example"');
     expect(html.match(/500 MKD/g)).toHaveLength(1);
-    expect(html.indexOf("2 seats left")).toBeLessThan(html.indexOf('href="/profile/driver"'));
+    expect(html.indexOf("2 seats left")).toBeGreaterThan(html.indexOf('href="/profile/driver"'));
     expect(html.indexOf("500 MKD")).toBeGreaterThan(html.indexOf("Pick ride"));
     expect(html.match(/2 seats left/g)).toHaveLength(1);
   });
