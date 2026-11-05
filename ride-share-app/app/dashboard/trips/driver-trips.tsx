@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { decideBooking } from "../actions";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
 import { tripStatusFilters, type TripStatusFilter } from "./trip-tabs";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 const emptyStates: Record<TripStatusFilter, { title: string; body: string }> = {
   active: { title: "No active rides", body: "Have a spare seat? Give someone a way home." },
@@ -89,7 +90,7 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
                   <div className="flex min-w-0 items-start gap-3">
                     {passenger ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={passenger.photo_url} alt="" className="size-12 shrink-0 rounded-full bg-slate-50 object-cover" />
+                      <img src={profilePhotoSrc(passenger.photo_url)} alt="" className="size-12 shrink-0 rounded-full bg-slate-50 object-cover" />
                     ) : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm">SR</span>}
                     <div className="min-w-0">
                       <p className="font-medium">{passenger ? <Link href={`/profile/${passenger.id}`} className="hover:text-brand-700">{passenger.full_name}</Link> : "Student"}</p>

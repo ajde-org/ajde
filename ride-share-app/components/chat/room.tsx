@@ -7,13 +7,14 @@ import { loadRoom, sendRoomMessage } from "@/lib/chat/actions";
 import { isRoomEvent, mergeMessages, type Cursor, type Member, type Message, type RoomPage } from "@/lib/chat/contract";
 import { createClient } from "@/lib/supabase/client";
 import { ChatAiPanel } from "./ai-panel";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export function ParticipantRoster({ members }: { members: Member[] }) {
   return <ul aria-label="Room participants" className="flex gap-2 lg:flex-col">
     {members.map(member => <li key={member.id} className="w-60 shrink-0 rounded-xl bg-slate-50 p-3 text-sm lg:w-auto">
       <div className="flex items-center gap-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={member.photo_url} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+        <img src={profilePhotoSrc(member.photo_url)} alt="" className="size-8 shrink-0 rounded-full object-cover" />
         <span className="min-w-0 break-words font-medium">{member.full_name}{member.isDriver ? " · Driver" : ""}</span>
       </div>
       <ContactDetails phone={member.phone} socialUrl={member.social_url} instagram={member.instagram} facebook={member.facebook} />
@@ -28,7 +29,7 @@ export function MessageList({ messages, viewerId }: { messages: Message[]; viewe
       <div className="flex items-center gap-2 text-xs text-slate-600">
         {message.sender?.photo_url ? <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={message.sender.photo_url} alt="" className="size-6 rounded-full object-cover" />
+          <img src={profilePhotoSrc(message.sender.photo_url)} alt="" className="size-6 rounded-full object-cover" />
         </> : null}
         <span className="font-semibold">{message.sender?.full_name ?? "Former participant"}</span>
         <time dateTime={message.created_at}>{new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Skopje" }).format(new Date(message.created_at))}</time>

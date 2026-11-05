@@ -4,6 +4,7 @@ import { formatDeparture } from "@/lib/rides/ride-presentation";
 import { SeatAvailability } from "@/components/seat-availability";
 import type { RideView } from "@/lib/rides/ride-view";
 import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
   const departure = new Date(ride.departure_at);
@@ -42,7 +43,7 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
         {ride.driver ? (
           /* Profile-photo hosts depend on the user's project. */
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={ride.driver.photo_url} alt="" loading="lazy" width={32} height={32} className="size-8 shrink-0 rounded-full bg-slate-50 object-cover" />
+          <img src={profilePhotoSrc(ride.driver.photo_url)} alt="" loading="lazy" width={32} height={32} className="size-8 shrink-0 rounded-full bg-slate-50 object-cover" />
         ) : <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold">SR</span>}
         <div className="col-span-2 min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-1 text-[.8125rem] font-semibold">
