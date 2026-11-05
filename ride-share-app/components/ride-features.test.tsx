@@ -15,6 +15,7 @@ describe("RideFeatures", () => {
     }
     expect(html.match(/<li /g)).toHaveLength(RIDE_TAGS.length);
     expect(html.match(/aria-hidden="true"/g)).toHaveLength(RIDE_TAGS.length);
+    expect(html).not.toContain("No special requests.");
   });
 
   it("shows only selected features, once, without inferring missing preferences", () => {
@@ -25,8 +26,12 @@ describe("RideFeatures", () => {
     expect(html).not.toContain("unknown_tag");
   });
 
-  it("leaves no empty row when features are absent or unrecognized", () => {
-    expect(render([])).toBe("");
-    expect(render(["unknown_tag"])).toBe("");
+  it("shows a friendly placeholder when features are absent or unrecognized", () => {
+    for (const tags of [[], ["unknown_tag"]]) {
+      const html = render(tags);
+      expect(html).toContain("No special requests.");
+      expect(html).not.toContain("<ul");
+      expect(html).not.toContain("<svg");
+    }
   });
 });
