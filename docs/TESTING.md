@@ -23,7 +23,7 @@ tests check what *our code* does with good, bad and malformed AI output.
 | `npm run eval:parser` | 5 anonymised real group posts ([fixtures/posts](../ride-share-app/fixtures/posts/README.md)) | 5/5 on classification, route, departure, seats and price |
 | `npm run eval:search` | 12 search phrases in English and Macedonian Cyrillic/Latin ([fixtures/search](../ride-share-app/fixtures/search/README.md)) | 12/12 |
 | `npm run test:live -- tests/live/pipeline.live.test.ts` | 1 real landing-page screenshot + 1 synthetic overpriced Skopje → Veles draft | Screenshot read 2/2 runs; checker called `fair_price` in 1 of 2 runs |
-| `npx tsx scripts/evaluate-offers.ts` | 4 multilingual ride descriptions incl. an outbound + return trip | 4/4 |
+| `node --conditions=react-server --import tsx scripts/evaluate-offers.ts` | 4 multilingual ride descriptions incl. an outbound + return trip | 4/4 |
 
 Each run uses a fixed clock so "tomorrow" and "Friday" give repeatable answers. These are small
 curated sets: a regression signal, not a claim about production accuracy.
