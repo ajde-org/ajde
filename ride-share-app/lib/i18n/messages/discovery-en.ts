@@ -1,6 +1,7 @@
 export const discoveryEn = {
   "discovery.title": "Find a ride",
-  "discovery.welcome": "Your profile is ready. Welcome aboard — find your first ride below.",
+  "discovery.welcome":
+    "Your profile is ready. Welcome aboard!\nFind your first ride below.",
   "discovery.intro": "A seat, some company, and a way home.",
   "discovery.filters": "Filter by city, date or time",
   "discovery.filterLabel": "Filter rides",
@@ -10,23 +11,31 @@ export const discoveryEn = {
   "discovery.afterTime": "At or after",
   "discovery.beforeTime": "Before",
   "discovery.optional": "(optional)",
-  "discovery.filterHelp": "Dates are optional. A from date alone selects one day; a through date includes that day. Times apply every day in Skopje time. If the end time is earlier, the window crosses midnight.",
+  "discovery.filterHelp":
+    "Dates are optional. A from date alone selects one day; a through date includes that day. Times apply every day in Skopje time. If the end time is earlier, the window crosses midnight.",
   "discovery.sameGender": "Same-gender drivers",
   "discovery.reset": "Reset",
   "discovery.apply": "Apply filters",
-  "discovery.genderUnavailable": "This filter needs a declared gender on your profile. Your profile does not have one, so all drivers are shown.",
+  "discovery.genderUnavailable":
+    "This filter needs a declared gender on your profile. Your profile does not have one, so all drivers are shown.",
   "discovery.next": "Your next ride",
   "discovery.matches.one": "{count} matching ride · Soonest departures first",
-  "discovery.matches.other": "{count} matching rides · Soonest departures first",
+  "discovery.matches.other":
+    "{count} matching rides · Soonest departures first",
   "discovery.empty": "No rides match yet",
-  "discovery.emptyBody": "Try a wider search, or leave the date empty to see every upcoming ride.",
+  "discovery.emptyBody":
+    "Try a wider search, or leave the date empty to see every upcoming ride.",
   "discovery.all": "Show all rides",
   "discovery.describe": "Describe the ride you need",
   "discovery.placeholder": "Try “Skopje to Bitola tomorrow”",
-  "discovery.shortQuery": "Describe the ride you need in at least two characters.",
-  "discovery.unavailable": "AI search is unavailable. Use the manual filters below.",
-  "discovery.invalidResult": "The search interpretation was invalid. Use the manual filters below.",
-  "discovery.offline": "AI search could not be reached. Use the manual filters below.",
+  "discovery.shortQuery":
+    "Describe the ride you need in at least two characters.",
+  "discovery.unavailable":
+    "AI search is unavailable. Use the manual filters below.",
+  "discovery.invalidResult":
+    "The search interpretation was invalid. Use the manual filters below.",
+  "discovery.offline":
+    "AI search could not be reached. Use the manual filters below.",
   "discovery.interpreting": "Interpreting…",
   "discovery.search": "Search",
   "discovery.clear": "Clear search",
@@ -43,11 +52,16 @@ export const discoveryEn = {
   "search.before": "Before {date}",
   "search.noFilters": "No reliable filters were extracted",
   "search.confidence": "{percent}% interpretation confidence",
-  "search.manual": "Your manual filter changes take precedence over this interpretation.",
-  "search.warning.ambiguous": "Part of the search is ambiguous. Review the filters before continuing.",
-  "search.warning.invalid_range": "The requested range is invalid. Choose the dates and times manually.",
-  "search.warning.needs_review": "Part of the search needs review. Confirm the locations, dates and times manually.",
-  "search.warning.unsupported": "Part of the search is unsupported. Use the available manual filters.",
+  "search.manual":
+    "Your manual filter changes take precedence over this interpretation.",
+  "search.warning.ambiguous":
+    "Part of the search is ambiguous. Review the filters before continuing.",
+  "search.warning.invalid_range":
+    "The requested range is invalid. Choose the dates and times manually.",
+  "search.warning.needs_review":
+    "Part of the search needs review. Confirm the locations, dates and times manually.",
+  "search.warning.unsupported":
+    "Part of the search is unsupported. Use the available manual filters.",
   "ride.to": "to",
   "ride.time": "Skopje time",
   "ride.departureTime": "{date}, Skopje time",
@@ -70,5 +84,5 @@ export const discoveryEn = {
   "ride.departure": "Departure",
   "ride.destination": "Destination",
   "ride.agreePickup": "Agree pickup with driver",
-  "ride.agreeDropoff": "Agree drop-off with driver"
+  "ride.agreeDropoff": "Agree drop-off with driver",
 } as const;

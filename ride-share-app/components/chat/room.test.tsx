@@ -55,7 +55,7 @@ describe("ride room client", () => {
     await waitFor(() => expect(mocks.channels).toHaveLength(1));
     await act(async () => { mocks.channels[0].status("CHANNEL_ERROR"); window.dispatchEvent(new Event("offline")); });
     expect(screen.getByText("Hello room")).toBeTruthy();
-    expect(screen.getByText("Offline — retry when connected")).toBeTruthy();
+    expect(screen.getByText("You're offline. Retry when connected")).toBeTruthy();
     fireEvent.click(screen.getByText("Retry connection"));
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mocks.channels).toHaveLength(2));

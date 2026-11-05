@@ -117,6 +117,8 @@ it("aborts immediately and finishes closing even when animationend is unavailabl
   const dialog = screen.getByRole("dialog");
   expect(dialog.getAttribute("data-closing")).toBe("true");
   expect(document.body.style.overflow).toBe("hidden");
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(document.body.style.overflow).toBe("");
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+  });
 });
