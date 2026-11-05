@@ -1,11 +1,12 @@
 import { rideTiming } from "@/lib/rides/ride-timing";
 import { formatDeparture } from "@/lib/rides/ride-presentation";
+import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
 
-export function RideSchedule({ departureAt, durationMinutes }: { departureAt: string; durationMinutes?: number | null }) {
+export function RideSchedule({ departureAt, durationMinutes, pricePerSeatMkd }: { departureAt: string; durationMinutes?: number | null; pricePerSeatMkd: number | null }) {
   const timing = rideTiming(departureAt, durationMinutes);
   return <div className="min-w-0">
     <p className="mb-2 text-sm font-medium text-slate-600">{timing.date}</p>
-    <dl className="grid grid-cols-[auto_minmax(1.5rem,1fr)_auto] gap-x-2 gap-y-1">
+    <dl className="grid grid-cols-[auto_minmax(1.5rem,1fr)_auto_auto] gap-x-2 gap-y-1">
       <div><dt className="text-xs text-slate-500">Departure</dt><dd>
         <time dateTime={departureAt} aria-label={`Departure: ${formatDeparture(departureAt)}, Skopje time`} className="text-xl font-bold tabular-nums text-brand-800">{timing.departure}</time>
       </dd></div>
@@ -24,6 +25,10 @@ export function RideSchedule({ departureAt, durationMinutes }: { departureAt: st
       <div><dt className="text-xs text-slate-500">Est. arrival</dt><dd>
         {timing.arrivalAt ? <time dateTime={timing.arrivalAt} aria-label={`Estimated arrival: ${formatDeparture(timing.arrivalAt)}, Skopje time`} className="text-xl font-bold tabular-nums text-brand-800">{timing.arrival}</time> : <span className="text-sm text-slate-500">Unavailable</span>}
         {timing.dayLabel && <span className="block text-xs text-slate-600">{timing.dayLabel}</span>}
+      </dd></div>
+      <div className="pl-1 text-right"><dt className="text-xs text-slate-500">Price</dt><dd>
+        <span className="block whitespace-nowrap text-2xl font-extrabold leading-7 tracking-tight tabular-nums text-ink">{formatSeatPrice(pricePerSeatMkd)}</span>
+        <span className="block text-[.6875rem] leading-4 text-slate-500">{seatPriceCaption(pricePerSeatMkd)}</span>
       </dd></div>
     </dl>
   </div>;

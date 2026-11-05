@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { RideCard } from "./ride-card";
+import { RideRoute } from "./ride-route";
 import type { RideView } from "@/lib/rides/ride-view";
 
 const ride: RideView = {
@@ -24,6 +25,16 @@ const render = (overrides: Partial<RideView> = {}) => renderToStaticMarkup(creat
   ride: { ...ride, ...overrides }, explanation: "Matches your route",
 }));
 
+it("keeps detail-page arrival times without the journey disclaimer", () => {
+  const html = renderToStaticMarkup(createElement(RideRoute, {
+    origin: "Skopje", destination: "Ohrid", departureAt: ride.departure_at, durationMinutes: 128,
+  }));
+  expect(html).toContain("Estimated arrival");
+  expect(html).toContain("01:38");
+  expect(html).not.toContain("City-to-city estimate");
+  expect(html).not.toContain("About 2 h 8 min");
+});
+
 describe("RideCard integration", () => {
   it("combines the new card details with adjusted next-day arrival times", () => {
     const html = render();
@@ -34,6 +45,7 @@ describe("RideCard integration", () => {
     expect(html).toContain('href="/profile/driver"');
     expect(html).toContain('href="/rides/example"');
     expect(html.match(/500 MKD/g)).toHaveLength(1);
+    expect(html.indexOf("500 MKD")).toBeLessThan(html.indexOf("</dl>"));
   });
 
   it("keeps imported rides usable without timing, driver, price or features", () => {
