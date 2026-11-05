@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-const db = vi.hoisted(() => ({ userId: "20000000-0000-4000-8000-000000000001" as string | null, rpc: vi.fn() }));
+const db = vi.hoisted(() => ({ userId: "20000000-0000-4000-8000-000000000001" as string | null, rpc: vi.fn(), profileComplete: true }));
+vi.mock("@/lib/auth/session", () => ({ getProfileCompletion: async () => ({ complete: db.profileComplete, profileId: db.userId }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: async () => ({ data: { user: db.userId ? { id: db.userId } : null } }) }, rpc: db.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { createRide } from "./actions";
@@ -11,7 +12,7 @@ function form() {
     pricePerSeatMkd: "400", genderPreference: "any", intent: "publish", submissionId: "50000000-0000-4000-8000-000000000001" };
   Object.entries(values).forEach(([key, value]) => data.set(key, value)); return data;
 }
-beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-09-22T10:00:00Z")); db.userId = "20000000-0000-4000-8000-000000000001"; db.rpc.mockReset().mockResolvedValue({ data: { rideId, carId, status: "published" }, error: null }); });
+beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-09-22T10:00:00Z")); db.userId = "20000000-0000-4000-8000-000000000001"; db.profileComplete = true; db.rpc.mockReset().mockResolvedValue({ data: { rideId, carId, status: "published" }, error: null }); });
 afterEach(() => vi.useRealTimers());
 it("publishes through the atomic operation and returns the saved ride without navigating", async () => {
   const data = form(); data.set("driver_id", "forged-driver");
@@ -19,6 +20,12 @@ it("publishes through the atomic operation and returns the saved ride without na
   const args = db.rpc.mock.calls[0][1];
   expect(args.p_offer).not.toHaveProperty("driver_id");
   expect(args.p_submission_id).toBe("50000000-0000-4000-8000-000000000001");
+});
+
+it("refuses to publish until the profile, including the phone number, is complete", async () => {
+  db.profileComplete = false;
+  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: expect.stringContaining("phone number") });
+  expect(db.rpc).not.toHaveBeenCalled();
 });
 
 it("saves a private draft through the same duplicate-safe operation", async () => {

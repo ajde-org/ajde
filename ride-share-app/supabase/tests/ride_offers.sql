@@ -15,7 +15,24 @@ declare
   retry_result jsonb;
   sibling jsonb;
   bad_value jsonb;
+  draft jsonb;
 begin
+  -- Publishing needs a phone number on the driver's profile; drafts do not.
+  begin
+    perform public.create_ride_offer(offer,vehicle,gen_random_uuid());
+    raise exception 'Published without a phone number';
+  exception when check_violation then null; end;
+  draft := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000007',false);
+  begin
+    update public.rides set status = 'published' where id = (draft->>'rideId')::uuid;
+    raise exception 'Draft published without a phone number';
+  exception when check_violation then null; end;
+  update public.profiles set phone = '+38970123456' where id = auth.uid();
+  update public.rides set status = 'published' where id = (draft->>'rideId')::uuid;
+  if (select status from public.rides where id = (draft->>'rideId')::uuid) <> 'published' then
+    raise exception 'Draft was not published once the phone was added';
+  end if;
+
   first_result := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000001');
   retry_result := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000001');
   sibling := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000002');

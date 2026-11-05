@@ -50,7 +50,9 @@ export async function proxy(request: NextRequest) {
     pathname === '/rides' ||
     pathname.startsWith('/rides/') ||
     pathname === '/dashboard' ||
-    pathname.startsWith('/dashboard/')
+    pathname.startsWith('/dashboard/') ||
+    // Profiles are visible to signed-in users only (no anonymous profile reads).
+    pathname.startsWith('/profile/')
 
   if (needsAuth && !user) {
     const loginUrl = new URL('/login', request.url)

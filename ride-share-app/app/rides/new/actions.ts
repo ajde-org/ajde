@@ -5,6 +5,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 import { readCarSelection, type CarSelection } from "@/lib/rides/car-selection";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { issuesByPath, validateRideSubmission } from "@/lib/rides/ride-form";
 
@@ -123,6 +124,15 @@ export async function createRide(
     return {
       status: "error",
       message: "Your session has expired. Sign in and try again.",
+      fieldErrors: {},
+    };
+  }
+  // Server actions can be invoked from any route, so the proxy's onboarding redirect does not cover
+  // this: check the profile (including the phone number) here. The database enforces the phone too.
+  if (!(await getProfileCompletion(user.id)).complete) {
+    return {
+      status: "error",
+      message: "Complete your profile, including a phone number, before publishing a ride.",
       fieldErrors: {},
     };
   }

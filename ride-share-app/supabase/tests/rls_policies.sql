@@ -53,9 +53,9 @@ $$;
 grant execute on function pg_temp.assert_true(boolean, text), pg_temp.denied(text, text),
   pg_temp.affected(text), pg_temp.rejected(text, text), pg_temp.as_user(int) to anon, authenticated;
 
--- Logged out: public profiles and catalogs only, no contacts, no trip data.
+-- Logged out: catalogs only, no profiles, no contacts, no trip data.
 set local role anon;
-select pg_temp.assert_true((select count(*) from public.profiles where id::text like '96000000%') = 6, 'anon reads public profiles');
+select pg_temp.denied($q$select full_name from public.profiles$q$, 'anon reads profiles');
 select pg_temp.denied($q$select phone from public.profiles$q$, 'anon reads phone');
 select pg_temp.denied($q$select 1 from public.rides$q$, 'anon reads rides');
 select pg_temp.denied($q$select 1 from public.bookings$q$, 'anon reads bookings');
@@ -68,6 +68,7 @@ set local role authenticated;
 
 -- Stranger (5).
 select pg_temp.as_user(5);
+select pg_temp.assert_true((select count(*) from public.profiles where id::text like '96000000%') = 6, 'signed-in user reads public profiles');
 select pg_temp.denied($q$select phone from public.profiles$q$, 'user reads phone column');
 select pg_temp.denied($q$select instagram from public.profiles$q$, 'user reads instagram column');
 select pg_temp.assert_true((select count(*) from public.rides where id::text like '97000000%') = 3, 'stranger sees published rides, not drafts');
@@ -115,6 +116,8 @@ select pg_temp.assert_true(pg_temp.affected($q$update public.rides set status = 
 select pg_temp.assert_true(pg_temp.affected($q$update public.bookings set status = 'accepted', decided_at = now() where id = '99000000-0000-4000-8000-000000000003'$q$) = 0, 'passenger cannot decide bookings');
 insert into public.trip_shares(booking_id, expires_at) values ('99000000-0000-4000-8000-000000000002', now() + interval '3 days');
 select pg_temp.assert_true((select count(*) from public.trip_shares) = 1, 'passenger sees own share');
+-- Ride 4 departed an hour ago and is not completed yet: cancelling now would only dodge a rating.
+select pg_temp.assert_true(pg_temp.affected($q$update public.bookings set status = 'cancelled', decided_at = null where id = '99000000-0000-4000-8000-000000000005'$q$) = 0, 'passenger cannot cancel after departure');
 select pg_temp.assert_true(pg_temp.affected($q$update public.bookings set status = 'cancelled', decided_at = null where id = '99000000-0000-4000-8000-000000000002'$q$) = 1, 'passenger cancels own booking');
 
 -- Stranger cannot see or delete the share, nor read a room roster.
@@ -143,6 +146,12 @@ select pg_temp.assert_true(pg_temp.affected($q$update public.bookings set status
 -- Profile owner edits own row.
 select pg_temp.as_user(1);
 select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set bio = 'Driving home on Fridays' where id = auth.uid()$q$) = 1, 'owner edits own profile');
+-- Profile photos must be the owner's own uploads.
+select pg_temp.rejected($q$update public.profiles set photo_url = 'https://evil.example/pixel.png' where id = auth.uid()$q$, 'photo on another host path');
+select pg_temp.rejected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000002/photo.jpg' where id = auth.uid()$q$, 'another user''s photo');
+select pg_temp.rejected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000001/../96000000-0000-4000-8000-000000000002/photo.jpg' where id = auth.uid()$q$, 'photo path traversal');
+select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000001/0f8fad5b-d9cb-469f-a165-70867728950e.jpg' where id = auth.uid()$q$) = 1, 'owner sets own uploaded photo');
+select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set full_name = 'RLS Student 1' where id = auth.uid()$q$) = 1, 'unchanged legacy photo does not block other edits');
 -- Onboarding writes contacts with a plain UPDATE (or INSERT); an upsert would need SELECT on them.
 select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set phone = '+38970999888', social_url = null where id = auth.uid()$q$) = 1, 'owner updates own contacts');
 select pg_temp.assert_true((select phone from public.profile_contacts(array[auth.uid()])) = '+38970999888', 'owner reads updated phone');

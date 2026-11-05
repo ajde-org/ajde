@@ -6,6 +6,7 @@ import { OfferRideHeading } from "./offer-heading";
 import { parsedRidePostSchema } from "@/lib/ai/parsed-ride-post";
 import type { RideDraft } from "@/lib/rides/ride-draft";
 import { fuelPriceConfig } from "@/lib/rides/fuel-price-config";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 import { OfferWorkspace } from "./offer-workspace";
@@ -73,6 +74,7 @@ export default async function NewRidePage({ searchParams }: NewRidePageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login?next=/rides/new");
+  if (!(await getProfileCompletion(user.id)).complete) redirect("/onboarding");
 
   const [
     { data: cities, error: citiesError },

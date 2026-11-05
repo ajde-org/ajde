@@ -100,7 +100,9 @@ select pg_temp.denied($q$insert into public.messages(ride_id,sender_id,body) val
 set local role anon;
 select pg_temp.denied('select * from public.messages');
 select pg_temp.denied('select * from public.ratings');
-select pg_temp.assert_true((select average=4 and count=1 from public.profile_rating_summary('91000000-0000-4000-8000-000000000001')),'public aggregate only');
+select pg_temp.denied($q$select * from public.profile_rating_summary('91000000-0000-4000-8000-000000000001')$q$);
+set local role authenticated;
+select pg_temp.assert_true((select average=4 and count=1 from public.profile_rating_summary('91000000-0000-4000-8000-000000000001')),'signed-in aggregate only');
 select pg_temp.assert_true((select average is null and count=0 from public.profile_rating_summary('91000000-0000-4000-8000-000000000008')),'empty aggregate');
 reset role;
 rollback;
