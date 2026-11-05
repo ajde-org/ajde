@@ -33,3 +33,29 @@ revoke execute on function public.require_driver_phone() from public, anon, auth
 create trigger rides_require_driver_phone
 before insert or update of status on public.rides
 for each row execute function public.require_driver_phone();
+
+-- Without this, a driver could publish and then clear their phone, leaving passengers with no way to
+-- reach them. Once a profile has a valid phone, API writes may change it but not remove or break it
+-- (onboarding requires one anyway). Account deletion and the service role are not affected.
+create function public.guard_profile_phone()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if regexp_replace(coalesce(old.phone, ''), '[ ()-]', '', 'g') ~ '^\+?[0-9]{7,15}$'
+    and regexp_replace(coalesce(new.phone, ''), '[ ()-]', '', 'g') !~ '^\+?[0-9]{7,15}$' then
+    raise exception 'A phone number can be changed but not removed' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.guard_profile_phone() from public, anon, authenticated;
+
+create trigger profiles_guard_phone
+before update of phone on public.profiles
+for each row execute function public.guard_profile_phone();

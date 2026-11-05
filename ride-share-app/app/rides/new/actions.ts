@@ -128,13 +128,22 @@ export async function createRide(
     };
   }
   // Server actions can be invoked from any route, so the proxy's onboarding redirect does not cover
-  // this: check the profile (including the phone number) here. The database enforces the phone too.
-  if (!(await getProfileCompletion(user.id)).complete) {
-    return {
-      status: "error",
-      message: "Complete your profile, including a phone number, before publishing a ride.",
-      fieldErrors: {},
-    };
+  // this: publishing checks the profile (including the phone number) here, and the database enforces
+  // the phone too. Saving a draft does not need one.
+  if (formData.get("intent") === "publish") {
+    let complete: boolean;
+    try {
+      complete = (await getProfileCompletion(user.id)).complete;
+    } catch {
+      return { status: "error", message: "We could not check your profile. Please try again.", fieldErrors: {} };
+    }
+    if (!complete) {
+      return {
+        status: "error",
+        message: "Complete your profile, including a phone number, before publishing a ride.",
+        fieldErrors: {},
+      };
+    }
   }
 
   const carSelection = readCarSelection(formData);

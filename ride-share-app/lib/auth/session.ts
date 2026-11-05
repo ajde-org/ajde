@@ -75,7 +75,9 @@ export function safeNextPath(value: string | null, fallback = '/rides'): string 
   } catch {
     return fallback
   }
-  if (url.origin !== NEXT_PATH_BASE) return fallback
+  // Parsing removes dot segments, so `/.//evil.com` normalises to `//evil.com`: a protocol-relative
+  // URL that leaves the site once returned. Reject any path that normalises to two leading slashes.
+  if (url.origin !== NEXT_PATH_BASE || url.pathname.startsWith('//')) return fallback
   return `${url.pathname}${url.search}${url.hash}`
 }
 

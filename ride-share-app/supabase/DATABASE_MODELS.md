@@ -52,6 +52,8 @@ token).
 - Publishing a ride (inserting it as published, or draft → published) on behalf of a signed-in user
   requires the driver's profile to have a valid phone number (`require_driver_phone()`). Seat syncing
   between published and full is not a publish.
+- Once a profile has a valid phone, API writes may change it but not remove or invalidate it
+  (`guard_profile_phone()`), so drivers of published rides stay reachable.
 - `photo_url` written through the API must be an upload in the user's own folder:
   `<host>/storage/v1/object/public/profile-photos/<own id>/<name>.(jpg|jpeg|png|webp)`
   (`guard_profile_photo()`). The database cannot pin the host, so the app renders only photos from

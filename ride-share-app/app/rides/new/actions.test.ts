@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-const db = vi.hoisted(() => ({ userId: "20000000-0000-4000-8000-000000000001" as string | null, rpc: vi.fn(), profileComplete: true }));
-vi.mock("@/lib/auth/session", () => ({ getProfileCompletion: async () => ({ complete: db.profileComplete, profileId: db.userId }) }));
+const db = vi.hoisted(() => ({ userId: "20000000-0000-4000-8000-000000000001" as string | null, rpc: vi.fn(), profileComplete: true as boolean | "error" }));
+vi.mock("@/lib/auth/session", () => ({ getProfileCompletion: async () => {
+  if (db.profileComplete === "error") throw new Error("Unable to load profile completion");
+  return { complete: db.profileComplete, profileId: db.userId };
+} }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: async () => ({ data: { user: db.userId ? { id: db.userId } : null } }) }, rpc: db.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { createRide } from "./actions";
@@ -25,6 +28,18 @@ it("publishes through the atomic operation and returns the saved ride without na
 it("refuses to publish until the profile, including the phone number, is complete", async () => {
   db.profileComplete = false;
   expect(await createRide(idle, form())).toMatchObject({ status: "error", message: expect.stringContaining("phone number") });
+  expect(db.rpc).not.toHaveBeenCalled();
+});
+
+it("still saves drafts without a complete profile", async () => {
+  db.profileComplete = false;
+  const data = form(); data.set("intent", "save_draft");
+  expect(await createRide(idle, data)).toMatchObject({ status: "success" });
+});
+
+it("shows a retryable error when the profile check fails", async () => {
+  db.profileComplete = "error";
+  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: "We could not check your profile. Please try again." });
   expect(db.rpc).not.toHaveBeenCalled();
 });
 

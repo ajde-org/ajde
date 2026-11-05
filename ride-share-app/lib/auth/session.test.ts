@@ -31,6 +31,7 @@ it("keeps same-site next paths", () => {
 it.each([
   null, "", "rides", "https://evil.com", "//evil.com", "/\\evil.com", "/\\/evil.com", "\\\\evil.com",
   "/\t/evil.com", "/\n/evil.com", "/\r//evil.com", "/%09/evil.com\t",
+  "/.//evil.com", "/a/..//evil.com", "/%2e%2e//evil.com", "/./%2e/..//evil.com",
 ])("falls back for off-site next value %j", (value) => {
   expect(safeNextPath(value, "/fallback")).toBe("/fallback");
 });

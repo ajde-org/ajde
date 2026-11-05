@@ -150,8 +150,9 @@ select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set bio = 
 select pg_temp.rejected($q$update public.profiles set photo_url = 'https://evil.example/pixel.png' where id = auth.uid()$q$, 'photo on another host path');
 select pg_temp.rejected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000002/photo.jpg' where id = auth.uid()$q$, 'another user''s photo');
 select pg_temp.rejected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000001/../96000000-0000-4000-8000-000000000002/photo.jpg' where id = auth.uid()$q$, 'photo path traversal');
+-- The fixture photo predates the guard; onboarding re-writes it unchanged with every save.
+select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set full_name = 'RLS Student 1', photo_url = 'https://example.com/photo.png' where id = auth.uid()$q$) = 1, 'unchanged legacy photo does not block other edits');
 select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set photo_url = 'https://x.supabase.co/storage/v1/object/public/profile-photos/96000000-0000-4000-8000-000000000001/0f8fad5b-d9cb-469f-a165-70867728950e.jpg' where id = auth.uid()$q$) = 1, 'owner sets own uploaded photo');
-select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set full_name = 'RLS Student 1' where id = auth.uid()$q$) = 1, 'unchanged legacy photo does not block other edits');
 -- Onboarding writes contacts with a plain UPDATE (or INSERT); an upsert would need SELECT on them.
 select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set phone = '+38970999888', social_url = null where id = auth.uid()$q$) = 1, 'owner updates own contacts');
 select pg_temp.assert_true((select phone from public.profile_contacts(array[auth.uid()])) = '+38970999888', 'owner reads updated phone');
