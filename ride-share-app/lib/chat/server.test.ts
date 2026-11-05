@@ -7,6 +7,20 @@ vi.mock("server-only", () => ({}));
 vi.mock("../auth/email-domain", () => ({ isAllowedStudentEmail: () => true }));
 vi.mock("../supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: db.user ? { id: db.user, email: "student@example.com" } : null } }) },
+  // profile_contacts(): the database decides visibility; here every requested profile is visible.
+  // ride_room_roster(): accepted bookings of the ride (the database also checks room membership).
+  rpc: async (name: string, args: { profile_ids: string[]; target_ride_id: string }) => {
+    if (name === "ride_room_roster") {
+      db.reads.push(`rpc:${name}`);
+      const roster = (db.tables.bookings ?? []).filter(b => b.ride_id === args.target_ride_id && b.status === "accepted")
+        .map(({ passenger_id, decided_at }) => ({ passenger_id, decided_at }));
+      return { data: roster, error: db.fail === "bookings" ? { code: "database" } : null };
+    }
+    db.reads.push(`rpc:${name}:${args.profile_ids.join(",")}`);
+    const contacts = (db.tables.profiles ?? []).filter(p => args.profile_ids.includes(String(p.id)))
+      .map(({ id, phone, instagram, facebook, social_url }) => ({ id, phone, instagram, facebook, social_url }));
+    return { data: contacts, error: db.fail === "contacts" ? { code: "database" } : null };
+  },
   from: (table: string) => {
     let rows = [...(db.tables[table] ?? [])]; let limit = Infinity; let ascending = true;
     const chain = {
@@ -112,7 +126,9 @@ describe("room history and mutations", () => {
 it("denies contact roster access before acceptance and when phone is missing", async () => {
   db.tables.bookings[0].status="requested";
   expect((await queryRoom({rideId})).ok).toBe(false);
-  expect(db.reads.some(columns=>columns.includes("social_url"))).toBe(false);
+  // Only the viewer's own contacts are read (to check the profile is complete), never the roster's.
+  expect(db.reads.filter(read=>read.startsWith("rpc:profile_contacts"))).toEqual(["rpc:profile_contacts:passenger"]);
+  expect(db.reads.some(columns=>/\b(phone|social_url|instagram|facebook)\b/.test(columns))).toBe(false);
   db.tables.bookings[0].status="accepted";
   db.tables.profiles.find(p=>p.id==="passenger")!.phone=null;
   expect((await queryRoom({rideId})).ok).toBe(false);

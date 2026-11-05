@@ -8,7 +8,8 @@ const db = vi.hoisted(() => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("../supabase/server", () => ({ createClient: async () => ({
+// One fake database for both clients: share actions use the signed-in client, share links the admin client.
+const makeClient = vi.hoisted(() => () => ({
   auth: { getUser: async () => ({ data: { user: db.user ? { id: db.user } : null } }) },
   from(table: string) {
     const filters: ((row: Record<string, unknown>) => boolean)[] = [];
@@ -44,7 +45,9 @@ vi.mock("../supabase/server", () => ({ createClient: async () => ({
     }
     return query;
   },
-}) }));
+}));
+vi.mock("../supabase/server", () => ({ createClient: async () => makeClient() }));
+vi.mock("../supabase/admin", () => ({ createAdminClient: () => makeClient() }));
 
 import { createTripShare, revokeTripShare } from "./actions";
 import { getSharedItinerary } from "./queries";
