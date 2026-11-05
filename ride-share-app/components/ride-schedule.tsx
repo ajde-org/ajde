@@ -3,7 +3,7 @@ import { formatDeparture } from "@/lib/rides/ride-presentation";
 
 export function RideSchedule({ departureAt, durationMinutes }: { departureAt: string; durationMinutes?: number | null }) {
   const timing = rideTiming(departureAt, durationMinutes);
-  return <div className="min-w-0 flex-1">
+  return <div className="min-w-0">
     <p className="mb-2 text-sm font-medium text-slate-600">{timing.date}</p>
     <dl className="grid grid-cols-[auto_minmax(1.5rem,1fr)_auto] gap-x-2 gap-y-1">
       <div><dt className="text-xs text-slate-500">Departure</dt><dd>

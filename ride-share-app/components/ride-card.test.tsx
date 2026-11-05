@@ -1,0 +1,49 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import { RideCard } from "./ride-card";
+import type { RideView } from "@/lib/rides/ride-view";
+
+const ride: RideView = {
+  id: "example", car_id: null, claimed_by: null, created_at: "2026-11-05T00:00:00Z",
+  departure_at: "2026-11-05T22:30:00Z", duration_minutes: 170,
+  estimated_duration_minutes: 150, duration_estimated_at: "2026-11-05T00:00:00Z",
+  origin_city_id: 1, dest_city_id: 2, origin_pickup_id: null, dest_pickup_id: null,
+  details: {}, driver_id: "driver", gender_preference: "any", import_id: null, notes: null,
+  price_per_seat_mkd: 500, seats_available: 2, seats_total: 4, source: "native",
+  status: "published", tags: ["luggage_space", "no_smoking"], updated_at: "2026-11-05T00:00:00Z",
+  originCity: { id: 1, name_en: "Skopje", name_mk: "Скопје" },
+  destinationCity: { id: 2, name_en: "Ohrid", name_mk: "Охрид" },
+  originPickup: null, destinationPickup: null,
+  driver: { id: "driver", full_name: "Ana Petrova", photo_url: "/avatar.png", university: "UKIM", verified_at: null },
+  car: null,
+};
+
+const render = (overrides: Partial<RideView> = {}) => renderToStaticMarkup(createElement(RideCard, {
+  ride: { ...ride, ...overrides }, explanation: "Matches your route",
+}));
+
+describe("RideCard integration", () => {
+  it("combines the new card details with adjusted next-day arrival times", () => {
+    const html = render();
+    for (const text of ["23:30", "02:20", "Fri 6 Nov", "Est. arrival", "Luggage space", "No smoking", "500 MKD", "Pick ride", "Matches your route"]) {
+      expect(html).toContain(text);
+    }
+    expect(html).toContain('dateTime="2026-11-06T01:20:00.000Z"');
+    expect(html).toContain('href="/profile/driver"');
+    expect(html).toContain('href="/rides/example"');
+    expect(html.match(/500 MKD/g)).toHaveLength(1);
+  });
+
+  it("keeps imported rides usable without timing, driver, price or features", () => {
+    const html = render({ duration_minutes: null, driver: null, price_per_seat_mkd: null, tags: [] });
+    expect(html).toContain("Unavailable");
+    expect(html).toContain("Imported ride");
+    expect(html).toContain("Free");
+    expect(html).toContain("Pick ride");
+    expect(html).not.toContain("Ride features");
+    expect(html).not.toContain('href="/profile/');
+    expect(html).not.toContain("Invalid Date");
+  });
+});
