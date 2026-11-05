@@ -7,6 +7,10 @@ import { I18nProvider } from "@/lib/i18n/provider";
 import { createTranslator, createNoticeTranslator } from "@/lib/i18n/translate";
 import { en } from "@/lib/i18n/messages/en";
 import { mk } from "@/lib/i18n/messages/mk";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@/lib/i18n/testing";
+import { LanguageSelector } from "@/components/language-selector";
+const { changeLocale } = vi.hoisted(() => ({ changeLocale: vi.fn() }));
+vi.mock("@/lib/i18n/actions", () => ({ changeLocale }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/profiles/contact-details", () => ({ getContactDetails: async (_client: unknown, ids: string[]) => ({ data: new Map(ids.map(id => [id, { id, phone: "+38970123456", social_url: null, instagram: null, facebook: null }])), error: null }) }));
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: async () => ({ id: "profile" }) }));
@@ -61,6 +65,35 @@ import { ImpactCounter } from "@/components/impact-summary";
 
 const cities = [{ id: 1, name_en: "Skopje", name_mk: "Скопје" }, { id: 2, name_en: "Bitola", name_mk: "Битола" }];
 const id = "94000000-0000-4000-8000-000000000001";
+
+it.each(["driver", "passenger"] as const)("previews %s trip cards before the locale request finishes and rolls back on failure", async view => {
+  let finish!: (result: { ok: boolean }) => void;
+  changeLocale.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const cards = view === "driver"
+    ? await DriverRides({ userId: "driver", filter: "active" })
+    : await PassengerTrips({ userId: "passenger", filter: "active" });
+  const { container } = render(<><LanguageSelector />{cards}</>);
+  try {
+    expect(screen.getAllByRole("heading", { name: "Skopje to Bitola" }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Switch language" }));
+    fireEvent.click(screen.getByRole("button", { name: "Македонски" }));
+    await waitFor(() => expect(screen.getAllByRole("heading", { name: "Скопје до Битола" }).length).toBeGreaterThan(0));
+    expect(container.textContent).toContain(mk["trips.openChat"]);
+    expect(container.textContent).not.toContain(en["trips.openChat"]);
+    expect(container.textContent).toContain(view === "driver" ? "29.3.2027" : "мар.");
+    expect(container.textContent).toContain(view === "driver" ? "Original Passenger" : "Original Driver");
+    await act(async () => { finish({ ok: false }); });
+    await waitFor(() => expect(screen.getAllByRole("heading", { name: "Skopje to Bitola" }).length).toBeGreaterThan(0));
+    expect(container.textContent).toContain(en["trips.openChat"]);
+  } finally {
+    if (finish) await act(async () => { finish({ ok: false }); });
+    cleanup();
+    scroll.mockRestore();
+    changeLocale.mockReset();
+  }
+});
+
 function fixture(name: string, element: React.ReactNode) {
   const messages = state.locale === "mk" ? mk : en;
   const markup = renderToStaticMarkup(<I18nProvider locale={state.locale} messages={messages}>{element}</I18nProvider>);

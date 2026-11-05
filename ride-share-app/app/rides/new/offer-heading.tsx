@@ -1,10 +1,6 @@
-import { getI18n } from "@/lib/i18n/server";
+import { LocalizedPageHeading } from "@/components/localized-page-heading";
 
 /** Page title block; shared with the route's loading state so the swap is seamless. */
-export async function OfferRideHeading() {
-  const { t } = await getI18n();
-  return <div>
-    <h1 className="page-heading">{t("offer.title")}</h1>
-    <p className="mt-4 text-slate-500">{t("offer.intro")}</p>
-  </div>;
+export function OfferRideHeading() {
+  return <LocalizedPageHeading title="offer.title" intro="offer.intro" />;
 }

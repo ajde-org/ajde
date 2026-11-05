@@ -27,7 +27,7 @@ function isActive(pathname: string, href: string) {
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   const pathname = usePathname();
   const active = isActive(pathname, href);
-  return <Link href={href} aria-current={active ? "page" : undefined} className={`nav-link ${active ? "nav-link-active" : ""}`}>{children}</Link>;
+  return <Link href={href} aria-current={active ? "page" : undefined} className={`nav-link lg:px-3 ${active ? "nav-link-active" : ""}`}>{children}</Link>;
 }
 
 /** Signed-in only links, streamed in once the user is known. */
@@ -67,7 +67,7 @@ export function AppNavigation({ userLinks, account }: { userLinks: ReactNode; ac
     <div className="site-header-bar">
       <Brand />
       <nav id="main-navigation" aria-label={t("nav.main")} className={`site-nav ${menuOpen ? "site-nav-open" : ""}`}>
-        <div className="site-nav-links">
+        <div className="site-nav-links lg:justify-center lg:gap-2">
           <NavLink href="/rides">{t("nav.find")}</NavLink>
           <NavLink href="/rides/new">{t("nav.offer")}</NavLink>
           {userLinks}

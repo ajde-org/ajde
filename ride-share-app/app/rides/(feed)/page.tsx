@@ -1,10 +1,11 @@
 import { getI18n } from "@/lib/i18n/server";
-import { plural, formatNumber } from "@/lib/i18n/format";
+import { Suspense } from "react";
 import { localizedName } from "@/lib/i18n/locations";
-import Link from "next/link";
 
 import { NaturalLanguageSearch } from "@/components/discovery/natural-language-search";
-import { RideResults } from "@/components/discovery/ride-results";
+import { RideFilters } from "@/components/discovery/ride-filters";
+import { LocalizedPageHeading } from "@/components/localized-page-heading";
+import { EmptyRideFeed, RideFeedResultsHeading, RideResults } from "@/components/discovery/ride-results";
 import { SearchInterpretation } from "@/components/discovery/search-interpretation";
 import { requireCompleteProfile } from "@/lib/auth/session";
 import { usableDiscoveryGender } from "@/lib/rides/gender-discovery";
@@ -19,8 +20,21 @@ type RideFeedPageProps = {
 };
 
 export default async function RideFeedPage({ searchParams }: RideFeedPageProps) {
-  const { locale, t } = await getI18n();
+  const { t } = await getI18n();
   const rawParams = await searchParams;
+  return <div className="text-slate-950">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+      {firstParam(rawParams.welcome) === "1" ? <p role="status" className="mb-6 whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{t("discovery.welcome")}</p> : null}
+      <LocalizedPageHeading title="discovery.title" intro="discovery.intro" />
+      <Suspense fallback={<p role="status" className="mt-8 text-sm text-slate-500">{t("loading.rides")}</p>}>
+        <RideFeedContent rawParams={rawParams} />
+      </Suspense>
+    </main>
+  </div>;
+}
+
+async function RideFeedContent({ rawParams }: { rawParams: Record<string, string | string[] | undefined> }) {
+  const { locale, t } = await getI18n();
   const returnParams = serializeParams(rawParams);
   const user = await requireCompleteProfile(returnParams ? `/rides?${returnParams}` : "/rides");
   const filters = parseRideFilters(rawParams);
@@ -35,7 +49,6 @@ export default async function RideFeedPage({ searchParams }: RideFeedPageProps) 
   if (error || profileError) throw new Error("Unable to load discovery filters.");
 
   const passengerGender = usableDiscoveryGender(passengerProfile?.gender);
-  const rides = await getRideFeed(filters, { passengerGender });
   const genderUnavailable = filters.sameGenderOnly && !passengerGender;
   const cityNames = new Map((cities ?? []).map((city) => [city.id, localizedName(city, locale)]));
   // An AI search already shows its interpretation above, so its filters start collapsed and
@@ -44,14 +57,7 @@ export default async function RideFeedPage({ searchParams }: RideFeedPageProps) 
   const filtersOpen = firstParam(rawParams.manual) === "1" || (hasFilters && firstParam(rawParams.search) !== "1");
 
   return (
-    <div className="text-slate-950">
-      <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
-        {firstParam(rawParams.welcome) === "1" ? <p role="status" className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{t("discovery.welcome")}</p> : null}
-        <div>
-          <h1 className="page-heading">{t("discovery.title")}</h1>
-          <p className="mt-4 text-slate-500">{t("discovery.intro")}</p>
-        </div>
-
+    <>
         <NaturalLanguageSearch key={naturalQuery} currentParams={currentParams} initialQuery={naturalQuery} />
         {interpretation ? (
           <SearchInterpretation
@@ -61,74 +67,33 @@ export default async function RideFeedPage({ searchParams }: RideFeedPageProps) 
           />
         ) : null}
 
-        <details className="filter-options mt-6 px-6 py-4" open={filtersOpen}>
-        <summary>{t("discovery.filters")}</summary>
-        <form key={currentParams} aria-label={t("discovery.filterLabel")} className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {naturalQuery ? <input type="hidden" name="q" value={naturalQuery} /> : null}
-          {firstParam(rawParams.search) === "1" ? <input type="hidden" name="search" value="1" /> : null}
-          {firstParam(rawParams.interpretation) ? (
-            <input type="hidden" name="interpretation" value={firstParam(rawParams.interpretation)} />
-          ) : null}
-          <label className="text-sm font-semibold text-slate-600">{t("landing.from")}
-            <select name="origin" defaultValue={filters.origin ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950">
-              <option value="">{t("discovery.anywhere")}</option>
-              {cities?.map((city) => <option key={city.id} value={city.id}>{localizedName(city, locale)}</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-slate-600">{t("landing.to")}
-            <select name="destination" defaultValue={filters.destination ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950">
-              <option value="">{t("discovery.anywhere")}</option>
-              {cities?.map((city) => <option key={city.id} value={city.id}>{localizedName(city, locale)}</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-slate-600">{t("discovery.fromDate")} <span className="font-normal text-slate-500">{t("discovery.optional")}</span>
-            <input name="date" type="date" defaultValue={filters.date ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950" />
-          </label>
-          <label className="text-sm font-semibold text-slate-600">{t("discovery.throughDate")} <span className="font-normal text-slate-500">{t("discovery.optional")}</span>
-            <input name="dateTo" type="date" defaultValue={filters.dateTo ?? ""} min={filters.date ?? undefined} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950" />
-          </label>
-          <label className="text-sm font-semibold text-slate-600">{t("discovery.afterTime")} <span className="font-normal text-slate-500">{t("discovery.optional")}</span>
-            <input name="timeAfter" type="time" defaultValue={filters.timeAfter ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950" />
-          </label>
-          <label className="text-sm font-semibold text-slate-600">{t("discovery.beforeTime")} <span className="font-normal text-slate-500">{t("discovery.optional")}</span>
-            <input name="timeBefore" type="time" defaultValue={filters.timeBefore ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-950" />
-          </label>
-          <p className="text-xs text-slate-500 sm:col-span-2 lg:col-span-3">{t("discovery.filterHelp")}</p>
-          <label className="flex items-center gap-2 self-end rounded-xl px-1 py-2.5 text-sm font-semibold text-slate-600">
-            <input
-              name="sameGender"
-              type="checkbox"
-              value="1"
-              defaultChecked={filters.sameGenderOnly}
-              className="size-4 accent-emerald-700"
-            />
-            {t("discovery.sameGender")}
-          </label>
-          <div className="flex flex-wrap items-center justify-end gap-3 self-end sm:col-span-2"><Link href="/rides" className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-slate-600 hover:text-slate-950">{t("discovery.reset")}</Link><button name="manual" value="1" className="btn-primary" type="submit">{t("discovery.apply")}</button></div>
-        </form>
-        </details>
+        <RideFilters cities={cities ?? []} filters={filters} filtersOpen={filtersOpen}
+          currentParams={currentParams} naturalQuery={naturalQuery}
+          searched={firstParam(rawParams.search) === "1"}
+          interpretationParam={firstParam(rawParams.interpretation)}
+          genderUnavailable={genderUnavailable} />
 
-        {genderUnavailable ? (
-          <p role="status" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            {t("discovery.genderUnavailable")}
-          </p>
-        ) : null}
-
-        <div className="mt-8 flex items-center justify-between">
-          <div><h2 className="font-display text-2xl font-bold tracking-tight">{t("discovery.next")}</h2><p className="mt-2 text-[.8125rem] text-slate-500">{t(`discovery.matches.${plural(locale, rides.length)}`, { count: formatNumber(locale, rides.length) })}</p></div>
-        </div>
-        {rides.length ? (
-          <RideResults rides={rides} searchContext={interpretation} />
-        ) : (
-          <div className="mt-4 rounded-3xl border-2 border-dashed border-slate-200 bg-white/60 px-6 py-16 text-center">
-            <h2 className="font-display text-2xl font-bold tracking-[-.03em]">{t("discovery.empty")}</h2>
-            <p className="mt-2 text-slate-600">{t("discovery.emptyBody")}</p>
-            <div className="mt-5 flex flex-wrap justify-center gap-3"><Link href="/rides" className="btn-primary">{t("discovery.all")}</Link></div>
-          </div>
-        )}
-      </main>
-    </div>
+        <Suspense fallback={<p role="status" className="mt-8 text-sm text-slate-500">{t("loading.rides")}</p>}>
+          <RideFeedResults filters={filters} passengerGender={passengerGender} interpretation={interpretation} />
+        </Suspense>
+    </>
   );
+}
+
+async function RideFeedResults({ filters, passengerGender, interpretation }: {
+  filters: ReturnType<typeof parseRideFilters>;
+  passengerGender: ReturnType<typeof usableDiscoveryGender>;
+  interpretation: ReturnType<typeof decodeSearchInterpretation>;
+}) {
+  const rides = await getRideFeed(filters, { passengerGender });
+  return <>
+    <RideFeedResultsHeading count={rides.length} />
+    {rides.length ? (
+      <RideResults rides={rides} searchContext={interpretation} />
+    ) : (
+      <EmptyRideFeed />
+    )}
+  </>;
 }
 
 function firstParam(value: string | string[] | undefined) {

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { mkdirSync, writeFileSync } from "node:fs";
+import { PassThrough } from "node:stream";
 import path from "node:path";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToPipeableStream, renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { I18nProvider } from "@/lib/i18n/provider";
@@ -124,6 +125,27 @@ function renderPage(element: React.ReactNode, name: string) {
   return markup;
 }
 
+async function renderStreamedPage(element: React.ReactNode, name: string) {
+  const markup = await new Promise<string>((resolve, reject) => {
+    const output = new PassThrough();
+    let html = "";
+    output.setEncoding("utf8");
+    output.on("data", (chunk: string) => { html += chunk; });
+    output.on("end", () => resolve(html));
+    output.on("error", reject);
+    const stream = renderToPipeableStream(
+      <I18nProvider locale={state.locale} messages={state.locale === "mk" ? mk : en}>{element}</I18nProvider>,
+      { onAllReady: () => stream.pipe(output), onError: reject },
+    );
+  });
+  if (process.env.I18N_FIXTURE_DIR) {
+    mkdirSync(process.env.I18N_FIXTURE_DIR, { recursive: true });
+    writeFileSync(path.join(process.env.I18N_FIXTURE_DIR, `${name}-${state.locale}.html`),
+      `<!doctype html><html lang="${state.locale}"><head><meta charset="utf-8"></head><body>${markup}</body></html>`);
+  }
+  return markup;
+}
+
 it.each(["en", "mk"] as const)(
   "renders onboarding labels and preserves authored fields in %s",
   async (locale) => {
@@ -140,7 +162,7 @@ it.each(["en", "mk"] as const)(
   "renders discovery cities, prices and seat counts in %s",
   async (locale) => {
     state.locale = locale;
-    const html = renderPage(
+    const html = await renderStreamedPage(
       await RideFeedPage({ searchParams: Promise.resolve({ manual: "1" }) }),
       "discovery",
     );
@@ -184,7 +206,7 @@ it("localizes the empty feed and never displays arbitrary query-string errors", 
   state.locale = "mk";
   state.empty = true;
   expect(
-    renderPage(
+    await renderStreamedPage(
       await RideFeedPage({ searchParams: Promise.resolve({}) }),
       "discovery-empty",
     ),
