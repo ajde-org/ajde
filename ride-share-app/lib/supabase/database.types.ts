@@ -549,6 +549,9 @@ export type Database = {
           car_id: string | null
           claimed_by: string | null
           created_at: string
+          duration_minutes: number | null
+          estimated_duration_minutes: number | null
+          duration_estimated_at: string | null
           departure_at: string
           dest_city_id: number
           dest_pickup_id: number | null
@@ -569,6 +572,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          duration_minutes?: number | null
+          estimated_duration_minutes?: number | null
+          duration_estimated_at?: string | null
           car_id?: string | null
           claimed_by?: string | null
           created_at?: string
@@ -592,6 +598,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          duration_minutes?: number | null
+          estimated_duration_minutes?: number | null
+          duration_estimated_at?: string | null
           car_id?: string | null
           claimed_by?: string | null
           created_at?: string
@@ -673,6 +682,31 @@ export type Database = {
           },
         ]
       }
+      "route_estimates": {
+                  Row: {
+                    "dest_city_id": number,"dest_lat": number,"dest_lng": number,"distance_km": number,"duration_minutes": number,"estimated_at": string,"origin_city_id": number,"origin_lat": number,"origin_lng": number,"profile": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "dest_city_id": number,"dest_lat": number,"dest_lng": number,"distance_km": number,"duration_minutes": number,"estimated_at"?: string,"origin_city_id": number,"origin_lat": number,"origin_lng": number,"profile"?: string
+                  }
+                  Update: {
+                    "dest_city_id"?: number,"dest_lat"?: number,"dest_lng"?: number,"distance_km"?: number,"duration_minutes"?: number,"estimated_at"?: string,"origin_city_id"?: number,"origin_lat"?: number,"origin_lng"?: number,"profile"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "route_estimates_dest_city_id_fkey"
+      columns: ["dest_city_id"]
+      referencedRelation: "cities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "route_estimates_origin_city_id_fkey"
+      columns: ["origin_city_id"]
+      referencedRelation: "cities"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
       trip_shares: {
         Row: {
           booking_id: string

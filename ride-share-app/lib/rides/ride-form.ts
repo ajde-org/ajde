@@ -65,10 +65,12 @@ export function validateRideSubmission(
     .object({
       intent: rideSubmissionIntentSchema,
       submissionId: submissionIdSchema,
+      durationMinutes: z.number().int().min(1).max(1440).nullable(),
     })
     .safeParse({
       intent: formData.get("intent"),
       submissionId: formData.get("submissionId"),
+      durationMinutes: nullableNumber(formData.get("durationMinutes")),
     });
 
   const draft = createPublishableRideDraftSchema({ now }).safeParse(

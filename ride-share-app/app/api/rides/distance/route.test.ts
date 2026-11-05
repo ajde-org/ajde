@@ -9,16 +9,20 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   ], error: db.error ? { message: "offline" } : null }) }),
   rpc: db.rpc,
 }) }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => ({
+  select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+  upsert: async () => ({ error: null }),
+}) }) }));
 import { POST } from "./route";
 const request = (body: unknown = { originCity: "Skopje", destinationCity: "Bitola" }) => new Request("http://localhost/api/rides/distance", { method: "POST", body: JSON.stringify(body) });
 beforeEach(() => { db.userId = "driver"; db.grant = true; db.error = false; db.rpc.mockReset().mockImplementation(async () => ({ data: db.grant, error: null })); vi.unstubAllGlobals(); });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 it("accepts two city-name strings, resolves catalog coordinates and returns road kilometres", async () => {
-  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6 }] }));
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6, duration: 9000 }] }));
   vi.stubGlobal("fetch", transport);
   const response = await POST(request());
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ distanceKm: 174.3 });
+  expect(await response.json()).toEqual({ distanceKm: 174.3, durationMinutes: 150 });
   expect(transport.mock.calls[0][0]).toContain("21.43141,41.99646;21.33553,41.03226");
 });
 
@@ -51,11 +55,11 @@ it("handles timeouts without returning a guessed distance", async () => {
 
 it.each([undefined, "false", "invalid", "true"])("keeps existing road estimates available with pipeline flag %s", async flag => {
   vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", flag);
-  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6 }] }));
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6, duration: 9000 }] }));
   vi.stubGlobal("fetch", transport);
   const response = await POST(request({ originCity: "  SKOPJE ", destinationCity: "Битола" }));
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ distanceKm: 174.3 });
+  expect(await response.json()).toEqual({ distanceKm: 174.3, durationMinutes: 150 });
   expect(db.rpc).toHaveBeenCalledWith("try_ride_routing_request");
   expect(transport.mock.calls[0][1]).toMatchObject({
     headers: { "User-Agent": "StudentRideShare/1.0 (non-commercial ride offer demo)" }, cache: "no-store",

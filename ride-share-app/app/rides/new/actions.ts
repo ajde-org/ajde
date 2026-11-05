@@ -4,6 +4,8 @@ import type { TablesInsert } from "@/lib/supabase/database.types";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+import { cachedRouteEstimate } from "@/lib/rides/route-estimate-cache";
+import { resolveDurationMinutes } from "@/lib/rides/ride-timing";
 import { readCarSelection, type CarSelection } from "@/lib/rides/car-selection";
 import { createClient } from "@/lib/supabase/server";
 import { issuesByPath, validateRideSubmission } from "@/lib/rides/ride-form";
@@ -148,8 +150,15 @@ export async function createRide(
     };
   }
 
+  const estimate = await cachedRouteEstimate(supabase, validation.draft.data.origin.cityId, validation.draft.data.destination.cityId);
+  const requested = validation.metadata.data.durationMinutes;
+  try {
+    resolveDurationMinutes(estimate.ok ? estimate.durationMinutes : null, requested);
+  } catch (error) {
+    return { status: "error", message: "Review the journey duration.", fieldErrors: { durationMinutes: [error instanceof Error ? error.message : "Retry the route estimate."] } };
+  }
   const result = await supabase.rpc("create_ride_offer", {
-    p_offer: validation.draft.data,
+    p_offer: { ...validation.draft.data, durationMinutes: requested },
     p_vehicle: carSelection.data,
     p_submission_id: validation.metadata.data.submissionId,
     p_publish: validation.metadata.data.intent === "publish",

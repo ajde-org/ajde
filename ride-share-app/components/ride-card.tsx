@@ -1,14 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
-import { formatDeparture } from "@/lib/rides/ride-presentation";
+import { RideSchedule } from "@/components/ride-schedule";
 import { SeatAvailability } from "@/components/seat-availability";
 import type { RideView } from "@/lib/rides/ride-view";
 import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
 
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
-  const departure = new Date(ride.departure_at);
-  const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", weekday: "short", timeZone: "Europe/Skopje" }).format(departure);
-  const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Skopje" }).format(departure);
 
   return (
     <article className="ride-choice-card surface-card flex min-w-0 flex-col gap-2 p-4 text-slate-950">
@@ -18,14 +15,7 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
         </Link>
       </h2>
       <div className="flex items-start justify-between gap-3">
-        <time dateTime={ride.departure_at} aria-label={`${formatDeparture(ride.departure_at)}, Skopje time`} className="min-w-0">
-          <span className="flex flex-wrap items-baseline gap-x-2 text-[1.375rem] font-bold leading-7 text-brand-800">
-            <span>{date}</span>
-            <span aria-hidden="true" className="text-slate-300">·</span>
-            <span className="tabular-nums">{time}</span>
-          </span>
-          <span className="block text-[.6875rem] leading-4 text-slate-500">Skopje time</span>
-        </time>
+        <RideSchedule departureAt={ride.departure_at} durationMinutes={ride.duration_minutes} />
         <div className="shrink-0 text-right">
           <p className="text-2xl font-bold leading-7 tracking-tight">{formatSeatPrice(ride.price_per_seat_mkd)}</p>
           <p className="text-[.6875rem] leading-4 text-slate-500">{seatPriceCaption(ride.price_per_seat_mkd)}</p>

@@ -58,7 +58,7 @@ export default async function RideDetailPage({ params, searchParams }: RideDetai
             <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-semibold text-brand-700">{formatDeparture(ride.departure_at)} · Skopje time</p><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize">{ride.status}</span></div>
             <h1 className="mt-3 font-display text-4xl font-extrabold tracking-[-.04em]">{ride.originCity.name_en} <span className="text-slate-400">to</span> {ride.destinationCity.name_en}</h1>
             <div className="mt-6 rounded-xl bg-slate-50 p-5">
-              <RideRoute origin={ride.originCity.name_en} destination={ride.destinationCity.name_en} pickup={ride.originPickup?.name_en} dropoff={ride.destinationPickup?.name_en} />
+              <RideRoute departureAt={ride.departure_at} durationMinutes={ride.duration_minutes} origin={ride.originCity.name_en} destination={ride.destinationCity.name_en} pickup={ride.originPickup?.name_en} dropoff={ride.destinationPickup?.name_en} />
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-5 border-b border-slate-100 pb-6">
               <SeatAvailability available={ride.seats_available} total={ride.seats_total} />

@@ -44,7 +44,7 @@ it("carries a real parser result through guards, model-selected routing, persist
     },
   } }).mockResolvedValueOnce({ output: [{ type: "function_call", call_id: "route-1", name: "road_distance", arguments: '{"originCityId":1,"destinationCityId":2}' }] })
     .mockResolvedValueOnce({ output: [], output_parsed: { findings: [] } });
-  const transport = vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 52100 }] }));
+  const transport = vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 52100, duration: 3600 }] }));
   vi.stubGlobal("fetch", transport);
   const response = await POST(new Request("http://localhost/api/parse", { method: "POST", body: JSON.stringify({ text: "I offer Skopje to Veles tomorrow at 17:00, 3 seats.", sourceHint: "other" }) }));
   expect(response.status).toBe(200);
@@ -76,7 +76,7 @@ it("combines road, fair-price, and possible-duplicate evidence in one persisted 
       { type: "function_call", call_id: "price-1", name: "fair_price", arguments: JSON.stringify({ distanceKm: 60, availableSeats: 3, fuelType: null, consumptionL100Km: null }) },
       { type: "function_call", call_id: "similar-1", name: "find_similar_rides", arguments: JSON.stringify({ originCityId: 1, destinationCityId: 2, departureAt: "2026-09-23T15:00:00Z" }) },
     ] }).mockResolvedValueOnce({ output: [], output_parsed: { findings: [{ field: null, severity: "info", message: "Possible duplicate ride offer.", evidenceCallIds: ["similar-1"] }] } });
-  vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 60000 }] })));
+  vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 60000, duration: 3600 }] })));
   const response = await POST(new Request("http://localhost/api/parse", { method: "POST", body: JSON.stringify({ text: "I offer Skopje to Veles tomorrow at 17:00, 3 seats, 1200 MKD per seat.", sourceHint: "other" }) }));
   expect(response.status).toBe(200);
   const body = await response.json();
@@ -116,7 +116,7 @@ it("keeps screenshot extraction separate from the explicitly selected checked im
     departureAt: "2026-09-23T15:00:00Z", seatsTotal: 3,
   } } }).mockResolvedValueOnce({ output: [{ type: "function_call", call_id: "route-1", name: "road_distance", arguments: '{"originCityId":1,"destinationCityId":2}' }] })
     .mockResolvedValueOnce({ output: [], output_parsed: { findings: [] } });
-  vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 60000 }] })));
+  vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => Response.json({ code: "Ok", routes: [{ distance: 60000, duration: 3600 }] })));
   const response = await POST(new Request("http://localhost/api/parse", { method: "POST", body: JSON.stringify({ text: `${selected} edited`, sourceHint: "other" }) }));
   expect(response.status).toBe(200);
   expect((await response.json()).check.status).toBe("checked");

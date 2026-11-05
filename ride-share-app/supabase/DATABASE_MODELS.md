@@ -114,7 +114,7 @@ Stores an imported social post before/after parsing: required nonblank `raw_text
 ### `rides`
 
 The central trip offer. A ride links optional `driver_id`, optional `car_id`, required origin and
-destination cities, optional city-matched pickup points, `departure_at`, 1–8 `seats_total`, derived
+destination cities, optional city-matched pickup points, `departure_at`, nullable `estimated_duration_minutes` from the route cache, nullable driver-adjusted `duration_minutes` constrained to be at least that estimate, and nullable `duration_estimated_at`, 1–8 `seats_total`, derived
 `seats_available`, optional nonnegative `price_per_seat_mkd`, optional `notes`, object-shaped
 `details`, `tags`, gender preference, status, source, optional `import_id`, optional `claimed_by`, and
 timestamps. Origin and destination cities must differ.
@@ -229,6 +229,7 @@ bookings 1--* trip_shares
   complete vehicle details reuse the driver's existing car. A unique index on
   `(driver_id, details->>'submission_id')` plus lookup under that lock makes retries idempotent.
   Different submission IDs remain distinct rides. Both anonymous and PUBLIC execution are revoked.
+- `route_estimates` caches ordered city-pair OSRM driving distance and duration snapshots with coordinate and freshness fields. RLS is enabled and all access is revoked from public, anonymous, and authenticated roles; only the server service role may read/write estimates. `guard_ride_timing()` overwrites client-supplied baseline values from a fresh coordinate-matched cache entry on ride insert or route change, and preserves the baseline on other updates. A driver may extend `duration_minutes` up to 1440 minutes; database constraints reject shorter values and fabricated baselines.
 - `ride_routing_gate` is a private singleton table with a timestamp and no client table grants.
   `try_ride_routing_request()` grants at most one authenticated routing permit per 1.2 seconds,
   using a row lock across app instances. It has a fixed empty search path and no anonymous grant.
