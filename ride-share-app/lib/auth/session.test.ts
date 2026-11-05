@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   rpc: contacts,
   from: () => ({ select: () => ({ eq: () => ({ maybeSingle: read }) }) }),
 }) }));
-import { getProfileCompletion } from "./session";
+import { getProfileCompletion, safeNextPath } from "./session";
 beforeEach(() => { vi.resetAllMocks(); contacts.mockResolvedValue({ data: [{ id: "user", phone: "+38970123456" }], error: null }); });
 it("does not classify a failed profile query as incomplete onboarding", async () => {
   read.mockResolvedValue({ data: null, error: { code: "42501" } });
@@ -23,4 +23,14 @@ it("does not treat a contact-permission failure as missing onboarding", async ()
   read.mockResolvedValue({ data: { id: "user", full_name: "Test", photo_url: "/photo", university: "UKIM" }, error: null });
   contacts.mockResolvedValue({ data: null, error: { code: "42501" } });
   await expect(getProfileCompletion("user")).rejects.toThrow("Unable to load profile completion");
+});
+it("keeps same-site next paths", () => {
+  expect(safeNextPath("/rides/123?tab=chat#latest")).toBe("/rides/123?tab=chat#latest");
+  expect(safeNextPath("/dashboard/trips")).toBe("/dashboard/trips");
+});
+it.each([
+  null, "", "rides", "https://evil.com", "//evil.com", "/\\evil.com", "/\\/evil.com", "\\\\evil.com",
+  "/\t/evil.com", "/\n/evil.com", "/\r//evil.com", "/%09/evil.com\t",
+])("falls back for off-site next value %j", (value) => {
+  expect(safeNextPath(value, "/fallback")).toBe("/fallback");
 });
