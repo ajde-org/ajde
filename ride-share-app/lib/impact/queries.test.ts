@@ -9,7 +9,7 @@ const database = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("../auth/session", () => ({ getCurrentUser: async () => database.userId ? { id: database.userId } : null }));
-vi.mock("../supabase/server", () => ({ createClient: async () => ({
+vi.mock("../supabase/admin", () => ({ createAdminClient: () => ({
   from(table: "rides" | "bookings") {
     let rows = database[table].slice();
     let limit = database.responseLimit;

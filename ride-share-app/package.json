@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --exclude '.test-dist/**'",
+    "test:db": "psql \"${TEST_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}\" -X -q -v ON_ERROR_STOP=1 -f supabase/tests/schema_smoke.sql > /dev/null",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:locations": "vitest run lib/ai/resolve-location.test.ts"
   },

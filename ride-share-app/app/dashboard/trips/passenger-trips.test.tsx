@@ -6,6 +6,7 @@ import { PassengerTrips } from "./passenger-trips";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
 import { parseTripStatusFilter, type TripStatusFilter } from "./trip-tabs";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/ratings/queries", () => ({ getRatingControls: vi.fn(async () => new Map()) }));
 vi.mock("@/components/ratings/rating-control", () => ({ RatingControl: () => null }));
@@ -32,6 +33,8 @@ const rides = states.map(([, status], index) => ({
 }));
 let tables: Record<string, unknown[]>;
 const eq = vi.fn();
+const contactRequests = vi.fn();
+let contactsFail = false;
 
 beforeEach(() => {
   tables = {
@@ -40,6 +43,8 @@ beforeEach(() => {
     profiles: [{ id: "driver", full_name: "Test Driver", phone: "+38970123456", instagram: null, facebook: null }],
   };
   eq.mockClear();
+  contactRequests.mockClear();
+  contactsFail = false;
   vi.mocked(createClient).mockResolvedValue({
     from: (table: string) => {
       const query = {
@@ -49,6 +54,12 @@ beforeEach(() => {
         in: async () => ({ data: tables[table], error: null }),
       };
       return query;
+    },
+    // profile_contacts(): the database decides visibility; here every requested profile is visible.
+    rpc: async (name: string, args: { profile_ids: string[] }) => {
+      contactRequests(name, args.profile_ids);
+      if (contactsFail) return { data: null, error: { message: "Database unavailable" } };
+      return { data: (tables.profiles as { id: string }[]).filter((profile) => args.profile_ids.includes(profile.id)), error: null };
     },
   } as unknown as Awaited<ReturnType<typeof createClient>>);
 });
@@ -110,4 +121,17 @@ it("keeps driver filter links in the driver view", () => {
 it("defaults unknown or absent status filters to active", () => {
   expect(parseTripStatusFilter(undefined)).toBe("active");
   expect(parseTripStatusFilter("invalid")).toBe("active");
+});
+
+it("shows the driver's contact only through profile_contacts, and only for accepted bookings", async () => {
+  render(await PassengerTrips({ userId: "passenger", filter: "active" }));
+  expect(contactRequests).toHaveBeenCalledWith("profile_contacts", ["driver"]);
+  const [confirmed, awaiting] = screen.getAllByRole("article");
+  expect(within(confirmed).getByText("+38970123456")).toBeTruthy();
+  expect(within(awaiting).queryByText("+38970123456")).toBeNull();
+});
+
+it("fails visibly instead of hiding the driver's contact when the lookup fails", async () => {
+  contactsFail = true;
+  await expect(PassengerTrips({ userId: "passenger", filter: "active" })).rejects.toThrow("Unable to load your trips.");
 });

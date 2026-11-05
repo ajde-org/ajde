@@ -364,7 +364,7 @@ export type Database = {
         Insert: {
           bio?: string | null
           created_at?: string
-          driver_details?: NonNullable<Json>
+          driver_details?: Json
           facebook?: string | null
           full_name: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -380,7 +380,7 @@ export type Database = {
         Update: {
           bio?: string | null
           created_at?: string
-          driver_details?: NonNullable<Json>
+          driver_details?: Json
           facebook?: string | null
           full_name?: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -736,6 +736,10 @@ export type Database = {
         Args: { message_time: string; target_ride_id: string }
         Returns: boolean
       }
+      can_request_seat: {
+        Args: { requested_seats: number; target_ride_id: string }
+        Returns: boolean
+      }
       can_send_ride_room: { Args: { target_ride_id: string }; Returns: boolean }
       create_ride_offer: {
         Args: {
@@ -745,6 +749,25 @@ export type Database = {
           p_vehicle: Json
         }
         Returns: Json
+      }
+      is_booking_passenger: {
+        Args: { target_booking_id: string }
+        Returns: boolean
+      }
+      is_ride_active: {
+        Args: { before_departure?: boolean; target_ride_id: string }
+        Returns: boolean
+      }
+      is_ride_driver: { Args: { target_ride_id: string }; Returns: boolean }
+      profile_contacts: {
+        Args: { profile_ids: string[] }
+        Returns: {
+          facebook: string | null
+          id: string
+          instagram: string | null
+          phone: string | null
+          social_url: string | null
+        }[]
       }
       profile_rating_summary: {
         Args: { target_profile_id: string }
@@ -757,6 +780,10 @@ export type Database = {
         Args: { target_ride_id: string }
         Returns: undefined
       }
+      ride_room_roster: {
+        Args: { target_ride_id: string }
+        Returns: { decided_at: string; passenger_id: string }[]
+      }
       try_chat_ai_request: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -765,7 +792,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      valid_driver_details: { Args: { details: Json }; Returns: boolean }
+      valid_driver_details: {
+        Args: { details: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       booking_status: "requested" | "accepted" | "declined" | "cancelled"

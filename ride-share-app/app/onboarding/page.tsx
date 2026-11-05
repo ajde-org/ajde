@@ -1,6 +1,7 @@
 import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
+import { getContactDetails } from '@/lib/profiles/contact-details'
 import { OnboardingForm } from './onboarding-form'
 
 export const metadata = { title: 'Complete your profile' }
@@ -8,7 +9,14 @@ export const metadata = { title: 'Complete your profile' }
 export default async function OnboardingPage() {
   const user = await requireUser('/onboarding')
   const supabase = await createClient()
-  const { data: profile } = await supabase.from('profiles').select('full_name, university, photo_url, bio, gender, phone, social_url, driver_details').eq('id', user.id).maybeSingle()
+  const [{ data: details, error: profileError }, { data: contacts, error: contactError }] = await Promise.all([
+    supabase.from('profiles').select('full_name, university, photo_url, bio, gender, driver_details').eq('id', user.id).maybeSingle(),
+    getContactDetails(supabase, [user.id]),
+  ])
+  // Never show an empty phone field the user might save over a number we failed to load.
+  if (profileError || contactError) throw new Error('Your profile could not be loaded. Please try again.', { cause: profileError ?? contactError })
+  const contact = contacts.get(user.id)
+  const profile = details ? { ...details, phone: contact?.phone ?? null, social_url: contact?.social_url ?? null } : null
   return <div>
     <main id="main-content" className="mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.7fr_1.3fr] lg:gap-14">
       <aside>

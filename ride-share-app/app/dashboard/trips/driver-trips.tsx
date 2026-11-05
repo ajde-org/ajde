@@ -9,6 +9,7 @@ import { CancelRideControl } from "@/components/ride-completion/cancel-ride-cont
 import { RatingControl } from "@/components/ratings/rating-control";
 import { getRatingControls } from "@/lib/ratings/queries";
 import { formatDeparture } from "@/lib/rides/ride-view";
+import { getContactDetails } from "@/lib/profiles/contact-details";
 import { createClient } from "@/lib/supabase/server";
 
 import { decideBooking } from "../actions";
@@ -45,17 +46,15 @@ export async function DriverRides({ userId, filter }: { userId: string; filter: 
   ]);
   const passengerIds = [...new Set((bookings ?? []).map((booking) => booking.passenger_id))];
   const contactPassengerIds = [...new Set((bookings ?? []).filter((booking) => ["requested", "accepted"].includes(booking.status)).map((booking) => booking.passenger_id))];
-  const [{ data: passengers }, { data: requestContacts }] = await Promise.all([
+  const [{ data: passengers }, { data: contactMap, error: contactError }] = await Promise.all([
     passengerIds.length
       ? supabase.from("profiles").select("id, full_name, photo_url, university").in("id", passengerIds)
       : Promise.resolve({ data: [] }),
-    contactPassengerIds.length
-      ? supabase.from("profiles").select("id, phone").in("id", contactPassengerIds)
-      : Promise.resolve({ data: [] }),
+    getContactDetails(supabase, contactPassengerIds),
   ]);
+  if (contactError) throw new Error("Unable to load your rides.");
   const cityMap = new Map((cities ?? []).map((city) => [city.id, city.name_en]));
   const passengerMap = new Map((passengers ?? []).map((passenger) => [passenger.id, passenger]));
-  const contactMap = new Map((requestContacts ?? []).map((contact) => [contact.id, contact]));
   const ratingControls = await getRatingControls(userId, rides.map((ride) => ({ ...ride, driver_id: userId })), bookings ?? []);
   // This authenticated Server Component renders a fresh eligibility snapshot per request.
   // eslint-disable-next-line react-hooks/purity

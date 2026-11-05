@@ -7,6 +7,7 @@ How code is committed and merged in this repository. Applies to human and automa
 - [Conventional Commits](https://www.conventionalcommits.org): `<type>(<scope>): <description>`, imperative mood.
 - Types: `feat`, `fix`, `refactor`, `style`, `docs`, `test`, `chore`, `perf`.
 - Keep commits small and scoped to one logical change; describe the effect, not the diff.
+- No AI tool attribution anywhere: no "Generated with Claude Code" (or similar) lines and no `Co-Authored-By` trailers for AI tools, in commit messages, PR titles and descriptions, review comments, ticket comments or code comments.
 
 ## Branches
 
