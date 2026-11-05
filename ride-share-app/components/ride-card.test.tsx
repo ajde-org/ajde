@@ -65,7 +65,7 @@ describe("RideCard integration", () => {
     expect(html.indexOf("Free")).toBeGreaterThan(html.indexOf("Pick ride"));
     expect(html).toContain("Pick ride");
     expect(html).not.toContain("Ride features");
-    expect(html).toContain("No special requests.");
+    expect(html).toContain("No special requests");
     expect(html).not.toContain('href="/profile/');
     expect(html).not.toContain("Invalid Date");
   });

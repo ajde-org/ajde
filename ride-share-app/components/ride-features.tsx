@@ -17,7 +17,7 @@ const features = {
 
 export function RideFeatures({ tags }: { tags: string[] }) {
   const selected = Object.entries(features).filter(([tag]) => tags.includes(tag));
-  if (!selected.length) return <p className="text-xs leading-5 text-slate-500">No special requests.</p>;
+  if (!selected.length) return <p className="text-xs leading-5 text-slate-500">No special requests</p>;
 
   return (
     <ul aria-label="Ride features" className="flex flex-wrap gap-x-3 gap-y-1 py-1 text-xs leading-5 text-slate-500">
