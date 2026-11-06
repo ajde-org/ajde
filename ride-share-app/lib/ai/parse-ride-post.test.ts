@@ -11,6 +11,13 @@ import {
 } from "./parse-ride-post";
 
 describe("parseRidePost", () => {
+  it.each(["okolu 11 casot", "okolu 11 chasot", "околу 11 часот"])("does not claim a missing time for %s", text => {
+    const parsed = stubParseRidePost("Skopje Bitola tomorrow at 11");
+    parsed.draft.departureAt = "2026-11-02T10:00:00Z";
+    const result = removeDepartureWithoutTime(text, parsed);
+    expect(result.draft.departureAt).toBe(parsed.draft.departureAt);
+    expect(result.draft.warnings).not.toContainEqual(expect.objectContaining({ message: "The post did not include a departure time; choose it manually." }));
+  });
   it("fails explicitly while no provider is configured", async () => {
     const previousKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;

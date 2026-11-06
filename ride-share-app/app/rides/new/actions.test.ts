@@ -27,9 +27,18 @@ it("publishes through the atomic operation and returns the saved ride without na
   expect(args.p_submission_id).toBe("50000000-0000-4000-8000-000000000001");
 });
 
+it("keeps dev's duration minimum and returns localizable errors before publication", async () => {
+  const data = form(); data.set("durationMinutes", "149");
+  expect(await createRide(idle, data)).toMatchObject({ status: "error", message: "form.reviewDuration", fieldErrors: { durationMinutes: ["validation.duration"] } });
+  expect(db.rpc).not.toHaveBeenCalled();
+  data.set("durationMinutes", "170");
+  expect(await createRide(idle, data)).toMatchObject({ status: "success" });
+  expect(db.rpc.mock.calls[0][1].p_offer.durationMinutes).toBe(170);
+});
+
 it("refuses to publish until the profile, including the phone number, is complete", async () => {
   db.profileComplete = false;
-  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: expect.stringContaining("phone number") });
+  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: "form.profileRequired" });
   expect(db.rpc).not.toHaveBeenCalled();
 });
 
@@ -41,14 +50,14 @@ it("still saves drafts without a complete profile", async () => {
 
 it("shows a retryable error when the profile check fails", async () => {
   db.profileComplete = "error";
-  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: "We could not check your profile. Please try again." });
+  expect(await createRide(idle, form())).toMatchObject({ status: "error", message: "form.profileCheckFailed" });
   expect(db.rpc).not.toHaveBeenCalled();
 });
 
 it("saves a private draft through the same duplicate-safe operation", async () => {
   const data = form(); data.set("intent", "save_draft");
   db.rpc.mockResolvedValueOnce({ data: { rideId, carId, status: "draft" }, error: null });
-  expect(await createRide(idle, data)).toMatchObject({ status: "success", message: "Ride saved as a draft.", rideId });
+  expect(await createRide(idle, data)).toMatchObject({ status: "success", message: "form.draftSaved", rideId });
   expect(db.rpc.mock.calls[0][1].p_publish).toBe(false);
 });
 

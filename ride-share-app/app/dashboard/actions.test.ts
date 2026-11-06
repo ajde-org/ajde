@@ -39,18 +39,18 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 it("cancels an accepted booking before departure", async () => {
-  await expect(cancelBooking(bookingId)).rejects.toThrow("success=Booking cancelled.");
+  await expect(cancelBooking(bookingId)).rejects.toThrow("success=tripAction.cancelled");
   expect(fixture.updates).toEqual([{ status: "cancelled", decided_at: null }]);
 });
 
 it("refuses to cancel once the ride has departed", async () => {
   vi.setSystemTime(new Date("2026-09-22T13:00:00Z"));
-  await expect(cancelBooking(bookingId)).rejects.toThrow("already departed");
+  await expect(cancelBooking(bookingId)).rejects.toThrow("tripAction.departed");
   expect(fixture.updates).toEqual([]);
 });
 
 it("refuses to cancel when the ride cannot be read", async () => {
   fixture.booking.rides = null;
-  await expect(cancelBooking(bookingId)).rejects.toThrow("already departed");
+  await expect(cancelBooking(bookingId)).rejects.toThrow("tripAction.departed");
   expect(fixture.updates).toEqual([]);
 });

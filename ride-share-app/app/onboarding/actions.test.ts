@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 // `row` is the caller's profile row (null before onboarding); `written` is the last value saved.
 const db = vi.hoisted(() => ({ photo: "https://example.com/existing.png" as string | null, written: null as Record<string, unknown> | null,
   row: null as Record<string, unknown> | null, ops: [] as string[] }));
@@ -30,7 +31,12 @@ it("updates contacts without requiring another photo or changing profile ownersh
   expect(db.written).toMatchObject({id:"owner",photo_url:db.photo,phone:"+38970123456",social_url:input.socialUrl,bio:input.bio});
 });
 it("rejects a missing phone before writing", async () => {
-  expect((await saveProfile({...input,phone:""})).ok).toBe(false);expect(db.written).toBeNull();
+  expect(await saveProfile({...input,phone:""})).toEqual({ok:false,messageKey:"contact.invalidPhone"});expect(db.written).toBeNull();
+});
+it("returns stable validation keys without exposing raw schema messages", async () => {
+  expect(await saveProfile({...input,fullName:"a"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
+  expect(await saveProfile({...input,socialUrl:"http://example.com"})).toEqual({ok:false,messageKey:"contact.invalidSocial"});
+  expect(db.written).toBeNull();
 });
 it("rejects another account's photo path", async () => {
   expect((await saveProfile({...input,storagePath:"other/photo.jpg"})).ok).toBe(false);expect(db.written).toBeNull();
@@ -47,7 +53,7 @@ it("creates the profile on first save without an upsert", async () => {
   expect(db.written).toMatchObject({id:"owner",phone:"+38970123456",photo_url:"https://example.com/owner/photo.jpg"});
 });
 it("rejects malformed input and photo paths that escape the user's folder", async () => {
-  expect(await saveProfile({...input,fullName:"A"})).toEqual({ok:false,message:"Enter a name between 2 and 100 characters."});
+  expect(await saveProfile({...input,fullName:"A"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
   expect((await saveProfile({...input,gender:"robot" as never})).ok).toBe(false);
   expect((await saveProfile({...input,fullName:42 as never})).ok).toBe(false);
   expect((await saveProfile({...input,storagePath:"owner/../victim/photo.jpg"})).ok).toBe(false);

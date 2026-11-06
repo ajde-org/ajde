@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@/lib/i18n/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message, RoomPage } from "@/lib/chat/contract";
@@ -55,7 +55,7 @@ describe("ride room client", () => {
     await waitFor(() => expect(mocks.channels).toHaveLength(1));
     await act(async () => { mocks.channels[0].status("CHANNEL_ERROR"); window.dispatchEvent(new Event("offline")); });
     expect(screen.getByText("Hello room")).toBeTruthy();
-    expect(screen.getByText("Offline — retry when connected")).toBeTruthy();
+    expect(screen.getByText("You're offline. Retry when connected")).toBeTruthy();
     fireEvent.click(screen.getByText("Retry connection"));
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mocks.channels).toHaveLength(2));
@@ -77,7 +77,7 @@ describe("ride room client", () => {
     await user.type(field, "Hello{Shift>}{Enter}{/Shift}room");
     expect(field.value).toBe("Hello\nroom");
     await user.keyboard("{Enter}");
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Send failed");
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "The chat could not be updated. Please retry.");
     expect(field.value).toBe("Hello\nroom");
     await waitFor(() => expect(document.activeElement).toBe(field));
     expect(mocks.send).toHaveBeenCalledWith({ rideId, body: "Hello\nroom" });

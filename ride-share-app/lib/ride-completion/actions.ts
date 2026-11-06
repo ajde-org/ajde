@@ -6,30 +6,30 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 export async function completeRide(rideId: string): Promise<{ success: boolean; message: string }> {
-  if (!z.uuid().safeParse(rideId).success) return { success: false, message: "Invalid ride." };
+  if (!z.uuid().safeParse(rideId).success) return { success: false, message: "completion.invalid" };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Sign in to complete your ride." };
+  if (!user) return { success: false, message: "completion.signIn" };
 
   const { data: ride, error } = await supabase.from("rides")
     .select("id, driver_id, status, departure_at")
     .eq("id", rideId).eq("driver_id", user.id).maybeSingle();
-  if (error || !ride) return { success: false, message: "Unable to find your ride." };
-  if (ride.status === "completed") return { success: true, message: "This ride is already completed." };
+  if (error || !ride) return { success: false, message: "completion.notFound" };
+  if (ride.status === "completed") return { success: true, message: "completion.already" };
 
   const now = new Date().toISOString();
   if (!["published", "full"].includes(ride.status) || Date.parse(ride.departure_at) >= Date.parse(now)) {
-    return { success: false, message: "Only departed published or full rides can be completed." };
+    return { success: false, message: "completion.notDeparted" };
   }
   const { data: updated, error: updateError } = await supabase.from("rides")
     .update({ status: "completed" }).eq("id", rideId).eq("driver_id", user.id)
     .in("status", ["published", "full"]).lt("departure_at", now).select("id").maybeSingle();
-  if (updateError) return { success: false, message: "Could not complete the ride. Please try again." };
+  if (updateError) return { success: false, message: "completion.failed" };
   if (!updated) {
     const { data: current, error: readError } = await supabase.from("rides")
       .select("status").eq("id", rideId).eq("driver_id", user.id).maybeSingle();
     if (readError || current?.status !== "completed") {
-      return { success: false, message: "The ride changed. Refresh before trying again." };
+      return { success: false, message: "completion.changed" };
     }
   }
 
@@ -37,32 +37,32 @@ export async function completeRide(rideId: string): Promise<{ success: boolean; 
   revalidatePath("/dashboard/trips");
   revalidatePath("/rides");
   revalidatePath(`/rides/${rideId}`);
-  return { success: true, message: "Ride marked completed." };
+  return { success: true, message: "completion.done" };
 }
 
 export async function cancelRide(
   rideId: string,
   acknowledgesFullRide: boolean,
 ): Promise<{ success: boolean; message: string }> {
-  if (!z.uuid().safeParse(rideId).success) return { success: false, message: "Invalid ride." };
+  if (!z.uuid().safeParse(rideId).success) return { success: false, message: "completion.invalid" };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Sign in to cancel your ride." };
+  if (!user) return { success: false, message: "cancel.signIn" };
 
   const { data: ride, error } = await supabase.from("rides")
     .select("id, driver_id, status, departure_at, seats_available")
     .eq("id", rideId).eq("driver_id", user.id).maybeSingle();
-  if (error || !ride) return { success: false, message: "Unable to find your ride." };
+  if (error || !ride) return { success: false, message: "completion.notFound" };
 
   const now = new Date().toISOString();
   if (!["published", "full"].includes(ride.status) || Date.parse(ride.departure_at) <= Date.parse(now)) {
-    return { success: false, message: "Only future published or full rides can be cancelled." };
+    return { success: false, message: "cancel.futureOnly" };
   }
   const isFull = ride.status === "full" || ride.seats_available === 0;
   if (isFull && acknowledgesFullRide !== true) {
     return {
       success: false,
-      message: "This ride is full. Confirm that you understand passengers will need to make other plans.",
+      message: "cancel.needsAck",
     };
   }
 
@@ -70,7 +70,7 @@ export async function cancelRide(
     .update({ status: "cancelled" }).eq("id", rideId).eq("driver_id", user.id)
     .in("status", ["published", "full"]).gt("departure_at", now).select("id").maybeSingle();
   if (updateError || !updated) {
-    return { success: false, message: "The ride changed and could not be cancelled. Refresh and try again." };
+    return { success: false, message: "cancel.changed" };
   }
 
   revalidatePath("/rides");
@@ -79,6 +79,6 @@ export async function cancelRide(
   revalidatePath("/dashboard/trips");
   return {
     success: true,
-    message: "Ride cancelled. Confirmed passengers will see the cancellation in My trips.",
+    message: "cancel.done",
   };
 }

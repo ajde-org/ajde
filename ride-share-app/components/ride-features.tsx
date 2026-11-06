@@ -1,4 +1,8 @@
+"use client";
+
 import type { ComponentProps } from "react";
+import { useI18n } from "@/lib/i18n/provider";
+import { rideTagKey } from "@/lib/rides/labels";
 
 import { UiIcon } from "@/components/ui-icon";
 import type { RIDE_TAGS } from "@/lib/rides/ride-draft";
@@ -16,15 +20,16 @@ const features = {
 }>;
 
 export function RideFeatures({ tags }: { tags: string[] }) {
+  const { t } = useI18n();
   const selected = Object.entries(features).filter(([tag]) => tags.includes(tag));
-  if (!selected.length) return <p className="text-xs leading-5 text-slate-500">No special requests</p>;
+  if (!selected.length) return <p className="text-xs leading-5 text-slate-500">{t("timing.noFeatures")}</p>;
 
   return (
-    <ul aria-label="Ride features" className="flex flex-wrap gap-x-3 gap-y-1 py-1 text-xs leading-5 text-slate-500">
+    <ul aria-label={t("timing.features")} className="flex flex-wrap gap-x-3 gap-y-1 py-1 text-xs leading-5 text-slate-500">
       {selected.map(([tag, feature]) => (
         <li key={tag} className="flex items-center gap-1.5">
           <UiIcon name={feature.icon} size={16} className="shrink-0" />
-          <span>{feature.label}</span>
+          <span>{t(rideTagKey(tag)!)}</span>
         </li>
       ))}
     </ul>

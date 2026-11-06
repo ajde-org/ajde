@@ -1,7 +1,10 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import 'server-only'
 import { z } from 'zod'
+import type { StaticMessageKey } from '@/lib/i18n/translate'
+import { contactErrorKey } from '@/lib/profiles/contact-errors'
+import { revalidatePath } from 'next/cache'
 import { contactSchema } from '@/lib/profiles/contact'
 import { profilePhotoPathPattern } from '@/lib/profiles/photo'
 import { requireUser } from '@/lib/auth/session'
@@ -22,7 +25,9 @@ export type ProfileInput = {
 
 export type SaveProfileResult =
   | { ok: true }
-  | { ok: false; message: string }
+  | { ok: false; messageKey: ProfileErrorKey }
+
+export type ProfileErrorKey = Extract<StaticMessageKey, `onboarding.${string}` | `contact.${string}`>
 
 const nameMessage = 'Enter a name between 2 and 100 characters.'
 const universityMessage = 'Enter a university between 2 and 160 characters.'
@@ -37,11 +42,22 @@ const profileInputSchema = z.object({
 export async function saveProfile(input: ProfileInput): Promise<SaveProfileResult> {
   const user = await requireUser('/onboarding')
   const parsed = profileInputSchema.safeParse(input)
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message }
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const field = issue.path[0]
+    const messageKey: ProfileErrorKey = field === 'fullName' ? 'onboarding.nameLength'
+      : field === 'university' ? 'onboarding.universityLength'
+      : field === 'bio' ? 'onboarding.bioLength'
+      : field === 'gender' ? 'onboarding.invalidGender'
+      : field === 'storagePath' ? 'onboarding.photoOwner'
+      : field === 'phone' || field === 'socialUrl' ? contactErrorKey(issue)
+      : 'onboarding.invalidInput'
+    return { ok: false, messageKey }
+  }
   const { fullName, university, bio, storagePath, gender, phone, socialUrl } = parsed.data
   // The database also rejects a photo_url outside the user's own folder (guard_profile_photo).
   if (storagePath && !profilePhotoPathPattern(user.id).test(storagePath)) {
-    return { ok: false, message: 'Upload a profile photo owned by your account.' }
+    return { ok: false, messageKey: 'onboarding.photoOwner' }
   }
 
   const supabase = await createClient()
@@ -49,7 +65,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   const photoUrl = storagePath
     ? supabase.storage.from('profile-photos').getPublicUrl(storagePath).data.publicUrl
     : existing?.photo_url
-  if (!photoUrl) return { ok: false, message: 'Add a profile photo to continue.' }
+  if (!photoUrl) return { ok: false, messageKey: 'onboarding.photoRequired' }
   const profile = {
     full_name: fullName,
     photo_url: photoUrl,
@@ -70,7 +86,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   }
 
   if (error) {
-    return { ok: false, message: 'Your profile could not be saved. Please try again.' }
+    return { ok: false, messageKey: 'onboarding.saveFailed' }
   }
 
   revalidatePath('/', 'layout')

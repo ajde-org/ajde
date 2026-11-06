@@ -3,9 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { RideFeatures } from "./ride-features";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { en } from "@/lib/i18n/messages/en";
 import { RIDE_TAGS } from "@/lib/rides/ride-draft";
 
-const render = (tags: string[]) => renderToStaticMarkup(createElement(RideFeatures, { tags }));
+const render = (tags: string[]) => renderToStaticMarkup(<I18nProvider locale="en" messages={en}>{createElement(RideFeatures, { tags })}</I18nProvider>);
 
 describe("RideFeatures", () => {
   it("labels every supported ride feature with a decorative icon", () => {

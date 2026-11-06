@@ -1,5 +1,6 @@
 'use client'
 
+import { useI18n } from "@/lib/i18n/provider";
 import { useActionState } from 'react'
 
 import { requestMagicLink, type LoginState } from './actions'
@@ -7,15 +8,14 @@ import { requestMagicLink, type LoginState } from './actions'
 const initialState: LoginState = { status: 'idle' }
 
 export function LoginForm({ next, signingUp }: { next: string; signingUp: boolean }) {
+  const { t } = useI18n();
   const [state, action, pending] = useActionState(requestMagicLink, initialState)
 
   return (
     <form action={action} className="space-y-5" aria-busy={pending}>
       <input type="hidden" name="next" value={next} />
       <div className="space-y-2">
-        <label htmlFor="email" className="block text-sm font-semibold text-slate-800">
-          Student email
-        </label>
+        <label htmlFor="email" className="block text-sm font-semibold text-slate-800">{t("auth.email")}</label>
         <input
           id="email"
           name="email"
@@ -24,13 +24,11 @@ export function LoginForm({ next, signingUp }: { next: string; signingUp: boolea
           defaultValue={state.email}
           required
           placeholder="you@students.finki.ukim.mk"
-          aria-describedby={state.message ? 'email-help login-message' : 'email-help'}
+          aria-describedby={state.messageKey ? 'email-help login-message' : 'email-help'}
           aria-invalid={state.status === 'error' || undefined}
           className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
         />
-        <p id="email-help" className="text-sm leading-6 text-slate-500">
-          Use your university-issued student email address.
-        </p>
+        <p id="email-help" className="text-sm leading-6 text-slate-500">{t("auth.emailHint")}</p>
       </div>
       <button
         type="submit"
@@ -39,9 +37,9 @@ export function LoginForm({ next, signingUp }: { next: string; signingUp: boolea
         disabled={pending}
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? 'Continuing…' : !signingUp ? 'Sign in' : state.status === 'sent' ? 'Send another link' : 'Email me a sign-up link'}
+        {pending ? t("auth.continuing") : !signingUp ? t("nav.signIn") : state.status === 'sent' ? t("auth.resend") : t("auth.send")}
       </button>
-      {state.message ? (
+      {state.messageKey ? (
         <p
           id="login-message"
           role={state.status === 'error' ? 'alert' : 'status'}
@@ -51,7 +49,7 @@ export function LoginForm({ next, signingUp }: { next: string; signingUp: boolea
               : 'bg-emerald-50 text-emerald-800'
           }`}
         >
-          {state.message}
+          {state.messageKey === "auth.sent" ? t("auth.sent", { email: state.email ?? "" }) : state.messageKey ? t(state.messageKey) : null}
         </p>
       ) : null}
     </form>
