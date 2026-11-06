@@ -25,7 +25,7 @@ export default async function RideFeedPage({ searchParams }: RideFeedPageProps) 
   return <div className="text-slate-950">
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
       {firstParam(rawParams.welcome) === "1" ? <p role="status" className="mb-6 whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{t("discovery.welcome")}</p> : null}
-      <LocalizedPageHeading title="discovery.title" intro="discovery.intro" />
+      <LocalizedPageHeading title="discovery.title" />
       <Suspense fallback={<p role="status" className="mt-8 text-sm text-slate-500">{t("loading.rides")}</p>}>
         <RideFeedContent rawParams={rawParams} />
       </Suspense>

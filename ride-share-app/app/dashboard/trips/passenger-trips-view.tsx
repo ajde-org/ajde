@@ -28,7 +28,7 @@ export function PassengerTripsView({ trips, counts, cities, driverMap, ratingCon
   const cityMap = new Map(cities.map((city) => [city.id, locale === "mk" ? city.name_mk : city.name_en]));
 
   return <TripStatusFilterNav view="passenger" filter={filter} counts={counts}>
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
         {trips.map(({ booking, ride, status }) => {
           const driver = ride.driver_id ? driverMap.get(ride.driver_id) : null;
           const contact = driver?.phone || driver?.instagram || driver?.facebook;
@@ -37,12 +37,12 @@ export function PassengerTripsView({ trips, counts, cities, driverMap, ratingCon
           const departure = new Date(ride.departure_at);
           const date = formatLocalizedDate(locale, departure, { day: "numeric", month: "short", weekday: "short", timeZone: "Europe/Skopje" });
           const time = formatLocalizedDate(locale, departure, { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Skopje" });
-          const canCancel = status.filter === "active";
+          const canCancel = status.filter === "active" && departure.getTime() > now;
           const canShare = booking.status === "accepted" && !rideIsCancelled;
           const statusColor = status.filter === "cancelled" || booking.status === "declined"
             ? "bg-red-50 text-red-800"
             : booking.status === "accepted" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600";
-          return <article key={booking.id} className="surface-card flex min-w-0 flex-col p-5 text-slate-950 sm:p-6">
+          return <article key={booking.id} className="surface-card min-w-0 p-5 text-slate-950 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className={`inline-flex rounded-full px-3 py-1 text-[.8125rem] font-semibold ${statusColor}`}>{t(status.label)}</span>
               <span className="text-[.8125rem] font-medium text-slate-600">{t(`trips.seats.${booking.status === "accepted" ? "booked" : booking.status === "requested" ? "requested" : "other"}.${plural(locale, booking.seats)}`, { count: formatNumber(locale, booking.seats) })}</span>
@@ -71,20 +71,18 @@ export function PassengerTripsView({ trips, counts, cities, driverMap, ratingCon
               <p className="font-semibold">{driver?.full_name ?? t("trips.driverUnavailable")}</p>
               <p className="mt-1 text-sm text-slate-600"><span className="font-medium">{t("trips.contact")}</span> {contact || t("trips.arrangeChat")}</p>
             </div> : null}
-            {booking.status === "requested" && canCancel ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{t("trips.chatWhenAccepted")}</p> : null}
-            <div className="mt-auto pt-4">
-            <nav aria-label={t("trips.actions")} className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1 lg:min-h-20">{t("trips.view")}</Link>
-              {booking.status === "accepted" && ride.driver_id ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1 lg:min-h-20" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
+            <nav aria-label={t("trips.actions")} className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <Link href={`/rides/${ride.id}`} className="btn-secondary flex-1">{t("trips.view")}</Link>
+              {booking.status === "accepted" && ride.driver_id ? <Link href={`/rides/${ride.id}/chat`} className="btn-primary flex-1" aria-label={t("detail.openChatLabel", { route: t("ride.route", { origin: cityMap.get(ride.origin_city_id) ?? "", destination: cityMap.get(ride.dest_city_id) ?? "" }) })}><ChatIcon /> {t("trips.openChat")}</Link> : null}
               {rideIsCompleted || rideIsCancelled ? <Link href="/rides" className="btn-secondary w-full">{t("trips.next")}</Link> : null}
             </nav>
+            {booking.status === "requested" && canCancel ? <p className="mt-3 text-sm text-slate-600">{t("trips.chatWhenAccepted")}</p> : null}
             {booking.status === "accepted" && ride.driver_id ? <RatingControl state={ratingControls.get(ride.id)?.get(ride.driver_id)} rideId={ride.id} rateeId={ride.driver_id} targetName={driver?.full_name ?? t("trips.driverFallback")} /> : null}
             {canCancel || canShare ? <details className="card-options mt-4">
               <summary>{t("trips.bookingOptions")}</summary>
               {canShare ? <TripShareControls bookingId={booking.id} expiresAt={new Date(Date.parse(ride.departure_at) + 86400000).toISOString()} expired={Date.parse(ride.departure_at) + 86400000 <= now} /> : null}
               {canCancel ? <form action={cancelBooking.bind(null, booking.id)} className="mt-4"><SubmitButton pendingLabel={t("trips.cancelling")} className="btn-quiet text-red-700 disabled:opacity-60">{t("trips.cancelBooking")}</SubmitButton></form> : null}
             </details> : null}
-            </div>
           </article>;
         })}
         {!trips.length ? <div className="journey-card dashboard-empty"><h2>{hasTrips ? emptyStates[filter].title : emptyStates.all.title}</h2><p>{hasTrips ? emptyStates[filter].body : emptyStates.all.body}</p><Link href="/rides" className="btn-primary">{hasTrips ? t("trips.find") : t("trips.firstRide")}</Link></div> : null}

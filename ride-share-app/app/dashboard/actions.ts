@@ -70,7 +70,7 @@ export async function cancelBooking(bookingId: string) {
 
   const { data: booking, error } = await supabase
     .from("bookings")
-    .select("id, ride_id, passenger_id, status")
+    .select("id, ride_id, passenger_id, status, rides(departure_at)")
     .eq("id", bookingId)
     .maybeSingle();
   if (error || !booking || booking.passenger_id !== user.id) {
@@ -78,6 +78,12 @@ export async function cancelBooking(bookingId: string) {
   }
   if (!['requested', 'accepted'].includes(booking.status)) {
     redirect(dashboardUrl("trips", "error", "tripAction.alreadyClosed"));
+  }
+  // After departure the trip has happened: cancelling then would only dodge the driver's rating.
+  // The database enforces the same rule (bookings_passenger_cancels).
+  const departureAt = booking.rides?.departure_at;
+  if (!departureAt || Date.parse(departureAt) <= Date.now()) {
+    redirect(dashboardUrl("trips", "error", "tripAction.departed"));
   }
 
   const { error: updateError } = await supabase

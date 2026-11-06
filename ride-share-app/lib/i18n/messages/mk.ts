@@ -1,3 +1,4 @@
+import { timingMk } from "./timing-mk";
 import { errorsMk } from "./errors-mk";
 import { carColorsMk } from "./car-colors-mk";
 import { onboardingMk } from "./onboarding-mk";
@@ -17,6 +18,7 @@ import { explanationsMk } from "./explanations-mk";
 
 // Draft Macedonian copy. Record human wording review in the ticket or pull request.
 export const mk = {
+  ...timingMk,
   ...carColorsMk,
   ...errorsMk,
   ...rideFormMk,

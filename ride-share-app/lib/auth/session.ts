@@ -56,8 +56,28 @@ export async function requireCompleteProfile(nextPath = '/rides'): Promise<User>
   return user
 }
 
+const NEXT_PATH_BASE = 'http://ajde.invalid'
+
+/**
+ * Returns `value` as a same-site path, or `fallback` if it could lead off the site. Browsers treat
+ * `\` like `/` and URL parsing drops tabs and newlines, so `/\evil.com` or `/<tab>/evil.com` would
+ * redirect to evil.com: reject those characters, then require the parsed URL to stay on our origin.
+ */
 export function safeNextPath(value: string | null, fallback = '/rides'): string {
-  if (!value?.startsWith('/') || value.startsWith('//')) return fallback
-  return value
+  if (!value?.startsWith('/')) return fallback
+  for (const char of value) {
+    const code = char.charCodeAt(0)
+    if (char === '\\' || code < 0x20 || code === 0x7f) return fallback
+  }
+  let url: URL
+  try {
+    url = new URL(value, NEXT_PATH_BASE)
+  } catch {
+    return fallback
+  }
+  // Parsing removes dot segments, so `/.//evil.com` normalises to `//evil.com`: a protocol-relative
+  // URL that leaves the site once returned. Reject any path that normalises to two leading slashes.
+  if (url.origin !== NEXT_PATH_BASE || url.pathname.startsWith('//')) return fallback
+  return `${url.pathname}${url.search}${url.hash}`
 }
 

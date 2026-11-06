@@ -170,7 +170,7 @@ it.each(["en", "mk"] as const)(
     expect(html).toContain(
       locale === "mk" ? "Уште 3 слободни места" : "3 seats left",
     );
-    expect(html).toContain(locale === "mk" ? "по место" : "per seat");
+    expect(html).toContain(locale === "mk" ? "250 ден." : "MKD");
     expect(html).toContain("Test Driver");
   },
 );
@@ -194,7 +194,7 @@ it.each(["en", "mk"] as const)(
         : "Seat request sent to the driver.",
     );
     expect(html).toContain("Original driver text");
-    expect(html).toContain("Original custom tag");
+    expect(html).not.toContain("Original custom tag");
     expect(html).toContain(locale === "mk" ? "Забрането пушење" : "No smoking");
     expect(html).toContain(
       locale === "mk" ? "Побарај место" : "Request a seat",

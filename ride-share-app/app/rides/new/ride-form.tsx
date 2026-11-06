@@ -4,6 +4,7 @@ import { localizedCarColor } from "@/lib/i18n/car-color";
 import { useI18n } from "@/lib/i18n/provider";
 import { formatNumber, formatMoney } from "@/lib/i18n/format";
 import { localizedName } from "@/lib/i18n/locations";
+import { formatDuration, rideTiming } from "@/lib/rides/ride-timing";
 import { departureInstant, type OfferValues } from "@/lib/rides/offer-values";
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
@@ -41,6 +42,7 @@ type CarModel = Pick<
 >;
 
 export type RideFormProps = {
+  estimatedDurationMinutes?: number | null;
   cars: Car[];
   carModels: CarModel[];
   cities: City[];
@@ -69,6 +71,7 @@ function FieldError({ errors, id }: { errors?: string[]; id?: string }) {
 }
 
 export function RideForm({
+  estimatedDurationMinutes = null,
   cars,
   carModels,
   cities,
@@ -184,6 +187,8 @@ export function RideForm({
   }
 
   const departureAt = departureInstant(departureLocal);
+  const chosenDuration = values.durationMinutes ? Number(values.durationMinutes) : estimatedDurationMinutes;
+  const timing = departureAt ? rideTiming(departureAt, chosenDuration, locale) : null;
 
   return (
     <form
@@ -256,10 +261,28 @@ export function RideForm({
             <FieldError id="destination-error" errors={state.fieldErrors["destination.cityId"]} />
           </label>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-          <div className="col-span-2 row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+        <div className="rounded-xl bg-slate-50 p-4">
+          <label htmlFor="journey-duration" className="block font-medium text-slate-800">{t("timing.duration")}</label>
+          <div className="mt-2 flex flex-wrap items-start gap-x-6 gap-y-3">
+            <div className="w-40">
+              <input id="journey-duration" name="durationMinutes" type="number" step="1" min={estimatedDurationMinutes ?? 1} max={1440}
+                disabled={estimatedDurationMinutes === null} className={inputClass + " !mt-0"}
+                value={values.durationMinutes || estimatedDurationMinutes || ""}
+                onChange={event => onChange({ ...values, durationMinutes: event.target.value })}
+                aria-describedby="duration-hint duration-error" aria-invalid={Boolean(state.fieldErrors.durationMinutes) || undefined} />
+            </div>
+            <div className="text-sm text-slate-600" aria-live="polite">
+              <p id="duration-hint">{estimatedDurationMinutes === null ? t("timing.durationUnavailable") : t("timing.durationHint", { duration: formatDuration(estimatedDurationMinutes, locale) })}</p>
+              {timing?.arrivalAt && <p className="mt-1 font-semibold text-brand-800"><time dateTime={timing.arrivalAt}>{timing.dayLabel
+                ? t("timing.arrivalPreviewDay", { time: timing.arrival!, day: timing.dayLabel })
+                : t("timing.arrivalPreview", { time: timing.arrival! })}</time></p>}
+            </div>
+          </div>
+          <FieldError id="duration-error" errors={state.fieldErrors.durationMinutes} />
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="font-medium text-slate-800 col-span-2">
             <span id="departure-label">{t("form.departure")}</span>
-            <div>
             <DateTimeField
               labelledBy="departure-label"
               className={inputClass}
@@ -272,9 +295,8 @@ export function RideForm({
             <FieldError id="departure-error" errors={state.fieldErrors.departureAt} />
             {departureLocal && !departureAt && <p className="mt-2 text-sm text-amber-800">{t("form.incompleteDeparture", { value: departureLocal.split("T").filter(Boolean).join(" ") })}</p>}
             <p className="mt-1 text-[.75rem] font-normal text-slate-500">{t("form.timeZone")}</p>
-            </div>
           </div>
-          <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+          <label className="font-medium text-slate-800">
             <span>{t("form.seats")}</span><div><input
               className={inputClass}
               max={Math.min(selectedCarCapacity ?? RIDE_LIMITS.seats.max, RIDE_LIMITS.seats.max)}
@@ -293,7 +315,7 @@ export function RideForm({
             <FieldError id="seats-error" errors={state.fieldErrors.seatsTotal} />
             </div>
           </label>
-          <label className="row-span-2 grid grid-rows-subgrid font-medium text-slate-800">
+          <label className="font-medium text-slate-800">
             <span>{t("form.price")}</span>
             <div>
             <input

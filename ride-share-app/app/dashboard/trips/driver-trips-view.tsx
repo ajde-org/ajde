@@ -13,6 +13,7 @@ import { CompleteRideButton } from "@/components/ride-completion/complete-ride-b
 import { CancelRideControl } from "@/components/ride-completion/cancel-ride-control";
 import { RatingControl } from "@/components/ratings/rating-control";
 import { formatDeparture } from "@/lib/rides/ride-presentation";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 import { decideBooking } from "../actions";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
@@ -59,7 +60,7 @@ export function DriverTripsView({ rides, bookings, counts, cities, passengerMap,
                   <div className="flex min-w-0 items-start gap-3">
                     {passenger ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={passenger.photo_url} alt="" className="size-12 shrink-0 rounded-full bg-slate-50 object-cover" />
+                      <img src={profilePhotoSrc(passenger.photo_url)} alt="" className="size-12 shrink-0 rounded-full bg-slate-50 object-cover" />
                     ) : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm">SR</span>}
                     <div className="min-w-0">
                       <p className="font-medium">{passenger ? <Link href={`/profile/${passenger.id}`} className="hover:text-brand-700">{passenger.full_name}</Link> : t("trips.student")}</p>

@@ -65,10 +65,12 @@ export function validateRideSubmission(
     .object({
       intent: rideSubmissionIntentSchema,
       submissionId: submissionIdSchema,
+      durationMinutes: z.number().int().min(1).max(1440).nullable(),
     })
     .safeParse({
       intent: formData.get("intent"),
       submissionId: formData.get("submissionId"),
+      durationMinutes: nullableNumber(formData.get("durationMinutes")),
     });
 
   const draft = createPublishableRideDraftSchema({ now }).safeParse(
@@ -100,6 +102,7 @@ export function issueMessageKeys(issues: z.core.$ZodIssue[]) {
       : path.endsWith("seatsTotal") ? "validation.seats"
       : path === "pricePerSeatMkd" ? "validation.price"
       : path === "distanceKm" ? "validation.distance"
+      : path === "durationMinutes" ? "validation.duration"
       : path.endsWith("consumptionL100Km") ? "validation.consumption"
       : path.endsWith("plateLast3") ? "validation.plate"
       : path === "notes" ? "validation.notes"

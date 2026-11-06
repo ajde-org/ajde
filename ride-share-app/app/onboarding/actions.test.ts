@@ -52,3 +52,11 @@ it("creates the profile on first save without an upsert", async () => {
   expect(db.ops).toEqual(["update","insert"]);
   expect(db.written).toMatchObject({id:"owner",phone:"+38970123456",photo_url:"https://example.com/owner/photo.jpg"});
 });
+it("rejects malformed input and photo paths that escape the user's folder", async () => {
+  expect(await saveProfile({...input,fullName:"A"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
+  expect((await saveProfile({...input,gender:"robot" as never})).ok).toBe(false);
+  expect((await saveProfile({...input,fullName:42 as never})).ok).toBe(false);
+  expect((await saveProfile({...input,storagePath:"owner/../victim/photo.jpg"})).ok).toBe(false);
+  expect((await saveProfile({...input,storagePath:"owner/photo.svg"})).ok).toBe(false);
+  expect(db.written).toBeNull();
+});

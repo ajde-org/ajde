@@ -4,7 +4,10 @@ import type { TablesInsert } from "@/lib/supabase/database.types";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+import { cachedRouteEstimate } from "@/lib/rides/route-estimate-cache";
+import { resolveDurationMinutes } from "@/lib/rides/ride-timing";
 import { readCarSelection, type CarSelection } from "@/lib/rides/car-selection";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { issueMessageKeys, validateRideSubmission } from "@/lib/rides/ride-form";
 
@@ -126,6 +129,24 @@ export async function createRide(
       fieldErrors: {},
     };
   }
+  // Server actions can be invoked from any route, so the proxy's onboarding redirect does not cover
+  // this: publishing checks the profile (including the phone number) here, and the database enforces
+  // the phone too. Saving a draft does not need one.
+  if (formData.get("intent") === "publish") {
+    let complete: boolean;
+    try {
+      complete = (await getProfileCompletion(user.id)).complete;
+    } catch {
+      return { status: "error", message: "form.profileCheckFailed", fieldErrors: {} };
+    }
+    if (!complete) {
+      return {
+        status: "error",
+        message: "form.profileRequired",
+        fieldErrors: {},
+      };
+    }
+  }
 
   const carSelection = readCarSelection(formData);
   const validationCarId = carSelection.success
@@ -148,8 +169,15 @@ export async function createRide(
     };
   }
 
+  const estimate = await cachedRouteEstimate(supabase, validation.draft.data.origin.cityId, validation.draft.data.destination.cityId);
+  const requested = validation.metadata.data.durationMinutes;
+  try {
+    resolveDurationMinutes(estimate.ok ? estimate.durationMinutes : null, requested);
+  } catch {
+    return { status: "error", message: "form.reviewDuration", fieldErrors: { durationMinutes: [estimate.ok ? "validation.duration" : "form.durationNeedsEstimate"] } };
+  }
   const result = await supabase.rpc("create_ride_offer", {
-    p_offer: validation.draft.data,
+    p_offer: { ...validation.draft.data, durationMinutes: requested },
     p_vehicle: carSelection.data,
     p_submission_id: validation.metadata.data.submissionId,
     p_publish: validation.metadata.data.intent === "publish",

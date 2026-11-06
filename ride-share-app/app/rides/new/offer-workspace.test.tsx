@@ -8,11 +8,26 @@ import { mk } from "@/lib/i18n/messages/mk";
 const publish = vi.hoisted(() => vi.fn());
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 
+it("localizes dev's duration controls and keeps manual kilometres when routing finishes", async () => {
+  let finish!: (response: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })));
+  render(<OfferWorkspace {...props} initialDraft={trip.draft} />, { locale: "mk" });
+  fireEvent.change(screen.getByLabelText(mk["estimate.distance"]), { target: { value: "180" } });
+  await act(async () => finish(Response.json({ distanceKm: 174.3, durationMinutes: 150 })));
+  expect(screen.getByLabelText(mk["estimate.distance"])).toHaveProperty("value", "180");
+  const duration = screen.getByLabelText(mk["timing.duration"]);
+  expect(duration).toHaveProperty("disabled", false);
+  expect(duration).toHaveProperty("value", "150");
+  expect(duration.getAttribute("min")).toBe("150");
+  fireEvent.change(duration, { target: { value: "170" } });
+  expect(screen.getByText("Проценето пристигнување: 18:50 · скопско време")).toBeTruthy();
+});
+
 it("localizes the completed fill panel and the reported missing weekday time warning", async () => {
   const warning = 'Weekday mentioned as "petok" (Friday), but no time was provided.';
   vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret")
     ? Response.json({ trips: [{ ...trip, draft: { ...trip.draft, warnings: [{ field: null, code: "low_confidence", message: warning }] } }] })
-    : Response.json({ distanceKm: 174.3 })));
+    : Response.json({ distanceKm: 174.3, durationMinutes: 150 })));
   render(<OfferWorkspace {...props} />, { locale: "mk" });
   fireEvent.change(screen.getByLabelText(mk["offer.describe"]), { target: { value: "Skopje Bitola petok" } });
   fireEvent.click(screen.getByRole("button", { name: mk["offer.fill"] }));
@@ -25,7 +40,7 @@ it("localizes the completed fill panel and the reported missing weekday time war
 });
 
 it.each(["form.from", "form.to"] as const)("clears paired city errors when %s changes, preserving other errors", async field => {
-  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ distanceKm: 60 })));
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ distanceKm: 60, durationMinutes: 150 })));
   publish.mockResolvedValue({ status: "error", message: "form.saveFailed", fieldErrors: {
     "origin.cityId": ["validation.city"], "destination.cityId": ["validation.city"], departureAt: ["validation.departure"],
   } });
@@ -51,7 +66,7 @@ it("shows specific Macedonian warnings from an incomplete description", async ()
 
 it("uses the current route result instead of stale imported distance prose", async () => {
   let resolveChangedRoute!: (response: Response) => void;
-  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ distanceKm: 174.3 }))
+  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ distanceKm: 174.3, durationMinutes: 150 }))
     .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveChangedRoute = resolve; }));
   vi.stubGlobal("fetch", fetcher);
   render(<OfferWorkspace {...props} cities={[...props.cities, { id: 8, name_en: "Veles", name_mk: "Велес" }]}
@@ -62,7 +77,7 @@ it("uses the current route result instead of stale imported distance prose", asy
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
   expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ originCity: "Skopje", destinationCity: "Veles" });
   expect(screen.queryByText(/Пресметана е процена од/)).toBeNull();
-  await act(async () => resolveChangedRoute(Response.json({ distanceKm: 53.6 })));
+  await act(async () => resolveChangedRoute(Response.json({ distanceKm: 53.6, durationMinutes: 150 })));
   await screen.findByText(/Пресметана е процена од 53,6 km/);
   const input = screen.getByLabelText(mk["estimate.distance"]);
   expect(input).toHaveProperty("value", "53.6");
@@ -101,7 +116,7 @@ it("fills cities and Skopje departure before requesting kilometres with their na
     expect(JSON.parse(String(options.body))).toEqual({ originCity: "Skopje", destinationCity: "Bitola" });
     expect(screen.getByLabelText("From")).toHaveProperty("value", "1");
     expect(screen.getByLabelText("To")).toHaveProperty("value", "3");
-    return Response.json({ distanceKm: 174.3 });
+    return Response.json({ distanceKm: 174.3, durationMinutes: 150 });
   });
   vi.stubGlobal("fetch", fetcher);
   render(<OfferWorkspace {...props} />);
@@ -117,7 +132,7 @@ it("fills cities and Skopje departure before requesting kilometres with their na
 
 it("keeps two recognized trips in separate tabs and stays with the siblings after publishing", async () => {
   const returning = { ...trip, draft: { ...trip.draft, origin: trip.draft.destination, destination: trip.draft.origin, departureAt: "2026-09-27T16:00:00Z", seatsTotal: 3, pricePerSeatMkd: 400 }, dateLocal: "2026-09-27", timeLocal: "18:00" };
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, returning] }) : Response.json({ distanceKm: 174.3 })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, returning] }) : Response.json({ distanceKm: 174.3, durationMinutes: 150 })));
   publish.mockResolvedValue({ status: "success", message: "Ride published.", fieldErrors: {}, rideId: "30000000-0000-4000-8000-000000000002" });
   render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Describe your rides"), { target: { value: "skp bt Saturday 4pm, back Sunday 6pm" } });
@@ -139,7 +154,7 @@ it("allows direct form edits after filling and protects manual km from stale loo
   vi.stubGlobal("fetch", vi.fn(async (url: string, options: RequestInit) => {
     if (url.includes("interpret")) return Response.json({ trips: [trip] });
     if (JSON.parse(String(options.body)).originCity === "Bitola") return new Promise<Response>(resolve => { resolveRoute = resolve; });
-    return Response.json({ distanceKm: 174.3 });
+    return Response.json({ distanceKm: 174.3, durationMinutes: 150 });
   }));
   render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Describe your rides"), { target: { value: "skp bt Saturday 4pm" } });
@@ -152,16 +167,16 @@ it("allows direct form edits after filling and protects manual km from stale loo
   fireEvent.change(screen.getByLabelText("To"), { target: { value: "1" } });
   fireEvent.click(screen.getByRole("button", { name: /^Departure/ }));
   fireEvent.change(screen.getByLabelText("Hour"), { target: { value: "17" } });
-  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  if (screen.queryByRole("button", { name: "Done" })) fireEvent.click(screen.getByRole("button", { name: "Done" }));
   fireEvent.change(screen.getByLabelText("Estimated route distance (km)"), { target: { value: "185" } });
   expect(screen.getByRole("button", { name: /^Departure/ }).textContent).toContain("17:00");
   expect(new FormData(screen.getByRole("button", { name: "Publish ride" }).closest("form")!).get("departureAt")).toBe("2026-09-26T15:00:00.000Z");
-  await act(async () => { resolveRoute(Response.json({ distanceKm: 190 })); });
+  await act(async () => { resolveRoute(Response.json({ distanceKm: 190, durationMinutes: 150 })); });
   expect(screen.getByLabelText("Estimated route distance (km)")).toHaveProperty("value", "185");
 });
 
 it("recovers every current field and manual km in the same user's session without exposing them to another user", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ distanceKm: 174.3 })));
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ distanceKm: 174.3, durationMinutes: 150 })));
   const first = render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("From"), { target: { value: "1" } });
   fireEvent.change(screen.getByLabelText("To"), { target: { value: "3" } });
@@ -232,7 +247,7 @@ it("routes an imported draft, ignores pickup edits, and allows manual km after p
 
 it("retains incomplete dates in extra tabs, supports keyboard navigation and deleting a draft", async () => {
   const incomplete = { ...trip, draft: { ...trip.draft, departureAt: null }, timeLocal: null };
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, incomplete] }) : Response.json({ distanceKm: 174 })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, incomplete] }) : Response.json({ distanceKm: 174, durationMinutes: 150 })));
   render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Describe your rides"), { target: { value: "Saturday 4pm and another Saturday trip" } });
   fireEvent.click(screen.getByRole("button", { name: "Fill form" }));
@@ -250,7 +265,7 @@ it("retains incomplete dates in extra tabs, supports keyboard navigation and del
 });
 
 it("starts over with one blank draft, keeps the description, and can undo", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, trip] }) : Response.json({ distanceKm: 174 })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, trip] }) : Response.json({ distanceKm: 174, durationMinutes: 150 })));
   render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Describe your rides"), { target: { value: "two trips" } });
   fireEvent.click(screen.getByRole("button", { name: "Fill form" }));
@@ -267,7 +282,7 @@ it("starts over with one blank draft, keeps the description, and can undo", asyn
 });
 
 it("removes published tabs from recovery and redirects to My trips when the final draft publishes", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, trip] }) : Response.json({ distanceKm: 174 })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("interpret") ? Response.json({ trips: [trip, trip] }) : Response.json({ distanceKm: 174, durationMinutes: 150 })));
   publish.mockResolvedValue({ status: "success", message: "Published", fieldErrors: {}, rideId: "30000000-0000-4000-8000-000000000002" });
   const view = render(<OfferWorkspace {...props} />);
   fireEvent.change(screen.getByLabelText("Describe your rides"), { target: { value: "two trips" } });

@@ -33,7 +33,7 @@
   :where(input, select, textarea):user-invalid, [aria-invalid="true"] { border-color: var(--color-red-700); box-shadow: 0 0 0 3px rgb(217 48 67 / 12%); }
   :where(button, input, select, textarea):disabled, [aria-disabled="true"] { cursor: not-allowed; }
   button:not(:disabled):active { filter: brightness(.96); }
-  ::placeholder { color: var(--color-slate-500); opacity: 1; }
+  ::placeholder { color: var(--color-slate-500); opacity: 1; font-weight: 400; }
   ::selection { background: var(--color-brand-100); color: var(--foreground); }
 }
 @layer components {

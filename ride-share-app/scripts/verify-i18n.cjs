@@ -28,6 +28,7 @@ async function main() {
     const scrollBeforeSwitch = await page.evaluate(() => window.scrollY);
     // Dispatch without Playwright scrolling the sticky control into view first.
     await page.getByRole('button', { name: 'Switch language', exact: true }).dispatchEvent('click');
+    await page.getByRole('button', { name: 'Македонски', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.lang === 'mk');
     await page.waitForFunction(y => Math.abs(window.scrollY - y) < 2, scrollBeforeSwitch);
     await page.waitForTimeout(500);
@@ -63,11 +64,13 @@ async function main() {
     const email = page.getByLabel('Студентска е-пошта', { exact: true });
     await email.fill('preserve@example.invalid');
     await page.getByRole('button', { name: 'Промени јазик', exact: true }).click();
+    await page.getByRole('button', { name: 'English', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.lang === 'en');
     assert.equal(await page.getByLabel('Student email', { exact: true }).inputValue(), 'preserve@example.invalid', 'Unsaved email survives switching');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.getByRole('alert').filter({ hasText: 'Use an approved student email address to continue.' }).waitFor();
     await page.getByRole('button', { name: 'Switch language', exact: true }).click();
+    await page.getByRole('button', { name: 'Македонски', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.lang === 'mk');
     await page.getByRole('alert').filter({ hasText: 'За да продолжите' }).waitFor();
     await page.goto(`${base}/auth/callback`, { waitUntil: 'networkidle' });

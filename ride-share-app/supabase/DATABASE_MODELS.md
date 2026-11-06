@@ -28,9 +28,9 @@ token).
 | Table | Read | Write |
 | --- | --- | --- |
 | `cities`, `pickup_points`, `car_models` | everyone | migrations only |
-| `profiles` | everyone, except contact columns | own row: insert and update, never `verified_at`, `created_at`, `updated_at` |
-| `rides` | signed in: all except other users' drafts | driver updates `status` of own rides, following the lifecycle below; insert only via `create_ride_offer()` |
-| `bookings` | the passenger and the ride's driver | passenger requests (`can_request_seat()`) and cancels own while the ride is published or full; driver accepts or declines requests before departure |
+| `profiles` | signed in, except contact columns | own row: insert and update, never `verified_at`, `created_at`, `updated_at`; `photo_url` only an upload in the user's own folder |
+| `rides` | signed in: all except other users' drafts | driver updates `status` of own rides, following the lifecycle below; insert only via `create_ride_offer()`; publishing needs a phone number |
+| `bookings` | the passenger and the ride's driver | passenger requests (`can_request_seat()`) and cancels own while the ride is published or full and has not departed; driver accepts or declines requests before departure |
 | `cars` | owner, and cars attached to visible rides | owner inserts |
 | `imports` | creator | creator inserts |
 | `trip_shares` | the booking's passenger | the booking's passenger creates and deletes |
@@ -49,6 +49,17 @@ token).
   completed only after departure, published/full → cancelled only before departure, draft →
   published only for a future departure, and draft → cancelled. Completed and cancelled are final.
   Migrations, the service role and SECURITY DEFINER functions are not restricted.
+- Publishing a ride (inserting it as published, or draft → published) on behalf of a signed-in user
+  requires the driver's profile to have a valid phone number (`require_driver_phone()`). Seat syncing
+  between published and full is not a publish.
+- Once a profile has a valid phone, API writes may change it but not remove or invalidate it
+  (`guard_profile_phone()`), so drivers of published rides stay reachable.
+- `photo_url` written through the API must be an upload in the user's own folder:
+  `<host>/storage/v1/object/public/profile-photos/<own id>/<name>.(jpg|jpeg|png|webp)`
+  (`guard_profile_photo()`). The database cannot pin the host, so the app renders only photos from
+  its own storage host (`profilePhotoSrc()` in `lib/profiles/photo.ts`) and a placeholder otherwise.
+- Logged-out visitors read no profiles: `/profile/*` requires sign-in, and share links read the
+  driver's name and photo with the service role.
 - Chat rooms read their accepted members through `ride_room_roster(uuid)`, which returns only
   passenger ids and decision times to room members. Co-passengers never see each other's bookings,
   whose `message` is a private note to the driver.
@@ -82,8 +93,11 @@ token).
 
 Public bucket for profile avatars. Objects are limited to JPEG, PNG, or WebP files of at most 5 MB.
 Authenticated users may insert, update, and delete objects only inside a top-level folder matching
-their own Auth user UUID (`<auth.uid()>/<filename>`). Public reads are intentional because profile
-photos are part of the public identity shown on ride and profile pages.
+their own Auth user UUID (`<auth.uid()>/<filename>`), and may select (list) only that folder.
+The bucket is public, so files load by URL without any SELECT policy: photos are shown on ride pages
+and on share links opened without signing in. Nobody else can list the bucket, which would reveal
+every user's UUID. Onboarding names uploads
+`<auth.uid()>/<uuid>.<jpg|png|webp>` from the file's type.
 
 ## Enums
 
@@ -176,7 +190,7 @@ Stores an imported social post before/after parsing: required nonblank `raw_text
 ### `rides`
 
 The central trip offer. A ride links optional `driver_id`, optional `car_id`, required origin and
-destination cities, optional city-matched pickup points, `departure_at`, 1–8 `seats_total`, derived
+destination cities, optional city-matched pickup points, `departure_at`, nullable `estimated_duration_minutes` from the route cache, nullable driver-adjusted `duration_minutes` constrained to be at least that estimate, and nullable `duration_estimated_at`, 1–8 `seats_total`, derived
 `seats_available`, optional nonnegative `price_per_seat_mkd`, optional `notes`, object-shaped
 `details`, `tags`, gender preference, status, source, optional `import_id`, optional `claimed_by`, and
 timestamps. Origin and destination cities must differ.
@@ -235,11 +249,11 @@ are optional, nonblank when present, trimmed (including surrounding tabs/newline
 to 1000 characters. Clients cannot supply rating IDs or creation timestamps. No updates/deletes.
 Only rater and ratee can SELECT raw detail; anonymous users and unrelated students see no rows.
 
-Public `profile_rating_summary(target_profile_id)` returns exactly `{ average, count }`, with
+`profile_rating_summary(target_profile_id)` returns exactly `{ average, count }`, with
 `average = null, count = 0` for no ratings. It excludes legacy rows that fail current eligibility
 and uses EXISTS so multiple bookings/seats cannot multiply contributions. It exposes no identities,
 ride IDs, or notes. This security-definer function has an empty search path and explicit execute
-grants only to `anon` and `authenticated` (besides privileged database roles). The session-bound
+grant only to `authenticated` (besides privileged database roles). The session-bound
 boolean helpers `can_read_ride_room`, `can_send_ride_room`, and `can_rate_ride` similarly fix their
 search paths and permit authenticated callers only. They never accept a caller-supplied rater.
 
@@ -291,6 +305,7 @@ bookings 1--* trip_shares
   complete vehicle details reuse the driver's existing car. A unique index on
   `(driver_id, details->>'submission_id')` plus lookup under that lock makes retries idempotent.
   Different submission IDs remain distinct rides. Both anonymous and PUBLIC execution are revoked.
+- `route_estimates` caches ordered city-pair OSRM driving distance and duration snapshots with coordinate and freshness fields. RLS is enabled and all access is revoked from public, anonymous, and authenticated roles; only the server service role may read/write estimates. `guard_ride_timing()` overwrites client-supplied baseline values from a fresh coordinate-matched cache entry on ride insert or route change, and preserves the baseline on other updates. A driver may extend `duration_minutes` up to 1440 minutes; database constraints reject shorter values and fabricated baselines.
 - `ride_routing_gate` is a private singleton table with a timestamp and no client table grants.
   `try_ride_routing_request()` grants at most one authenticated routing permit per 1.2 seconds,
   using a row lock across app instances. It has a fixed empty search path and no anonymous grant.

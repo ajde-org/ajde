@@ -251,10 +251,10 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
           setMessage("offer.previousRestored");
         }}>{t("offer.undoFill")}</button>}
         {(warnings.length > 0 || hasRoutingEstimate) && <div role="status" className="mb-4 rounded-xl bg-amber-50 p-3"><p>{t("offer.reviewDetails")}</p><ul>{warnings.map((warning, i) => <li key={i}>{translateDraftWarning(warning, locale, t)}</li>)}{hasRoutingEstimate ? <li>{t("warning.routingEstimate", { distance: formatNumber(locale, distance) })}</li> : null}</ul></div>}
-        {tab.distanceMessage && <p role="status" className="mb-3">{offerDistanceMessage(tab.distanceMessage, t)} {tab.distanceMode === "error" && <button type="button" className="underline" onClick={() => update(tab.id, previous => ({ ...previous, distanceMode: "auto", distanceEpoch: previous.distanceEpoch + 1 }))}>{t("offer.retryDistance")}</button>}</p>}
+        {tab.distanceMessage && <p role="status" className="mb-3">{offerDistanceMessage(tab.distanceMessage, t)} {(tab.distanceMode === "error" || tab.distanceMessage === "offer.distanceUnavailable" || tab.distanceMessage.startsWith("Arrival estimate unavailable")) && <button type="button" className="underline" onClick={() => update(tab.id, previous => ({ ...previous, distanceMode: previous.distanceMode === "manual" ? "manual" : "auto", distanceEpoch: previous.distanceEpoch + 1 }))}>{t("offer.retryDistance")}</button>}</p>}
         <fieldset disabled={savingCar || publishing.includes(tab.id)} className="min-w-0">
           <RideForm {...props} cars={cars} onCarSaved={carSaved} onCarSaving={setSavingCar} key={tab.id} submissionId={tab.id} initialDraft={{ ...emptyOfferDraft(), source: tab.source, importId: tab.importId }}
-            isImportedDraft={tab.source === "imported"} values={tab.values} onChange={change} onSubmit={submit} pending={publishing.includes(tab.id)} state={states[tab.id] ?? idle} />
+            estimatedDurationMinutes={tab.estimatedDurationMinutes ?? null} isImportedDraft={tab.source === "imported"} values={tab.values} onChange={change} onSubmit={submit} pending={publishing.includes(tab.id)} state={states[tab.id] ?? idle} />
         </fieldset>
     </section>
     {storageMessage && <p role="status" className="text-[.75rem] text-slate-500">{t(storageMessage)}</p>}

@@ -9,7 +9,7 @@ it.each(["en", "mk"] as const)("renders the ride loading screen in %s before hyd
   const messages = locale === "mk" ? mk : en;
   const html = renderToString(<I18nProvider locale={locale} messages={messages}><RideFeedSkeleton /></I18nProvider>);
   expect(html).toContain(messages["discovery.title"]);
-  expect(html).toContain(messages["discovery.intro"]);
+  expect(html).not.toContain(messages["discovery.intro"]);
   expect(html).toContain(messages["loading.rides"]);
   if (locale === "mk") expect(html).not.toContain(en["discovery.title"]);
 });

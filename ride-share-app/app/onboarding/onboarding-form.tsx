@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { contactErrorKey } from '@/lib/profiles/contact-errors';
 import { contactSchema } from '@/lib/profiles/contact';
+import { PROFILE_PHOTO_EXTENSIONS } from '@/lib/profiles/photo';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/client';
 
@@ -70,7 +71,8 @@ export function OnboardingForm({ userId, initial }: { userId: string; initial: I
       const supabase = createClient();
       let storagePath = '';
       if (photo) {
-        const extension = photo.name.split('.').pop()?.toLowerCase() || 'jpg';
+        // Name the file from its type, not the user's file name: saveProfile accepts only these extensions.
+        const extension = PROFILE_PHOTO_EXTENSIONS[photo.type as keyof typeof PROFILE_PHOTO_EXTENSIONS] ?? 'jpg';
         storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
         const { error: uploadError } = await supabase.storage.from('profile-photos')
           .upload(storagePath, photo, { contentType: photo.type, upsert: false });

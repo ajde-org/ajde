@@ -111,7 +111,7 @@ it.each(["en", "mk"] as const)("renders remaining flow fixtures and preserves au
   const draft = emptyOfferDraft();
   const tab = createOfferTab(draft, id);
   const form = fixture("offer-form", <RideForm cars={[]} carModels={[]} cities={cities} pickupPoints={[]} fuelPrices={{ petrol: 80, diesel: 70 }} initialDraft={draft} submissionId={id} isImportedDraft={false}
-    values={tab.values} onChange={() => {}} onSubmit={() => {}} onCarSaved={() => {}} onCarSaving={() => {}} pending={false}
+    estimatedDurationMinutes={150} values={{ ...tab.values, departureLocal: "2027-03-29T23:30", durationMinutes: "170" }} onChange={() => {}} onSubmit={() => {}} onCarSaved={() => {}} onCarSaving={() => {}} pending={false}
     state={{ status: "error", message: "form.reviewFields", fieldErrors: { departureAt: ["validation.departure"] } }} />);
   expect(form).toContain(messages["validation.departure"]);
   expect(form).toContain(locale === "mk" ? "Скопје" : "Skopje");

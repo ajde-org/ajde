@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { getPublicProfile } from '@/lib/profiles/public-profile'
 import { ProfileRatingSummary } from '@/components/ratings/profile-rating-summary'
 import { UiIcon } from '@/components/ui-icon'
+import { profilePhotoSrc } from '@/lib/profiles/photo'
 
 export async function generateMetadata() {
   return { title: (await getI18n()).t("profile.label") };
@@ -32,7 +33,7 @@ export default async function ProfilePage({ params }: PageProps<'/profile/[id]'>
               {/* Remote profile-photo hosts are user/project specific, so this cannot use a fixed Next Image allowlist. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={profile.photoUrl}
+                src={profilePhotoSrc(profile.photoUrl)}
                 alt={t("profile.photo", { name: profile.fullName })}
                 width={128}
                 height={128}

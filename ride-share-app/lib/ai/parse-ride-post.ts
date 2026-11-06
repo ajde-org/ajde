@@ -1,3 +1,4 @@
+import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
@@ -287,6 +288,7 @@ export async function parseRidePost(
   try {
     const response = await openAIClient().responses.parse({
       model,
+      store: false,
       input: [
         { role: "system", content: parserPrompt({ now, timezone }) },
         {

@@ -12,10 +12,14 @@ import { formatDateTime } from "@/lib/i18n/format";
 afterEach(() => { vi.unstubAllGlobals(); document.body.innerHTML = ""; });
 it.each([250, 1250.5, 0])("hydrates unfiltered ride cards priced %s without browser Macedonian Intl data", async price => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  const ride = { id: "ride", departure_at: "2026-10-29T07:00:00+00:00", price_per_seat_mkd: price,
+  const ride: RideView = { id: "ride", departure_at: "2026-10-29T07:00:00+00:00", price_per_seat_mkd: price,
+    car_id: null, claimed_by: null, created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    estimated_duration_minutes: 120, duration_estimated_at: "2026-10-01T00:00:00Z",
+    origin_city_id: 1, dest_city_id: 2, origin_pickup_id: null, dest_pickup_id: null,
+    details: {}, driver_id: null, gender_preference: "any", import_id: null, notes: null, source: "imported", status: "published",
     seats_available: 21, seats_total: 23, originCity: { id: 1, name_en: "Skopje", name_mk: "Скопје" },
     destinationCity: { id: 2, name_en: "Bitola", name_mk: "Битола" }, originPickup: null,
-    destinationPickup: null, driver: null, car: { color: "blue", make: "Fiat", model: "Grande Punto" } } as RideView;
+    destinationPickup: null, driver: null, tags: [], duration_minutes: 120, car: { id: "car", color: "blue", make: "Fiat", model: "Grande Punto" } };
   const view = <I18nProvider locale="mk" messages={mk}><RideCard ride={ride} /></I18nProvider>;
   const container = document.createElement("div"); document.body.append(container);
   container.innerHTML = renderToString(view);
@@ -45,7 +49,7 @@ it.each([250, 1250.5, 0])("hydrates unfiltered ride cards priced %s without brow
     await act(async () => { root = hydrateRoot(container, view, { onRecoverableError: recoverable }); });
     expect(recoverable).not.toHaveBeenCalled();
     expect(container.innerHTML).toBe(serverMarkup);
-    expect(container.querySelector("time")?.getAttribute("aria-label")).toContain("29.10.2026 г., во 08:00");
+    expect(container.querySelector("time[aria-label]")?.getAttribute("aria-label")).toContain("29.10.2026 г., во 08:00");
     expect(container.textContent).toContain("чет., 29 окт.");
     expect(container.textContent).toContain("син Fiat Grande Punto");
     expect(container.textContent).toContain(price === 250 ? "250\u00a0ден." : price ? "1.251\u00a0ден." : mk["ride.free"]);

@@ -1,3 +1,4 @@
+import "server-only";
 import type { Locale } from "@/lib/i18n/config";
 import { formatDateTime, formatMoney, formatNumber, plural } from "@/lib/i18n/format";
 import { createTranslator } from "@/lib/i18n/translate";
