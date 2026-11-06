@@ -73,6 +73,9 @@ export async function requestMagicLink(
 // Signs in without email confirmation: the admin client mints a magic-link token
 // and the server verifies it immediately. Deliberately unsafe; anyone who knows
 // an approved-domain address can sign in as that user.
+// Error details stay in the server logs: they can reveal auth configuration.
+const SIGN_IN_FAILED = 'Sign-in failed. Please try again.'
+
 async function instantSignIn(email: string, next: string): Promise<LoginState> {
   let userId: string
 
@@ -84,7 +87,8 @@ async function instantSignIn(email: string, next: string): Promise<LoginState> {
     })
 
     if (linkError) {
-      return { status: 'error', message: `Sign-in failed: ${linkError.message}`, email }
+      console.error('[login] generateLink failed', linkError)
+      return { status: 'error', message: SIGN_IN_FAILED, email }
     }
 
     const supabase = await createClient()
@@ -95,20 +99,14 @@ async function instantSignIn(email: string, next: string): Promise<LoginState> {
     })
 
     if (error || !data.user) {
-      return {
-        status: 'error',
-        message: `Sign-in failed: ${error?.message ?? 'No user was returned.'}`,
-        email,
-      }
+      console.error('[login] verifyOtp failed', error ?? 'no user returned')
+      return { status: 'error', message: SIGN_IN_FAILED, email }
     }
 
     userId = data.user.id
   } catch (error) {
-    return {
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Sign-in failed.',
-      email,
-    }
+    console.error('[login] instant sign-in threw', error)
+    return { status: 'error', message: SIGN_IN_FAILED, email }
   }
 
   const profile = await getProfileCompletion(userId)

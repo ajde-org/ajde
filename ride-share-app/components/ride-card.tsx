@@ -6,6 +6,7 @@ import { ReserveSeatLink } from "@/components/reserve-seat-link";
 import { RideFeatures } from "@/components/ride-features";
 import type { RideView } from "@/lib/rides/ride-view";
 import { formatSeatPrice } from "@/lib/rides/ride-price";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
   return (
@@ -22,7 +23,7 @@ export function RideCard({ ride, explanation }: { ride: RideView; explanation?: 
           {ride.driver ? (
           /* Profile-photo hosts depend on the user's project. */
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={ride.driver.photo_url} alt="" loading="lazy" width={40} height={40} className="size-10 shrink-0 rounded-full bg-slate-50 object-cover" />
+          <img src={profilePhotoSrc(ride.driver.photo_url)} alt="" loading="lazy" width={40} height={40} className="size-10 shrink-0 rounded-full bg-slate-50 object-cover" />
         ) : <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold">SR</span>}
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
