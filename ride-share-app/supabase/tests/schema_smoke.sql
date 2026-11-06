@@ -268,6 +268,8 @@ rollback;
 
 \ir chat_ai.sql
 
+\ir ride_timing.sql
+
 \ir api_privileges.sql
 
 \ir profile_contacts.sql

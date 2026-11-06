@@ -1,3 +1,5 @@
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/rides/route-estimate-cache", () => ({ cachedRouteEstimate: async () => ({ ok: true, durationMinutes: 150, distanceKm: 174.3 }) }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fixture = vi.hoisted(() => ({ userId: "driver" as string | null, rows: [] as Record<string, unknown>[], inserts: 0 }));

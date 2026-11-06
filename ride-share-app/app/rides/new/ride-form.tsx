@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDuration, rideTiming } from "@/lib/rides/ride-timing";
 import { departureInstant, type OfferValues } from "@/lib/rides/offer-values";
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
@@ -37,6 +38,7 @@ type CarModel = Pick<
 >;
 
 export type RideFormProps = {
+  estimatedDurationMinutes?: number | null;
   cars: Car[];
   carModels: CarModel[];
   cities: City[];
@@ -72,6 +74,7 @@ function FieldError({ errors, id }: { errors?: string[]; id?: string }) {
 }
 
 export function RideForm({
+  estimatedDurationMinutes = null,
   cars,
   carModels,
   cities,
@@ -186,6 +189,8 @@ export function RideForm({
   }
 
   const departureAt = departureInstant(departureLocal);
+  const chosenDuration = values.durationMinutes ? Number(values.durationMinutes) : estimatedDurationMinutes;
+  const timing = departureAt ? rideTiming(departureAt, chosenDuration) : null;
 
   return (
     <form
@@ -261,6 +266,23 @@ export function RideForm({
             </select>
             <FieldError id="destination-error" errors={state.fieldErrors["destination.cityId"]} />
           </label>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-4">
+          <label htmlFor="journey-duration" className="block font-medium text-slate-800">Journey duration (minutes)</label>
+          <div className="mt-2 flex flex-wrap items-start gap-x-6 gap-y-3">
+            <div className="w-40">
+              <input id="journey-duration" name="durationMinutes" type="number" step="1" min={estimatedDurationMinutes ?? 1} max={1440}
+                disabled={estimatedDurationMinutes === null} className={inputClass + " !mt-0"}
+                value={values.durationMinutes || estimatedDurationMinutes || ""}
+                onChange={event => onChange({ ...values, durationMinutes: event.target.value })}
+                aria-describedby="duration-hint duration-error" aria-invalid={Boolean(state.fieldErrors.durationMinutes) || undefined} />
+            </div>
+            <div className="text-sm text-slate-600" aria-live="polite">
+              <p id="duration-hint">{estimatedDurationMinutes === null ? "Arrival estimate unavailable until routing succeeds." : `Route estimate: ${formatDuration(estimatedDurationMinutes)}. Add time for stops or delays; you cannot shorten it.`}</p>
+              {timing?.arrivalAt && <p className="mt-1 font-semibold text-brand-800">Estimated arrival: <time dateTime={timing.arrivalAt}>{timing.arrival}</time>{timing.dayLabel ? ` (${timing.dayLabel})` : ""} · Skopje time</p>}
+            </div>
+          </div>
+          <FieldError id="duration-error" errors={state.fieldErrors.durationMinutes} />
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="font-medium text-slate-800 col-span-2">

@@ -1,3 +1,5 @@
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/rides/route-estimate-cache", () => ({ cachedRouteEstimate: async () => ({ ok: true, durationMinutes: 150, distanceKm: 174.3 }) }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const db = vi.hoisted(() => ({ userId: "20000000-0000-4000-8000-000000000001" as string | null, rpc: vi.fn(), profileComplete: true as boolean | "error" }));
 vi.mock("@/lib/auth/session", () => ({ getProfileCompletion: async () => {
