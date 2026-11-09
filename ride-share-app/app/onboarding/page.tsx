@@ -1,3 +1,4 @@
+import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { getI18n } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
@@ -11,7 +12,7 @@ export default async function OnboardingPage() {
   const user = await requireUser('/onboarding')
   const supabase = await createClient()
   const [{ data: details, error: profileError }, { data: contacts, error: contactError }] = await Promise.all([
-    supabase.from('profiles').select('full_name, university, photo_url, bio, gender').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('full_name, university, photo_url, bio, gender, driver_details').eq('id', user.id).maybeSingle(),
     getContactDetails(supabase, [user.id]),
   ])
   // Never show an empty phone field the user might save over a number we failed to load.
@@ -32,7 +33,7 @@ export default async function OnboardingPage() {
       <section aria-labelledby="profile-heading" className="surface-card p-6 sm:p-8">
         <h2 id="profile-heading" className="font-display text-2xl font-bold tracking-[-.03em]">{t("onboarding.trusted")}</h2>
         <p className="mt-2 text-sm text-slate-500">{t("onboarding.required")}</p>
-        <OnboardingForm userId={user.id} initial={profile} />
+        <OnboardingForm userId={user.id} initial={profile} promptsEnabled={profilePromptsEnabled()} />
       </section>
     </main>
   </div>

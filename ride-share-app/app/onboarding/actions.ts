@@ -5,6 +5,8 @@ import { z } from 'zod'
 import type { StaticMessageKey } from '@/lib/i18n/translate'
 import { contactErrorKey } from '@/lib/profiles/contact-errors'
 import { revalidatePath } from 'next/cache'
+import { personalitySchema, readPersonality, type Personality } from '@/lib/profiles/personality'
+import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { contactSchema } from '@/lib/profiles/contact'
 import { profilePhotoPathPattern } from '@/lib/profiles/photo'
 import { requireUser } from '@/lib/auth/session'
@@ -20,6 +22,7 @@ export type ProfileInput = {
   phone: string
   socialUrl: string
   bio: string
+  personality?: Personality
   gender: Gender | ''
 }
 
@@ -60,10 +63,17 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
     return { ok: false, messageKey: 'onboarding.photoOwner' }
   }
 
+  const personality = personalitySchema.safeParse(input.personality ?? { prompts: [] })
+  if (!personality.success) return { ok: false, messageKey: 'onboarding.invalidInput' }
   const supabase = await createClient()
-  const { data: existing } = await supabase.from('profiles').select('photo_url').eq('id', user.id).maybeSingle()
-  const photoUrl = storagePath
-    ? supabase.storage.from('profile-photos').getPublicUrl(storagePath).data.publicUrl
+  const { data: existing, error: existingError } = await supabase.from('profiles').select('photo_url, driver_details').eq('id', user.id).maybeSingle()
+  if (existingError) return { ok: false, messageKey: 'onboarding.saveFailed' }
+  // Hidden prompt controls must neither erase saved answers nor accept forged edits.
+  if (!profilePromptsEnabled()) {
+    personality.data.prompts = readPersonality(existing?.driver_details).prompts
+  }
+  const photoUrl = input.storagePath
+    ? supabase.storage.from('profile-photos').getPublicUrl(input.storagePath).data.publicUrl
     : existing?.photo_url
   if (!photoUrl) return { ok: false, messageKey: 'onboarding.photoRequired' }
   const profile = {
@@ -74,6 +84,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
     university,
     bio: bio || null,
     gender: gender || null,
+    ...(input.personality !== undefined ? { driver_details: personality.data } : {}),
   }
   // Update, then insert if there was no row. An upsert's ON CONFLICT branch re-reads the written
   // values, which needs SELECT on the private contact columns the API roles do not have.

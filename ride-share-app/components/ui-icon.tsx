@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 
 const paths = {
+  male: "M14 15a5 5 0 1 1-10 0 5 5 0 0 1 10 0Zm-1.5-3.5L21 3m-7 0h7v7",
+  female: "M17 8a5 5 0 1 1-10 0 5 5 0 0 1 10 0Zm-5 5v9m-4-4h8",
   luggage: "M8 6V3h8v3M5 6h14v14H5ZM9 10v6m6-6v6M8 20v2m8-2v2",
   music: "M9 18V5l12-2v13M9 9l12-2M9 18a3 3 0 1 1-3-3h3m12 1a3 3 0 1 1-3-3h3",
   noSmoking: "M2 2l20 20M3 14h7m4 0h7v4h-3M6 18H3v-4m14 0v3M17 10V8c0-2-3-2-3-4V2m7 8V7c0-2-2-2-2-4",
