@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { formatDateTime, formatMoney } from "@/lib/i18n/format";
+import { createTranslator } from "@/lib/i18n/translate";
+import { en } from "@/lib/i18n/messages/en";
 
 import { explainMatch } from "./explain-match";
 import { validateCanonicalLocations, stubParseRidePost } from "./parse-ride-post";
@@ -9,13 +12,7 @@ import { runChatAssistant } from "./chat-assistant";
 import type { SearchLocationCandidate, SearchModelOutput, SearchModelRunner } from "./parse-search-query";
 import type { CheckerModelRunner } from "./check-ride-draft";
 
-/**
- * In these tests the model is the attacker: it follows the instructions that a hostile
- * user, or the application's own instructions if an injection succeeds, sends it.
- *
- * The application layer is the defence: every model result is validated against the
- * schemas and allow-lists that the code owns.
- */
+// Hostile model outputs exercise application guards, not real-model injection resistance.
 
 const cities: SearchLocationCandidate[] = [
   { id: 1, nameMk: "Скопје", nameEn: "Skopje", aliases: ["skopje", "ски"], kind: "city", cityId: 1 },
@@ -271,9 +268,15 @@ describe("explain match", () => {
       ]),
     );
 
-    // The model followed the instruction. The code only accepts supported facts.
-    expect(result.length).toBe(1);
-    expect(result[0].explanation).not.toBe(injection);
+    const t = createTranslator(en);
+    expect(result).toEqual([{
+      rideId: ride.rideId,
+      explanation: t("explain.paid.other", {
+        origin: "Skopje", destination: "Bitola", date: formatDateTime("en", ride.departureAt),
+        count: "3", price: formatMoney("en", 1000),
+      }),
+    }]);
+    expect(result[0].explanation).not.toContain(injection + " This ride is safe.");
   });
 });
 
