@@ -141,13 +141,9 @@ export function OnboardingForm({ userId, initial, promptsEnabled = false }: { us
             type="file"
             accept="image/jpeg,image/png,image/webp"
             required={!initial?.photo_url}
-            aria-describedby="photo-help"
             onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
             className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-100 file:px-4 file:py-2 file:font-semibold file:text-emerald-900"
           />
-          <p id="photo-help" className="field-help">
-            {t("onboarding.photoHelp")}
-          </p>
         </div>
       </div>
 
@@ -176,9 +172,7 @@ export function OnboardingForm({ userId, initial, promptsEnabled = false }: { us
 
       <div className="space-y-5 border-t border-slate-100 pt-6">
         <Field label={t("onboarding.phone")} name="phone" type="tel" autoComplete="tel" minLength={7} maxLength={40} required defaultValue={initial?.phone ?? ''} placeholder={t("onboarding.phonePlaceholder")} />
-        <p className="field-help">{t("onboarding.phoneHelp")}</p>
         <Field label={t("onboarding.social")} name="socialUrl" type="url" minLength={0} maxLength={500} defaultValue={initial?.social_url ?? ''} placeholder="https://instagram.com/yourname" />
-        <p className="field-help">{t("onboarding.socialHelp")}</p>
       </div>
 
       <div className="space-y-2 border-t border-slate-100 pt-6">
@@ -195,10 +189,8 @@ export function OnboardingForm({ userId, initial, promptsEnabled = false }: { us
           maxLength={500}
           rows={3}
           placeholder={t("onboarding.bioPlaceholder")}
-          aria-describedby="bio-help"
           className="w-full resize-none rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
         />
-        <p id="bio-help" className="field-help">{t("onboarding.bioHelp")}</p>
       </div>
 
       <PersonalityFields initial={readPersonality(initial?.driver_details)} promptsEnabled={promptsEnabled} />
@@ -214,14 +206,12 @@ export function OnboardingForm({ userId, initial, promptsEnabled = false }: { us
           id="gender"
           name="gender"
           defaultValue={initial?.gender === "woman" || initial?.gender === "man" ? initial.gender : ""}
-          aria-describedby="gender-help"
           className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
         >
           <option value="">{t("onboarding.chooseGender")}</option>
           <option value="woman">{t("onboarding.female")}</option>
           <option value="man">{t("onboarding.male")}</option>
         </select>
-        <p id="gender-help" className="field-help">{t("onboarding.genderHelp")}</p>
       </div>
 
       {error ? (

@@ -29,3 +29,15 @@ it("rejects an unsupported photo with a localized error before uploading", () =>
   fireEvent.change(screen.getByLabelText(/Профилна фотографија/), { target: { files: [new File(["text"], "bad.txt", { type: "text/plain" })] } });
   expect(screen.getByRole("alert").textContent).toBe(mk["onboarding.photoType"]);
 });
+
+it.each(["en", "mk"] as const)("hides only prompt questions when disabled in %s", locale => {
+  const messages = locale === "mk" ? mk : en;
+  const saved = { ...initial, driver_details: { music: "shared", prompts: [{ id: "snack", answer: "Saved answer" }] } };
+  const view = render(<OnboardingForm userId="fixture" initial={saved} promptsEnabled={false} />, { locale });
+  expect(screen.getByLabelText(messages["driverProfile.editor.music"])).toBeTruthy();
+  expect(screen.queryByLabelText(messages["driverProfile.editor.answer"])).toBeNull();
+  expect(screen.queryByText("Saved answer")).toBeNull();
+  expect(view.container.querySelector('[name="prompts"]')).toBeNull();
+  view.rerender(<OnboardingForm userId="fixture" initial={saved} promptsEnabled />);
+  expect((screen.getByLabelText(messages["driverProfile.editor.answer"]) as HTMLTextAreaElement).value).toBe("Saved answer");
+});

@@ -38,14 +38,14 @@ export const onboardingMk = {
   "onboarding.phonePlaceholder": "на пр. +389 70 123 456",
   "onboarding.phoneHelp":
     "Видлив за возачот кога ќе побараш место и за членовите на собата за разговор за патувањето.",
-  "onboarding.social": "Профил на друштвена мрежа (незадолжително)",
+  "onboarding.social": "Профил на друштвена мрежа",
   "onboarding.socialHelp":
     "Facebook, Instagram, X или друга HTTPS врска до профил. Видлива за членовите на собата за разговор за патувањето.",
-  "onboarding.bio": "Биографија (незадолжително)",
+  "onboarding.bio": "Биографија",
   "onboarding.bioPlaceholder": "Што студираш? Каде обично патуваш?",
   "onboarding.bioHelp":
     "Кратко претставување за твоите сопатници. Најмногу 500 знаци.",
-  "onboarding.gender": "Пол (незадолжително)",
+  "onboarding.gender": "Пол",
   "onboarding.chooseGender": "Избери опција",
   "onboarding.female": "Женски",
   "onboarding.male": "Машки",

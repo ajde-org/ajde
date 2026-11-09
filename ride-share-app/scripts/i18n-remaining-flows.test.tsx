@@ -128,6 +128,8 @@ it.each(["en", "mk"] as const)("renders remaining flow fixtures and preserves au
   </div>);
   expect(profile).toContain("Original Driver");
   expect(profile).toContain(messages["share.title"]);
+  expect(profile).toContain(messages["rating.title"]);
+  expect(profile).toContain(locale === "mk" ? "4,5" : "4.5");
   const fullProfile = fixture("profile", await ProfilePage({ params: Promise.resolve({ id: "profile" }), searchParams: Promise.resolve({}) }));
   expect(fullProfile).toContain("Original authored biography");
   expect(fullProfile).toContain(messages["profile.gender.non_binary"]);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { afterEach, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@/lib/i18n/testing'
 import userEvent from '@testing-library/user-event'
 import { PersonalityFields } from './personality-fields'
 

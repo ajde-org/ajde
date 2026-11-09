@@ -1,4 +1,5 @@
-vi.mock('@/lib/i18n/server', async () => { const { en } = await import('@/lib/i18n/messages/en'); const { createTranslator } = await import('@/lib/i18n/translate'); return { getI18n: async () => ({ locale: 'en', t: createTranslator(en) }) } })
+const language = vi.hoisted(() => ({ locale: 'en' as 'en' | 'mk' }))
+vi.mock('@/lib/i18n/server', async () => { const { en } = await import('@/lib/i18n/messages/en'); const { mk } = await import('@/lib/i18n/messages/mk'); const { createTranslator } = await import('@/lib/i18n/translate'); return { getI18n: async () => ({ locale: language.locale, t: createTranslator(language.locale === 'mk' ? mk : en) }) } })
 vi.mock('server-only', () => ({}))
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -18,12 +19,12 @@ vi.mock('@/lib/auth/session', () => ({ getCurrentUser: async () => ({ id: fixtur
 vi.mock('@/lib/profiles/public-profile', () => ({ getPublicProfile: async () => fixture }))
 vi.mock('@/components/ratings/profile-rating-summary', async importOriginal => {
   const original = await importOriginal<typeof import('@/components/ratings/profile-rating-summary')>()
-  return { ...original, ProfileRatingSummary: () => <original.RatingSummaryView summary={{ average: 4.9, count: 18 }} /> }
+  return { ...original, ProfileRatingSummary: () => null }
 })
 vi.mock('@/lib/ratings/queries', () => ({}))
 import ProfilePage from './page'
 
-beforeEach(() => vi.stubEnv('PROFILE_PROMPTS_ENABLED', 'true'))
+beforeEach(() => { language.locale = 'en'; vi.stubEnv('PROFILE_PROMPTS_ENABLED', 'true') })
 afterEach(() => { cleanup(); vi.unstubAllEnvs() })
 it('shows real profile facts, preferences, prompts and the originating ride link', async () => {
   const returnTo = '/rides/30000000-0000-4000-8000-000000000001'
@@ -50,4 +51,18 @@ it('hides prompt cards when disabled while retaining travel preferences', async 
   expect(screen.queryByText('Beyond the driver’s seat')).toBeNull()
   expect(screen.queryByText(fixture.personality.prompts[0].answer)).toBeNull()
   expect(screen.getByRole('list', {name:'Travel preferences'})).toBeTruthy()
+})
+
+it('translates the driver profile into Macedonian while preserving authored answers', async () => {
+  language.locale = 'mk'
+  render(await ProfilePage({ params: Promise.resolve({ id: fixture.id }), searchParams: Promise.resolve({}) }), { locale: 'mk' })
+  expect(screen.getByRole('link', { name: 'Назад кон превозите' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Уреди профил' })).toBeTruthy()
+  expect(screen.getByText('Член од')).toBeTruthy()
+  expect(screen.getByText('Завршени патувања')).toBeTruthy()
+  expect(screen.getByRole('list', { name: 'Навики при патување' }).children).toHaveLength(4)
+  expect(screen.getByText('Секој може да избере музика')).toBeTruthy()
+  expect(screen.getByText('Мојата супермоќ на патување')).toBeTruthy()
+  expect(screen.getByText(fixture.personality.prompts[0].answer)).toBeTruthy()
+  expect(screen.getByText(fixture.bio)).toBeTruthy()
 })
