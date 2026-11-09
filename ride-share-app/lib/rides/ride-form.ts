@@ -65,10 +65,12 @@ export function validateRideSubmission(
     .object({
       intent: rideSubmissionIntentSchema,
       submissionId: submissionIdSchema,
+      durationMinutes: z.number().int().min(1).max(1440).nullable(),
     })
     .safeParse({
       intent: formData.get("intent"),
       submissionId: formData.get("submissionId"),
+      durationMinutes: nullableNumber(formData.get("durationMinutes")),
     });
 
   const draft = createPublishableRideDraftSchema({ now }).safeParse(
@@ -87,5 +89,25 @@ export function issuesByPath(issues: z.core.$ZodIssue[]) {
     errors[path].push(issue.message);
   }
 
+  return errors;
+}
+
+/** Keep validation notices stable so a language switch can retranslate existing errors. */
+export function issueMessageKeys(issues: z.core.$ZodIssue[]) {
+  const errors: Record<string, string[]> = {};
+  for (const issue of issues) {
+    const path = issue.path.join(".") || "form";
+    const key = path.startsWith("origin") || path.startsWith("destination") ? "validation.city"
+      : path === "departureAt" ? "validation.departure"
+      : path.endsWith("seatsTotal") ? "validation.seats"
+      : path === "pricePerSeatMkd" ? "validation.price"
+      : path === "distanceKm" ? "validation.distance"
+      : path === "durationMinutes" ? "validation.duration"
+      : path.endsWith("consumptionL100Km") ? "validation.consumption"
+      : path.endsWith("plateLast3") ? "validation.plate"
+      : path === "notes" ? "validation.notes"
+      : /car|make|model|fuel|color|mode/i.test(path) ? "validation.car" : "validation.generic";
+    (errors[path] ??= []).push(key);
+  }
   return errors;
 }

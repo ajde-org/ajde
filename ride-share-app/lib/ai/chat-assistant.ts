@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/lib/i18n/config";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { aiModelSchema, type AiErrorCode, type AiRequest, type TranscriptMessage } from "@/lib/chat/ai-contract";
@@ -7,7 +8,7 @@ export class ChatAiError extends Error {
   constructor(public readonly code: AiErrorCode) { super(code); }
 }
 
-export async function runChatAssistant(request: AiRequest, messages: TranscriptMessage[], signal?: AbortSignal) {
+export async function runChatAssistant(request: AiRequest, messages: TranscriptMessage[], signal?: AbortSignal, locale: Locale = "en") {
   if (!process.env.OPENAI_API_KEY?.trim()) throw new ChatAiError("missing_key");
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30_000, maxRetries: 0 });
   try {
@@ -27,8 +28,8 @@ discussion with nothing to summarize, do the same. Otherwise insufficientEvidenc
 Use category decision only for an actual confirmed agreement, open_question for unresolved matters,
 and information for other supported answers. A citation must support the specific item, not merely mention the topic.
 Use concise plain text, no HTML or Markdown. Interpret timestamps in Europe/Skopje; distinguish timestamps
-from times written in the chat. Understand English, Macedonian Cyrillic/Latin and Albanian. Answer questions
-in their language; summaries use the main language of the conversation.`,
+from times written in the chat. Understand English, Macedonian Cyrillic/Latin and Albanian.
+Write all generated item text in ${locale === "mk" ? "Macedonian using Cyrillic" : "English"}, regardless of the language of the question or transcript. Preserve names and cited message IDs.`,
       input: JSON.stringify({ mode: request.mode, question: request.mode === "question" ? request.question : null, messages }),
       text: { format: zodTextFormat(aiModelSchema, "ride_chat_assistance") },
     }, { signal });

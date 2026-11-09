@@ -32,7 +32,12 @@ it("updates contacts without requiring another photo or changing profile ownersh
   expect(db.written).toMatchObject({id:"owner",photo_url:db.photo,phone:"+38970123456",social_url:input.socialUrl,bio:input.bio});
 });
 it("rejects a missing phone before writing", async () => {
-  expect((await saveProfile({...input,phone:""})).ok).toBe(false);expect(db.written).toBeNull();
+  expect(await saveProfile({...input,phone:""})).toEqual({ok:false,messageKey:"contact.invalidPhone"});expect(db.written).toBeNull();
+});
+it("returns stable validation keys without exposing raw schema messages", async () => {
+  expect(await saveProfile({...input,fullName:"a"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
+  expect(await saveProfile({...input,socialUrl:"http://example.com"})).toEqual({ok:false,messageKey:"contact.invalidSocial"});
+  expect(db.written).toBeNull();
 });
 it("rejects another account's photo path", async () => {
   expect((await saveProfile({...input,storagePath:"other/photo.jpg"})).ok).toBe(false);expect(db.written).toBeNull();
@@ -77,4 +82,12 @@ it("preserves saved prompts when the hidden editor submits an empty prompt list"
   db.details={prompts:[{id:'snack',answer:'Original answer'}]};
   await saveProfile({...input,personality:{prompts:[]}});
   expect(db.written?.driver_details).toEqual(db.details);
+});
+it("rejects malformed input and photo paths that escape the user's folder", async () => {
+  expect(await saveProfile({...input,fullName:"A"})).toEqual({ok:false,messageKey:"onboarding.nameLength"});
+  expect((await saveProfile({...input,gender:"robot" as never})).ok).toBe(false);
+  expect((await saveProfile({...input,fullName:42 as never})).ok).toBe(false);
+  expect((await saveProfile({...input,storagePath:"owner/../victim/photo.jpg"})).ok).toBe(false);
+  expect((await saveProfile({...input,storagePath:"owner/photo.svg"})).ok).toBe(false);
+  expect(db.written).toBeNull();
 });

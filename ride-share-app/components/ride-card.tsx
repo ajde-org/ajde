@@ -1,61 +1,61 @@
-import Link from "next/link";
+"use client";
 
-import { formatDeparture } from "@/lib/rides/ride-presentation";
+import Link from "next/link";
+import { useI18n } from "@/lib/i18n/provider";
+import { localizedName } from "@/lib/i18n/locations";
+import { localizedCarColor } from "@/lib/i18n/car-color";
+import { formatMoney } from "@/lib/i18n/format";
+
+import { RideSchedule } from "@/components/ride-schedule";
 import { SeatAvailability } from "@/components/seat-availability";
 import { ReserveSeatLink } from "@/components/reserve-seat-link";
 import { RideFeatures } from "@/components/ride-features";
 import type { RideView } from "@/lib/rides/ride-view";
-import { formatSeatPrice, seatPriceCaption } from "@/lib/rides/ride-price";
+import { formatSeatPrice, isFreeRide } from "@/lib/rides/ride-price";
+import { profilePhotoSrc } from "@/lib/profiles/photo";
 
 export function RideCard({ ride, explanation }: { ride: RideView; explanation?: string }) {
-  const departure = new Date(ride.departure_at);
-  const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", weekday: "short", timeZone: "Europe/Skopje" }).format(departure);
-  const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Skopje" }).format(departure);
-
+  const { locale, t } = useI18n();
   return (
     <article className="ride-choice-card surface-card flex min-w-0 flex-col gap-3 p-4 text-slate-950">
       <h2 className="journey-card-route">
         <Link href={`/rides/${ride.id}`} className="rounded-sm hover:text-brand-700 hover:underline underline-offset-4">
-          {ride.originCity.name_en}{" "}<span className="font-medium">to</span>{" "}{ride.destinationCity.name_en}
+          {localizedName(ride.originCity, locale)}{" "}<span className="font-medium">{t("ride.to")}</span>{" "}{localizedName(ride.destinationCity, locale)}
         </Link>
       </h2>
-      <time dateTime={ride.departure_at} aria-label={`${formatDeparture(ride.departure_at)}, Skopje time`} className="min-w-0">
-        <span className="flex flex-wrap items-baseline gap-x-2 text-[1.375rem] font-bold leading-7 text-brand-800">
-          <span>{date}</span>
-          <span aria-hidden="true" className="text-slate-300">·</span>
-          <span className="tabular-nums">{time}</span>
-        </span>
-      </time>
+      <RideSchedule departureAt={ride.departure_at} durationMinutes={ride.duration_minutes} />
       {explanation ? <p className="text-[.8125rem] leading-snug text-slate-600">{explanation}</p> : null}
-      <div className="flex flex-wrap items-center gap-2">
-        {ride.driver ? (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {ride.driver ? (
           /* Profile-photo hosts depend on the user's project. */
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={ride.driver.photo_url} alt="" loading="lazy" width={32} height={32} className="size-8 shrink-0 rounded-full bg-slate-50 object-cover" />
-        ) : <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold">SR</span>}
+          <img src={profilePhotoSrc(ride.driver.photo_url)} alt="" loading="lazy" width={40} height={40} className="size-10 shrink-0 rounded-full bg-slate-50 object-cover" />
+        ) : <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold">SR</span>}
         <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-center gap-1 text-[.8125rem] font-semibold">
-            <span className="truncate">{ride.driver ? <Link href={`/profile/${ride.driver.id}`} className="hover:text-brand-700 hover:underline">{ride.driver.full_name}</Link> : "Imported ride"}</span>
+          <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
+            <span className="truncate">{ride.driver ? <Link href={`/profile/${ride.driver.id}`} className="hover:text-brand-700 hover:underline">{ride.driver.full_name}</Link> : t("ride.imported")}</span>
             {ride.driver?.verified_at ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" role="img" aria-label="Verified driver" className="shrink-0 text-brand-600">
-                <title>Verified driver</title>
+              <svg width="16" height="16" viewBox="0 0 24 24" role="img" aria-label={t("ride.verified")} className="shrink-0 text-brand-600">
+                <title>{t("ride.verified")}</title>
                 <path d="m12 3.7 3.3-1.4 1.8 2.9 3.4.8-.3 3.4 2.3 2.6-2.3 2.6.3 3.4-3.4.8-1.8 2.9-3.3-1.4-3.3 1.4-1.8-2.9-3.4-.8.3-3.4L1.5 12l2.3-2.6-.3-3.4 3.4-.8 1.8-2.9Z" fill="currentColor" />
                 <path d="m7.5 12 3 3 6-6" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             ) : null}
           </p>
-          <p className="truncate text-[.6875rem] text-slate-500">{ride.car ? `${ride.car.color ? `${ride.car.color} ` : ""}${ride.car.make} ${ride.car.model}` : ride.driver?.university ?? "Driver details coming soon"}</p>
+          <p className="truncate text-sm text-slate-600">{ride.car ? `${ride.car.color ? `${localizedCarColor(ride.car.color, t)} ` : ""}${ride.car.make} ${ride.car.model}` : ride.driver?.university ?? t("ride.driverSoon")}</p>
         </div>
-        <p className="shrink-0 text-right">
-          <span className="block text-2xl font-bold leading-7 tracking-tight text-black">{formatSeatPrice(ride.price_per_seat_mkd)}</span>
-          <span className="block text-[.6875rem] font-normal leading-4 text-slate-500">{seatPriceCaption(ride.price_per_seat_mkd)}</span>
-        </p>
+        </div>
+        <div className="shrink-0 text-right [&_p]:text-base [&_p]:font-semibold [&_p]:leading-6 [&_div]:justify-end">
+          <SeatAvailability available={ride.seats_available} total={ride.seats_total} compact />
+        </div>
       </div>
       <RideFeatures tags={ride.tags} />
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
-        <ReserveSeatLink href={`/rides/${ride.id}`} route={`from ${ride.originCity.name_en} to ${ride.destinationCity.name_en}`} />
-        <div className="shrink-0 [&_p]:text-base [&_p]:font-semibold [&_p]:leading-6">
-          <SeatAvailability available={ride.seats_available} total={ride.seats_total} compact />
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <ReserveSeatLink href={`/rides/${ride.id}`} route={t("timing.pickRideLabel", { origin: localizedName(ride.originCity, locale), destination: localizedName(ride.destinationCity, locale) })} />
+        <div className="shrink-0 text-right">
+          <p className="whitespace-nowrap text-3xl font-extrabold leading-7 tracking-tight tabular-nums text-ink">{isFreeRide(ride.price_per_seat_mkd) ? t("ride.free") : locale === "en" ? formatSeatPrice(ride.price_per_seat_mkd) : formatMoney(locale, ride.price_per_seat_mkd!)}</p>
+
         </div>
       </div>
     </article>

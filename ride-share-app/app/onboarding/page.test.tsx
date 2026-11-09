@@ -1,5 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/i18n/server", async () => {
+  const { en } = await import("@/lib/i18n/messages/en");
+  const { createTranslator } = await import("@/lib/i18n/translate");
+  return { getI18n: async () => ({ locale: "en", t: createTranslator(en) }) };
+});
 const state = vi.hoisted(() => ({ read: vi.fn(), contacts: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({ requireUser: async () => ({ id: "user" }) }));
 vi.mock("./onboarding-form", () => ({ OnboardingForm: () => null }));

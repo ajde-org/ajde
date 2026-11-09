@@ -1,0 +1,16 @@
+export const carColorsEn = {
+  "carColor.black": "black",
+  "carColor.white": "white",
+  "carColor.gray": "gray",
+  "carColor.silver": "silver",
+  "carColor.blue": "blue",
+  "carColor.red": "red",
+  "carColor.green": "green",
+  "carColor.yellow": "yellow",
+  "carColor.orange": "orange",
+  "carColor.brown": "brown",
+  "carColor.beige": "beige",
+  "carColor.gold": "gold",
+  "carColor.purple": "purple",
+  "carColor.pink": "pink",
+} as const;

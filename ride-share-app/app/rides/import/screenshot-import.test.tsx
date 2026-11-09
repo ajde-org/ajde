@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@/lib/i18n/testing";
 import userEvent from "@testing-library/user-event";
 import { emptyOfferDraft } from "@/lib/rides/offer-interpretation";
 import { ImportRideForm } from "./import-ride-form";

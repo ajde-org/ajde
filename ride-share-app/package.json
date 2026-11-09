@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "eval:parser": "tsx scripts/evaluate-parser.ts",
-    "eval:search": "tsx scripts/evaluate-search.ts",
+    "eval:parser": "node --conditions=react-server --import tsx scripts/evaluate-parser.ts",
+    "eval:search": "node --conditions=react-server --import tsx scripts/evaluate-search.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --exclude '.test-dist/**'",
@@ -17,7 +17,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
-    "next": "16.3.5",
+    "next": "16.4.5",
     "openai": "^7.20.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -33,7 +33,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "eslint-config-next": "16.4.5",
     "jsdom": "^30.1.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

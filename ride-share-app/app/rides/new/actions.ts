@@ -4,9 +4,12 @@ import type { TablesInsert } from "@/lib/supabase/database.types";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+import { cachedRouteEstimate } from "@/lib/rides/route-estimate-cache";
+import { resolveDurationMinutes } from "@/lib/rides/ride-timing";
 import { readCarSelection, type CarSelection } from "@/lib/rides/car-selection";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { issuesByPath, validateRideSubmission } from "@/lib/rides/ride-form";
+import { issueMessageKeys, validateRideSubmission } from "@/lib/rides/ride-form";
 
 
 export type CreateRideFormState = {
@@ -95,17 +98,17 @@ export async function saveCar(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false as const, message: "Your session has expired. Sign in and try again." };
+    return { ok: false as const, message: "form.sessionExpired" };
   }
 
   const selection = readCarSelection(formData);
   if (!selection.success) {
-    return { ok: false as const, message: selection.error.issues.map((issue) => issue.message).join(" ") };
+    return { ok: false as const, message: "form.carInvalid" };
   }
 
   const result = await resolveCar(supabase, user.id, selection.data);
   if (result.error || !result.car) {
-    return { ok: false as const, message: "We could not save this car. Review its details and try again." };
+    return { ok: false as const, message: "form.carSaveFailed" };
   }
   return { ok: true as const, car: result.car };
 }
@@ -122,9 +125,27 @@ export async function createRide(
   if (!user) {
     return {
       status: "error",
-      message: "Your session has expired. Sign in and try again.",
+      message: "form.sessionExpired",
       fieldErrors: {},
     };
+  }
+  // Server actions can be invoked from any route, so the proxy's onboarding redirect does not cover
+  // this: publishing checks the profile (including the phone number) here, and the database enforces
+  // the phone too. Saving a draft does not need one.
+  if (formData.get("intent") === "publish") {
+    let complete: boolean;
+    try {
+      complete = (await getProfileCompletion(user.id)).complete;
+    } catch {
+      return { status: "error", message: "form.profileCheckFailed", fieldErrors: {} };
+    }
+    if (!complete) {
+      return {
+        status: "error",
+        message: "form.profileRequired",
+        fieldErrors: {},
+      };
+    }
   }
 
   const carSelection = readCarSelection(formData);
@@ -143,29 +164,36 @@ export async function createRide(
   if (!validation.draft.success || !validation.metadata.success || !carSelection.success) {
     return {
       status: "error",
-      message: "Review the highlighted ride details.",
-      fieldErrors: issuesByPath(issues),
+      message: "form.reviewFields",
+      fieldErrors: issueMessageKeys(issues),
     };
   }
 
+  const estimate = await cachedRouteEstimate(supabase, validation.draft.data.origin.cityId, validation.draft.data.destination.cityId);
+  const requested = validation.metadata.data.durationMinutes;
+  try {
+    resolveDurationMinutes(estimate.ok ? estimate.durationMinutes : null, requested);
+  } catch {
+    return { status: "error", message: "form.reviewDuration", fieldErrors: { durationMinutes: [estimate.ok ? "validation.duration" : "form.durationNeedsEstimate"] } };
+  }
   const result = await supabase.rpc("create_ride_offer", {
-    p_offer: validation.draft.data,
+    p_offer: { ...validation.draft.data, durationMinutes: requested },
     p_vehicle: carSelection.data,
     p_submission_id: validation.metadata.data.submissionId,
     p_publish: validation.metadata.data.intent === "publish",
   });
   if (result.error) {
     return { status: "error", fieldErrors: {}, message:
-      result.error.code === "42501" ? "Your car or imported draft is unavailable for this account. Review the form."
-      : result.error.code === "23514" ? "Review the departure, available seats and vehicle details."
-      : result.error.code === "23503" ? "A selected city, pickup point or car is no longer available."
-      : "We could not save this ride. Retry; the same draft will not create a duplicate." };
+      result.error.code === "42501" ? "form.unavailableOwner"
+      : result.error.code === "23514" ? "form.reviewDeparture"
+      : result.error.code === "23503" ? "form.selectionGone"
+      : "form.saveFailed" };
   }
   const saved = z.object({ rideId: z.uuid(), carId: z.uuid(), status: z.enum(["draft", "published", "full", "completed", "cancelled"]) }).safeParse(result.data);
-  if (!saved.success) return { status: "error", fieldErrors: {}, message: "The publication result could not be confirmed. Retry this draft." };
+  if (!saved.success) return { status: "error", fieldErrors: {}, message: "form.unconfirmed" };
   revalidatePath("/rides");
   revalidatePath("/dashboard/driver");
   revalidatePath("/dashboard/trips");
   return { status: "success", fieldErrors: {}, rideId: saved.data.rideId, carId: saved.data.carId,
-    message: saved.data.status === "draft" ? "Ride saved as a draft." : "Ride published." };
+    message: saved.data.status === "draft" ? "form.draftSaved" : "form.published" };
 }

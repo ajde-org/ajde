@@ -51,7 +51,7 @@ begin
   where schemaname = 'storage'
     and tablename = 'objects'
     and policyname in (
-      'Profile photos are publicly readable',
+      'Users read their own profile photos',
       'Users upload their own profile photos',
       'Users update their own profile photos',
       'Users delete their own profile photos'
@@ -269,6 +269,8 @@ rollback;
 \ir chat_ai.sql
 
 \ir driver_profile_details.sql
+\ir ride_timing.sql
+
 \ir api_privileges.sql
 
 \ir profile_contacts.sql

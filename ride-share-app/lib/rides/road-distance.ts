@@ -12,10 +12,10 @@ export type RoadDistanceClient = {
 };
 
 export type RoadDistanceResult =
-  | { ok: true; distanceKm: number }
+  | { ok: true; distanceKm: number; durationMinutes: number }
   | { ok: false; error: string; status: 400 | 429 | 502 | 503; retryAfterMs?: number; retryAfterSeconds?: number };
 
-const routeSchema = z.object({ code: z.literal("Ok"), routes: z.array(z.object({ distance: z.number().positive().finite() })).min(1) });
+const routeSchema = z.object({ code: z.literal("Ok"), routes: z.array(z.object({ distance: z.number().positive().finite(), duration: z.number().positive().finite().max(86400) })).min(1) });
 
 /** Canonical city reference coordinates define the estimate, never pickup points. */
 export async function roadDistanceKm(client: RoadDistanceClient, originCityId: number, destinationCityId: number): Promise<RoadDistanceResult> {
@@ -32,7 +32,7 @@ export async function roadDistanceKm(client: RoadDistanceClient, originCityId: n
     const response = await fetch(url, { headers: { "User-Agent": "StudentRideShare/1.0 (non-commercial ride offer demo)" }, cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!response.ok) throw new Error("Routing failed");
     const result = routeSchema.parse(await response.json());
-    return { ok: true, distanceKm: Math.round(result.routes[0].distance / 100) / 10 };
+    return { ok: true, distanceKm: Math.round(result.routes[0].distance / 100) / 10, durationMinutes: Math.ceil(result.routes[0].duration / 60) };
   } catch {
     return { ok: false, error: "Road distance is unavailable. Enter km manually.", status: 502 };
   }

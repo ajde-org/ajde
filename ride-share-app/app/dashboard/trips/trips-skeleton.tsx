@@ -1,6 +1,10 @@
+"use client";
+import { useI18n } from "@/lib/i18n/provider";
+
 export function TripsSkeleton({ gridClassName = "" }: { gridClassName?: string }) {
+  const { t } = useI18n();
   return <div aria-busy="true">
-    <p role="status" className="sr-only">Loading trips…</p>
+    <p role="status" className="sr-only">{t("trips.loading")}</p>
     <div aria-hidden="true" className={`dashboard-grid ${gridClassName}`}>
       {[0, 1, 2].map((card) => <div key={card} className="journey-card">
         <div className="flex items-center justify-between gap-4">

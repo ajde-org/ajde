@@ -1,6 +1,7 @@
 import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { ProfilePrompts, TravelDescriptors } from '@/components/profile-personality'
 import { memberSince, profileReturnPath } from '@/lib/profiles/personality'
+import { getI18n } from "@/lib/i18n/server";
 import { getCurrentUser } from '@/lib/auth/session'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -8,15 +9,14 @@ import { notFound } from 'next/navigation'
 import { getPublicProfile } from '@/lib/profiles/public-profile'
 import { ProfileRatingSummary } from '@/components/ratings/profile-rating-summary'
 import { UiIcon } from '@/components/ui-icon'
+import { profilePhotoSrc } from '@/lib/profiles/photo'
 
-const genderLabels = {
-  woman: 'Woman',
-  man: 'Man',
-  non_binary: 'Non-binary',
-  prefer_not_to_say: 'Prefer not to say',
-} as const
+export async function generateMetadata() {
+  return { title: (await getI18n()).t("profile.label") };
+}
 
 export default async function ProfilePage({ params, searchParams }: PageProps<'/profile/[id]'>) {
+  const { t } = await getI18n();
   const { id } = await params
   const returnTo = profileReturnPath((await searchParams).returnTo)
   const viewer = await getCurrentUser()
@@ -38,8 +38,8 @@ export default async function ProfilePage({ params, searchParams }: PageProps<'/
               {/* Remote profile-photo hosts are user/project specific, so this cannot use a fixed Next Image allowlist. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={profile.photoUrl}
-                alt={`${profile.fullName}'s profile photo`}
+                src={profilePhotoSrc(profile.photoUrl)}
+                alt={t("profile.photo", { name: profile.fullName })}
                 width={128}
                 height={128}
                 className="size-full object-cover"
@@ -77,11 +77,11 @@ export default async function ProfilePage({ params, searchParams }: PageProps<'/
                       <dt className="font-display text-sm font-bold tracking-tight text-slate-950">Gender</dt>
                       <dd className="text-sm font-medium text-slate-900">
                         {profile.gender === 'man' || profile.gender === 'woman' ? (
-                          <span title={genderLabels[profile.gender]} className={`inline-flex size-10 items-center justify-center rounded-full ${profile.gender === 'man' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                          <span title={t(`profile.gender.${profile.gender}`)} className={`inline-flex size-10 items-center justify-center rounded-full ${profile.gender === 'man' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
                             <UiIcon name={profile.gender === 'man' ? 'male' : 'female'} size={24} />
-                            <span className="sr-only">{genderLabels[profile.gender]}</span>
+                            <span className="sr-only">{t(`profile.gender.${profile.gender}`)}</span>
                           </span>
-                        ) : genderLabels[profile.gender]}
+                        ) : t(`profile.gender.${profile.gender}`)}
                       </dd>
                     </div>
                   </dl>
@@ -99,7 +99,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<'/
         {profilePromptsEnabled() ? <ProfilePrompts personality={profile.personality} /> : null}
         <div className="mx-auto mt-6 flex max-w-2xl items-start gap-3 px-1 text-sm leading-6 text-slate-600 sm:px-4">
           <UiIcon name="shield" size={20} className="mt-1 shrink-0" />
-          <p>Phone numbers are shared with drivers receiving a booking request. Ride-room members can see each other’s contact details.</p>
+          <p>{t("profile.privacy")}</p>
         </div>
       </div>
     </main>

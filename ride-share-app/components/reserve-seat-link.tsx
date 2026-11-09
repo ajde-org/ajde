@@ -1,18 +1,21 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/provider";
 
 export function ReserveSeatLink({ href, route }: { href: string; route: string }) {
-  const animationEnabled = (process.env.NEXT_PUBLIC_RIDE_CAR_ANIMATION_ENABLED ?? "true").trim().toLowerCase() === "true";
+  const { t } = useI18n();
+  const animationEnabled = (process.env.NEXT_PUBLIC_RIDE_CAR_ANIMATION_ENABLED ?? "false").trim().toLowerCase() === "true";
   if (!animationEnabled) {
     return (
-      <Link href={href} className="flex min-h-11 flex-none items-center justify-center rounded-xl border-2 border-ink bg-ink px-4 py-2 text-center text-[.8125rem] font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-700">
-        Pick ride<span className="sr-only">{route}</span>
+      <Link href={href} aria-label={route} className="flex min-h-13 w-1/2 items-center justify-center rounded-xl border-2 border-ink bg-ink px-5 py-2.5 text-center text-base font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-700">
+        {t("timing.pickRide")}
       </Link>
     );
   }
   return (
-    <Link href={href} className="group relative isolate flex min-h-11 min-w-40 flex-1 items-center overflow-hidden rounded-xl border-2 border-ink bg-ink py-2 pl-14 pr-3 text-center text-[.8125rem] font-semibold text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-700">
-      <span className="w-full transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none motion-reduce:group-hover:opacity-100 motion-reduce:group-focus-visible:opacity-100">Pick ride</span>
-      <span className="sr-only">{route}</span>
+    <Link href={href} aria-label={route} className="group relative isolate flex min-h-13 w-1/2 items-center overflow-hidden rounded-xl border-2 border-ink bg-ink py-2.5 pl-14 pr-3 text-center text-base font-semibold text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-700">
+      <span className="w-full transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none motion-reduce:group-hover:opacity-100 motion-reduce:group-focus-visible:opacity-100">{t("timing.pickRide")}</span>
       <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-12 overflow-hidden rounded-lg bg-brand-100 transition-[width] duration-700 ease-in-out group-hover:w-full group-focus-visible:w-full motion-reduce:transition-none motion-reduce:group-hover:w-12 motion-reduce:group-focus-visible:w-12">
         <span className="absolute inset-y-0 left-0 flex w-full items-center justify-center whitespace-nowrap pr-12 text-brand-800 opacity-0 transition-opacity duration-200 group-hover:delay-200 group-hover:opacity-100 group-focus-visible:delay-200 group-focus-visible:opacity-100 motion-reduce:hidden">ajde</span>
       </span>

@@ -1,13 +1,19 @@
 'use server'
 
+import 'server-only'
+import { z } from 'zod'
+import type { StaticMessageKey } from '@/lib/i18n/translate'
+import { contactErrorKey } from '@/lib/profiles/contact-errors'
 import { revalidatePath } from 'next/cache'
 import { personalitySchema, readPersonality, type Personality } from '@/lib/profiles/personality'
 import { profilePromptsEnabled } from '@/lib/profiles/features'
 import { contactSchema } from '@/lib/profiles/contact'
+import { profilePhotoPathPattern } from '@/lib/profiles/photo'
 import { requireUser } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
-type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not_to_say'
+const genders = ['woman', 'man', 'non_binary', 'prefer_not_to_say'] as const
+type Gender = (typeof genders)[number]
 
 export type ProfileInput = {
   fullName: string
@@ -22,39 +28,46 @@ export type ProfileInput = {
 
 export type SaveProfileResult =
   | { ok: true }
-  | { ok: false; message: string }
+  | { ok: false; messageKey: ProfileErrorKey }
 
-const genders = new Set<Gender>(['woman', 'man', 'non_binary', 'prefer_not_to_say'])
+export type ProfileErrorKey = Extract<StaticMessageKey, `onboarding.${string}` | `contact.${string}`>
+
+const nameMessage = 'Enter a name between 2 and 100 characters.'
+const universityMessage = 'Enter a university between 2 and 160 characters.'
+const profileInputSchema = z.object({
+  fullName: z.string().trim().min(2, nameMessage).max(100, nameMessage),
+  university: z.string().trim().min(2, universityMessage).max(160, universityMessage),
+  bio: z.string().trim().max(500, 'Bio must be 500 characters or fewer.'),
+  storagePath: z.string().max(200),
+  gender: z.enum([...genders, ''], 'Choose a valid gender option.'),
+}).and(contactSchema)
 
 export async function saveProfile(input: ProfileInput): Promise<SaveProfileResult> {
   const user = await requireUser('/onboarding')
-  const contacts = contactSchema.safeParse(input)
-  if (!contacts.success) return { ok: false, message: contacts.error.issues[0].message }
+  const parsed = profileInputSchema.safeParse(input)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const field = issue.path[0]
+    const messageKey: ProfileErrorKey = field === 'fullName' ? 'onboarding.nameLength'
+      : field === 'university' ? 'onboarding.universityLength'
+      : field === 'bio' ? 'onboarding.bioLength'
+      : field === 'gender' ? 'onboarding.invalidGender'
+      : field === 'storagePath' ? 'onboarding.photoOwner'
+      : field === 'phone' || field === 'socialUrl' ? contactErrorKey(issue)
+      : 'onboarding.invalidInput'
+    return { ok: false, messageKey }
+  }
+  const { fullName, university, bio, storagePath, gender, phone, socialUrl } = parsed.data
+  // The database also rejects a photo_url outside the user's own folder (guard_profile_photo).
+  if (storagePath && !profilePhotoPathPattern(user.id).test(storagePath)) {
+    return { ok: false, messageKey: 'onboarding.photoOwner' }
+  }
+
   const personality = personalitySchema.safeParse(input.personality ?? { prompts: [] })
-  if (!personality.success) return { ok: false, message: personality.error.issues[0].message }
-  const fullName = input.fullName.trim()
-  const university = input.university.trim()
-  const bio = input.bio.trim()
-
-  if (fullName.length < 2 || fullName.length > 100) {
-    return { ok: false, message: 'Enter a name between 2 and 100 characters.' }
-  }
-  if (university.length < 2 || university.length > 160) {
-    return { ok: false, message: 'Enter a university between 2 and 160 characters.' }
-  }
-  if (bio.length > 500) {
-    return { ok: false, message: 'Bio must be 500 characters or fewer.' }
-  }
-  if (input.storagePath && !input.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: 'Upload a profile photo owned by your account.' }
-  }
-  if (input.gender && !genders.has(input.gender)) {
-    return { ok: false, message: 'Choose a valid gender option.' }
-  }
-
+  if (!personality.success) return { ok: false, messageKey: 'onboarding.invalidInput' }
   const supabase = await createClient()
   const { data: existing, error: existingError } = await supabase.from('profiles').select('photo_url, driver_details').eq('id', user.id).maybeSingle()
-  if (existingError) return { ok: false, message: 'Your profile could not be loaded. Please try again.' }
+  if (existingError) return { ok: false, messageKey: 'onboarding.saveFailed' }
   // Hidden prompt controls must neither erase saved answers nor accept forged edits.
   if (!profilePromptsEnabled()) {
     personality.data.prompts = readPersonality(existing?.driver_details).prompts
@@ -62,15 +75,15 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   const photoUrl = input.storagePath
     ? supabase.storage.from('profile-photos').getPublicUrl(input.storagePath).data.publicUrl
     : existing?.photo_url
-  if (!photoUrl) return { ok: false, message: 'Add a profile photo to continue.' }
+  if (!photoUrl) return { ok: false, messageKey: 'onboarding.photoRequired' }
   const profile = {
     full_name: fullName,
     photo_url: photoUrl,
-    phone: contacts.data.phone,
-    social_url: contacts.data.socialUrl || null,
+    phone,
+    social_url: socialUrl || null,
     university,
     bio: bio || null,
-    gender: input.gender || null,
+    gender: gender || null,
     ...(input.personality !== undefined ? { driver_details: personality.data } : {}),
   }
   // Update, then insert if there was no row. An upsert's ON CONFLICT branch re-reads the written
@@ -84,7 +97,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveProfileResul
   }
 
   if (error) {
-    return { ok: false, message: 'Your profile could not be saved. Please try again.' }
+    return { ok: false, messageKey: 'onboarding.saveFailed' }
   }
 
   revalidatePath('/', 'layout')

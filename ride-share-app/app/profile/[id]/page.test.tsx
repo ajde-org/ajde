@@ -1,7 +1,8 @@
+vi.mock('@/lib/i18n/server', async () => { const { en } = await import('@/lib/i18n/messages/en'); const { createTranslator } = await import('@/lib/i18n/translate'); return { getI18n: async () => ({ locale: 'en', t: createTranslator(en) }) } })
 vi.mock('server-only', () => ({}))
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@/lib/i18n/testing'
 
 const fixture = vi.hoisted(() => ({
   id: '20000000-0000-4000-8000-000000000001', fullName: 'Ana Petrova',

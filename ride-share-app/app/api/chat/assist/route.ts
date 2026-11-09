@@ -1,3 +1,4 @@
+import { getLocale } from "@/lib/i18n/server";
 import { isChatAiEnabled } from "@/lib/chat/ai-feature";
 import { assistRoom, aiFailure } from "@/lib/chat/ai-service";
 import type { AiErrorCode } from "@/lib/chat/ai-contract";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     }
     input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch { return Response.json(aiFailure("invalid"), { status: 400, headers }); }
-  const result = await assistRoom(input, request.signal);
+  const result = await assistRoom(input, request.signal, await getLocale());
   return Response.json(result, { status: result.ok ? 200 : status[result.code],
     headers: { ...headers, ...(!result.ok && result.code === "rate_limit" ? { "Retry-After": "60" } : {}) } });
 }

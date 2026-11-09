@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { DateTimeField } from "./date-time-field";

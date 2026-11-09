@@ -22,6 +22,8 @@ select pg_temp.denied($q$delete from public.bookings$q$, 'anon deletes bookings'
 select pg_temp.denied($q$update public.profiles set full_name = 'x'$q$, 'anon updates profiles');
 select pg_temp.denied($q$truncate public.rides cascade$q$, 'anon truncates rides');
 select pg_temp.denied($q$select 1 from public.reports$q$, 'anon reads reports');
+select pg_temp.denied($q$select full_name from public.profiles$q$, 'anon reads profiles');
+select pg_temp.denied($q$select public.profile_rating_summary('93000000-0000-4000-8000-000000000001')$q$, 'anon reads rating summaries');
 reset role;
 
 -- Logged-in users: catalogs are read-only, unused tables are closed, verification is not self-service.
@@ -37,7 +39,8 @@ update public.profiles set full_name = 'Renamed Student' where id = auth.uid();
 select pg_temp.assert_true((select full_name from public.profiles where id = auth.uid()) = 'Renamed Student', 'user edits own name');
 -- Same statement shape as a PostgREST upsert (onboarding).
 insert into public.profiles(id, full_name, photo_url, university)
-values (auth.uid(), 'Upserted Student', 'https://example.com/photo.png', 'UKIM')
+values (auth.uid(), 'Upserted Student',
+  'https://example.supabase.co/storage/v1/object/public/profile-photos/93000000-0000-4000-8000-000000000001/photo.png', 'UKIM')
 on conflict (id) do update set id = excluded.id, full_name = excluded.full_name,
   photo_url = excluded.photo_url, university = excluded.university;
 select pg_temp.assert_true((select full_name from public.profiles where id = auth.uid()) = 'Upserted Student', 'user upserts own profile');
@@ -70,7 +73,7 @@ create function pg_temp.unlisted_api_functions() returns text language sql as $$
   where p.pronamespace = 'public'::regnamespace
     and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
     and (p.oid::regprocedure::text, has_function_privilege('anon', p.oid, 'EXECUTE')) not in (
-      ('profile_rating_summary(uuid)', true),
+      ('profile_rating_summary(uuid)', false),
       ('valid_driver_details(jsonb)', true),
       ('can_rate_ride(uuid,uuid)', false),
       ('can_read_ride_room(uuid,timestamp with time zone)', false),
