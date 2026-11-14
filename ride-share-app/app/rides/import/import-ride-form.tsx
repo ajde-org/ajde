@@ -2,6 +2,7 @@
 
 import { translateDraftWarning } from "@/lib/i18n/draft-warning";
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 import { formatMoney, formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -31,12 +32,15 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [readingScreenshot, setReadingScreenshot] = useState(false);
+  const recovery = useAiRecovery();
   const screenshotMode = pipelineEnabled && mode === "facebook";
   const postText = screenshotMode ? screenshotText : text;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || readingScreenshot || postText.trim().length < 10) return;
+    const requestId = recovery.start();
+    if (!requestId) return;
     setPending(true);
     setError("");
     setResult(null);
@@ -44,12 +48,13 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
     try {
       const response = await fetch("/api/parse", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify({ text: postText, sourceHint: screenshotMode ? "facebook" : "viber" }),
       });
       const payload: unknown = await response.json();
 
       if (!response.ok) {
+        if (recovery.accept(payload)) return;
         setError("import.parseFailed");
         return;
       }
@@ -79,6 +84,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
     } catch {
       setError("import.offline");
     } finally {
+      recovery.finish();
       setPending(false);
     }
   }
@@ -119,7 +125,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           </p>
           <button
             className="btn-primary disabled:opacity-50"
-            disabled={pending || readingScreenshot || postText.trim().length < 10}
+            disabled={pending || readingScreenshot || recovery.blocked || postText.trim().length < 10}
             type="submit"
           >
             {pending ? t("import.parsing") : t("import.reviewDraft")}
@@ -127,6 +133,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
         </div>
       </form>
 
+      <AiRetryNotice recovery={recovery} />
       {error ? (
         <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           {notice(error, "import.parseFailed")}

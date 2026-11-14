@@ -2,8 +2,8 @@ begin;
 insert into public.route_estimates(origin_city_id,dest_city_id,origin_lat,origin_lng,dest_lat,dest_lng,distance_km,duration_minutes)
 select a.id,b.id,a.lat,a.lng,b.lat,b.lng,174.3,150 from public.cities a,public.cities b where a.id=1 and b.id=3;
 insert into auth.users(id) values ('96000000-0000-4000-8000-000000000001');
-insert into public.profiles(id,full_name,photo_url,university)
-values ('96000000-0000-4000-8000-000000000001','Timing Verification','https://example.com/photo.png','UKIM');
+insert into public.profiles(id,full_name,photo_url,university,phone)
+values ('96000000-0000-4000-8000-000000000001','Timing Verification','https://example.com/photo.png','UKIM','+38971000001');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','96000000-0000-4000-8000-000000000001',true);
 do $$
@@ -25,7 +25,7 @@ begin
   begin
     update public.rides set estimated_duration_minutes=1,duration_minutes=2 where id=saved.id;
     raise exception 'Forged baseline accepted';
-  exception when check_violation then null; end;
+  exception when insufficient_privilege or check_violation then null; end;
   begin
     insert into public.route_estimates(origin_city_id,dest_city_id,origin_lat,origin_lng,dest_lat,dest_lng,distance_km,duration_minutes)
     values(3,1,0,0,0,0,1,1);

@@ -1,4 +1,5 @@
 import 'server-only'
+import { aiProviderFetch } from './operation-context'
 
 import {
   buildLocationResponseRequest,
@@ -16,7 +17,7 @@ export function createOpenAILocationFallback(): LocationModelFallback | undefine
 
   return async (raw, candidates) => {
     try {
-      const response = await fetch(RESPONSES_URL, {
+      const response = await aiProviderFetch(RESPONSES_URL, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,

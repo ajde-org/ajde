@@ -6,7 +6,7 @@ vi.mock("@/lib/chat/ai-service", () => ({ assistRoom: service, aiFailure: (code:
 import { POST } from "./route";
 const url = "https://rides.example/api/chat/assist";
 const request = (body: string, origin = "https://rides.example") => new Request(url, { method: "POST", body, headers: { origin } });
-beforeEach(() => { vi.stubEnv("CHAT_AI_ENABLED", "true"); service.mockReset().mockResolvedValue({ ok: false, code: "rate_limit", error: "Retry" }); });
+beforeEach(() => { vi.stubEnv("CHAT_AI_ENABLED", "true"); service.mockReset().mockResolvedValue({ ok: false, code: "rate_limit", error: "Retry", retryAfterSeconds: 17, retryAt: "2026-11-15T12:00:17Z" }); });
 afterEach(() => vi.unstubAllEnvs());
 it("rejects cross-site requests, invalid JSON, and excessive bodies before service access", async () => {
   expect((await POST(request("{}", "https://evil.example"))).status).toBe(403);
@@ -18,8 +18,8 @@ it("returns private no-store errors with retry metadata and forwards the abort s
   const req = request('{}'); const response = await POST(req);
   expect(response.status).toBe(429);
   expect(response.headers.get("cache-control")).toBe("private, no-store");
-  expect(response.headers.get("retry-after")).toBe("60");
-  expect(service).toHaveBeenCalledWith({}, req.signal, "mk");
+  expect(response.headers.get("retry-after")).toBe("17");
+  expect(service).toHaveBeenCalledWith({}, req.signal, "mk", null);
 });
 
 it("blocks disabled AI before calling the service", async () => {

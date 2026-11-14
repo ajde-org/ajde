@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 import { formatNumber, plural } from "@/lib/i18n/format";
 import { useRef, useState } from "react";
 import { isSupportedScreenshot, screenshotResponseSchema, type ScreenshotPost } from "@/lib/ai/screenshot-contract";
@@ -21,6 +22,7 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
   const [selected, setSelected] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const busy = useRef(false);
+  const recovery = useAiRecovery();
 
   async function read(image: File) {
     if (disabled || busy.current) return;
@@ -28,7 +30,13 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
       setError("screenshot.fileInvalid");
       return;
     }
+    if (recovery.blocked) {
+      setFile(image); setPosts([]); setSelected(null); onClearSelection();
+      return;
+    }
     busy.current = true;
+    const requestId = recovery.start();
+    if (!requestId) { busy.current = false; return; }
     setFile(image);
     setPosts([]);
     setSelected(null);
@@ -39,9 +47,10 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
     try {
       const form = new FormData();
       form.append("image", image);
-      const response = await fetch("/api/parse/screenshot", { method: "POST", body: form });
+      const response = await fetch("/api/parse/screenshot", { method: "POST", body: form, headers: { "Idempotency-Key": requestId } });
       const payload: unknown = await response.json();
       if (!response.ok) {
+        if (recovery.accept(payload)) return;
         setError("screenshot.unreadable");
         return;
       }
@@ -54,6 +63,7 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
     } catch {
       setError("screenshot.offline");
     } finally {
+      recovery.finish();
       busy.current = false;
       setPending(false);
       onBusyChange(false);
@@ -86,6 +96,8 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
         aria-label={t("screenshot.removeLabel")} disabled={disabled || pending} onClick={() => { setFile(null); setPosts([]); setSelected(null); setError(""); onClearSelection(); }}>{t("screenshot.remove")}</button>
     </div> : null}
     {pending ? <p role="status" className="flex items-center gap-2 text-sm text-brand-700"><span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600 motion-reduce:animate-none" />{t("screenshot.reading")}</p> : null}
+    <AiRetryNotice recovery={recovery} />
+    {recovery.retryAt && file ? <button className="text-sm font-semibold underline disabled:opacity-50" type="button" disabled={disabled || pending || recovery.blocked} onClick={() => { void read(file); }}>{t("screenshot.retry")}</button> : null}
     {error ? <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950"><p role="alert">{notice(error, "screenshot.unreadable")}</p>
       {file ? <button className="mt-2 font-semibold underline disabled:opacity-50" type="button" disabled={disabled || pending} onClick={() => { void read(file); }}>{t("screenshot.retry")}</button> : null}
     </div> : null}

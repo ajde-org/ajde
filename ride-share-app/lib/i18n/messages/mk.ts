@@ -18,6 +18,7 @@ import { explanationsMk } from "./explanations-mk";
 
 // Draft Macedonian copy. Record human wording review in the ticket or pull request.
 export const mk = {
+  "ai.retryAt": "Ги искористивте достапните ВИ барања. Обидете се повторно по {time}",
   ...timingMk,
   ...carColorsMk,
   ...errorsMk,

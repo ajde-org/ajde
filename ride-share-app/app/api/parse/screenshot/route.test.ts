@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/ai/operation", async original => ({ ...await original<typeof import("@/lib/ai/operation")>(), runAiOperation: async (_options: unknown, work: () => Promise<unknown>) => work() }));
 const stubs = vi.hoisted(() => ({ read: vi.fn(), createClient: vi.fn(), auth: vi.fn(), from: vi.fn(), storage: vi.fn(), parse: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: stubs.createClient }));
 vi.mock("@/lib/ai/read-screenshot", async importOriginal => ({ ...(await importOriginal<typeof import("@/lib/ai/read-screenshot")>()), readScreenshot: stubs.read }));

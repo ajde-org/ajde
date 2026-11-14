@@ -54,8 +54,24 @@ it("reads a Facebook screenshot and explicitly parses only the selected post", a
   expect(transport.mock.calls[0][0]).toBe("/api/parse/screenshot");
   expect(transport.mock.calls[0][1]?.body).toBeInstanceOf(FormData);
   expect(transport.mock.calls[1][0]).toBe("/api/parse");
+  expect((transport.mock.calls[0][1]?.headers as Record<string, string>)["Idempotency-Key"])
+    .not.toBe((transport.mock.calls[1][1]?.headers as Record<string, string>)["Idempotency-Key"]);
   expect(JSON.parse(String(transport.mock.calls[1][1]?.body))).toEqual({ text: transcript, sourceHint: "facebook" });
   expect(screen.getByRole("link", { name: "Continue to editable ride form" })).toBeTruthy();
+});
+
+it("retains a denied screenshot and offers a deliberate retry without rereading automatically", async () => {
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "rate_limit", retryAfterSeconds: 60, retryAt: new Date(Date.now() + 60_000).toISOString() }, { status: 429 }));
+  vi.stubGlobal("fetch", transport);
+  render(<ImportRideForm cities={cities} pipelineEnabled />);
+  await screenshotMode();
+  await userEvent.upload(screen.getByLabelText(/Or upload a screenshot/), file());
+  expect(await screen.findByText(/Try again after/)).toBeTruthy();
+  expect(screen.getByText("ride.png")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Retry reading" })).toHaveProperty("disabled", true);
+  expect(transport).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole("button", { name: "Viber text" }));
+  expect(screen.getByRole("textbox", { name: "Post text" })).toHaveProperty("disabled", false);
 });
 
 it("retries dropped screenshots and clears the selected draft when the image is removed", async () => {

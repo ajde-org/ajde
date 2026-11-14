@@ -86,6 +86,8 @@ create function pg_temp.unlisted_api_functions() returns text language sql as $$
       ('profile_contacts(uuid[])', false),
       ('ride_room_roster(uuid)', false),
       ('try_chat_ai_request()', false),
+      ('admit_ai_operation(text)', false),
+      ('claim_ai_execution(uuid,text,text)', false),
       ('try_ride_routing_request()', false)
     )
 $$;

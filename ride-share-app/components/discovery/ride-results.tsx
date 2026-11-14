@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/lib/i18n/provider";
 import { formatNumber, plural } from "@/lib/i18n/format";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { RideCard } from "@/components/ride-card";
@@ -48,41 +48,41 @@ export function RideResults({
   });
   const explanations = loaded.requestKey === requestKey ? loaded.explanations : {};
 
+  const requestCache = useRef(new Map<string, { promise: Promise<Record<string, string> | null>; complete: boolean }>());
   useEffect(() => {
-    if (!searchContext || rides.length === 0) return;
-
-    const controller = new AbortController();
+    const snapshot = JSON.parse(requestKey) as { rideIds: string[]; searchContext: SearchQueryResult | null };
+    if (!snapshot.searchContext || !snapshot.rideIds.length) return;
     let active = true;
-    const rideIds = rides.slice(0, MAX_EXPLAINED_RIDES).map((ride) => ride.id);
-
-    async function load() {
-      try {
-        const response = await fetch("/api/explain", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ rideIds, context: searchContext }),
-          signal: controller.signal,
-        });
-        if (!response.ok) return;
-        const parsed = matchExplanationResponseSchema.safeParse(await response.json());
-        if (!parsed.success || !active) return;
-        setLoaded({
-          requestKey,
-          explanations: Object.fromEntries(
-            parsed.data.explanations.map((item) => [item.rideId, item.explanation]),
-          ),
-        });
-      } catch {
-        // Explanations are optional; cards remain complete without them.
+    let entry = requestCache.current.get(requestKey);
+    if (!entry) {
+      // Keep in-flight work shared across rerenders and Strict Mode effect replays.
+      for (const [key, value] of requestCache.current) {
+        if (requestCache.current.size < 32) break;
+        if (value.complete) requestCache.current.delete(key);
       }
+      if (requestCache.current.size >= 32) return;
+      entry = { complete: false, promise: (async () => {
+        try {
+          const response = await fetch("/api/explain", {
+            method: "POST", headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+            body: JSON.stringify({ rideIds: snapshot.rideIds, context: snapshot.searchContext }),
+          });
+          if (!response.ok) return null;
+          const parsed = matchExplanationResponseSchema.safeParse(await response.json());
+          return parsed.success ? Object.fromEntries(parsed.data.explanations.map(item => [item.rideId, item.explanation])) : null;
+        } catch { return null; }
+      })() };
+      requestCache.current.set(requestKey, entry);
+      const current = entry;
+      void current.promise.then(() => { current.complete = true; });
     }
-
-    void load();
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [requestKey, rides, searchContext]);
+    void entry.promise.then(explanations => {
+      if (active && explanations) setLoaded({ requestKey, explanations });
+    });
+    // No automatic retry after denial. Pending paid work finishes once and stale results
+    // are ignored, including after locale changes; the server owns its deadline.
+    return () => { active = false; };
+  }, [requestKey]);
 
   return (
     <div className="mt-3 grid gap-4 lg:grid-cols-2">

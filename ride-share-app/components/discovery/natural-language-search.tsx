@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
@@ -19,6 +20,7 @@ export function NaturalLanguageSearch({
   const [query, setQuery] = useState(initialQuery);
   const [error, setError] = useState<"discovery.shortQuery" | "discovery.unavailable" | "discovery.invalidResult" | "discovery.offline" | null>(null);
   const [pending, setPending] = useState(false);
+  const recovery = useAiRecovery();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,16 +30,19 @@ export function NaturalLanguageSearch({
       return;
     }
 
+    const requestId = recovery.start();
+    if (!requestId) return;
     setPending(true);
     setError(null);
     try {
       const response = await fetch("/api/search", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify({ query: normalized }),
       });
       const payload: unknown = await response.json();
       if (!response.ok) {
+        if (recovery.accept(payload)) return;
         setError("discovery.unavailable");
         return;
       }
@@ -57,6 +62,7 @@ export function NaturalLanguageSearch({
     } catch {
       setError("discovery.offline");
     } finally {
+      recovery.finish();
       setPending(false);
     }
   }
@@ -82,7 +88,7 @@ export function NaturalLanguageSearch({
         />
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || recovery.blocked}
           className="btn-primary px-5 py-3 disabled:opacity-50"
         >
           {pending ? t("discovery.interpreting") : t("discovery.search")}
@@ -97,6 +103,7 @@ export function NaturalLanguageSearch({
           </button>
         ) : null}
       </form>
+      <AiRetryNotice recovery={recovery} />
       {error ? <p role="alert" className="mt-3 rounded-xl bg-white px-4 py-3 text-sm text-brand-700">{t(error)}</p> : null}
     </section>
   );

@@ -16,6 +16,7 @@ import { sharingEn } from "./sharing-en";
 import { explanationsEn } from "./explanations-en";
 
 export const en = {
+  "ai.retryAt": "You have used the available AI requests. Try again after {time}",
   ...timingEn,
   ...carColorsEn,
   ...errorsEn,

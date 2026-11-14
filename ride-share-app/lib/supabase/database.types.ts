@@ -9,6 +9,330 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_policy_versions: {
+        Row: {
+          configuration: NonNullable<Json>
+          effective_at: string
+          policy_group: string
+        }
+        ComputedFields: never
+        Insert: {
+          configuration: NonNullable<Json>
+          effective_at: string
+          policy_group: string
+        }
+        Update: {
+          configuration?: NonNullable<Json>
+          effective_at?: string
+          policy_group?: string
+        }
+        Relationships: []
+      }
+      ai_request_events: {
+        Row: {
+          duration_ms: number | null
+          feature: string
+          id: string
+          operation_id: string | null
+          outcome: string
+          reason: string | null
+          recorded_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          duration_ms?: number | null
+          feature: string
+          id?: string
+          operation_id?: string | null
+          outcome: string
+          reason?: string | null
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          duration_ms?: number | null
+          feature?: string
+          id?: string
+          operation_id?: string | null
+          outcome?: string
+          reason?: string | null
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_request_events_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_request_events_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_provider_usage: {
+        Row: {
+          actual_model: string | null
+          cached_input_tokens: number | null
+          duration_ms: number
+          estimated_cost_usd: number | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          operation_id: string
+          outcome: string
+          output_tokens: number | null
+          price_version: string
+          recorded_at: string
+          requested_model: string | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          actual_model?: string | null
+          cached_input_tokens?: number | null
+          duration_ms: number
+          estimated_cost_usd?: number | null
+          feature: string
+          id: string
+          input_tokens?: number | null
+          operation_id: string
+          outcome: string
+          output_tokens?: number | null
+          price_version: string
+          recorded_at?: string
+          requested_model?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_model?: string | null
+          cached_input_tokens?: number | null
+          duration_ms?: number
+          estimated_cost_usd?: number | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          operation_id?: string
+          outcome?: string
+          output_tokens?: number | null
+          price_version?: string
+          recorded_at?: string
+          requested_model?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_usage_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_provider_usage_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_execution_keys: {
+        Row: {
+          claim_id: string
+          completed_at: string | null
+          expires_at: string
+          feature: string
+          input_hash: string
+          operation_id: string | null
+          request_id: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          claim_id?: string
+          completed_at?: string | null
+          expires_at?: string
+          feature: string
+          input_hash: string
+          operation_id?: string | null
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          claim_id?: string
+          completed_at?: string | null
+          expires_at?: string
+          feature?: string
+          input_hash?: string
+          operation_id?: string | null
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_execution_keys_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_execution_keys_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_admission_buckets: {
+        Row: {
+          permits: number
+          policy_group: string
+          refilled_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          permits: number
+          policy_group: string
+          refilled_at: string
+          user_id: string
+        }
+        Update: {
+          permits?: number
+          policy_group?: string
+          refilled_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_admission_buckets_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
+      ai_admission_features: {
+        Row: {
+          feature: string
+          policy_group: string
+        }
+        ComputedFields: never
+        Insert: {
+          feature: string
+          policy_group: string
+        }
+        Update: {
+          feature?: string
+          policy_group?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_admission_features_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
+      ai_admission_policies: {
+        Row: {
+          burst_capacity: number | null
+          burst_refill_seconds: number | null
+          concurrent_limit: number
+          effective_at: string
+          hourly_limit: number
+          lease_seconds: number
+          operation_timeout_seconds: number
+          policy_group: string
+          screenshot_hourly_limit: number | null
+        }
+        ComputedFields: never
+        Insert: {
+          burst_capacity?: number | null
+          burst_refill_seconds?: number | null
+          concurrent_limit: number
+          effective_at?: string
+          hourly_limit: number
+          lease_seconds: number
+          operation_timeout_seconds: number
+          policy_group: string
+          screenshot_hourly_limit?: number | null
+        }
+        Update: {
+          burst_capacity?: number | null
+          burst_refill_seconds?: number | null
+          concurrent_limit?: number
+          effective_at?: string
+          hourly_limit?: number
+          lease_seconds?: number
+          operation_timeout_seconds?: number
+          policy_group?: string
+          screenshot_hourly_limit?: number | null
+        }
+        Relationships: []
+      }
+      ai_operations: {
+        Row: {
+          admitted_at: string
+          deadline_at: string
+          feature: string
+          id: string
+          lease_expires_at: string
+          policy_group: string
+          released_at: string | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          admitted_at: string
+          deadline_at: string
+          feature: string
+          id?: string
+          lease_expires_at: string
+          policy_group: string
+          released_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admitted_at?: string
+          deadline_at?: string
+          feature?: string
+          id?: string
+          lease_expires_at?: string
+          policy_group?: string
+          released_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_operations_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_operations_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
@@ -747,6 +1071,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_spend_last_day: { Args: Record<PropertyKey, never>; Returns: Json }
+      finish_ai_execution: {
+        Args: { p_claim_id: string; p_request_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      claim_ai_execution: {
+        Args: { p_feature: string; p_input_hash: string; p_request_id: string }
+        Returns: Json
+      }
+      bind_ai_execution: {
+        Args: {
+          p_claim_id: string
+          p_operation_id: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      admit_ai_operation: { Args: { p_feature: string }; Returns: Json }
       can_rate_ride: {
         Args: { target_profile_id: string; target_ride_id: string }
         Returns: boolean
@@ -760,6 +1103,10 @@ export type Database = {
         Returns: boolean
       }
       can_send_ride_room: { Args: { target_ride_id: string }; Returns: boolean }
+      cleanup_ai_operations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_ride_offer: {
         Args: {
           p_offer: Json
@@ -798,6 +1145,10 @@ export type Database = {
       recalculate_ride_seats: {
         Args: { target_ride_id: string }
         Returns: undefined
+      }
+      release_ai_operation: {
+        Args: { p_operation_id: string; p_user_id: string }
+        Returns: boolean
       }
       ride_room_roster: {
         Args: { target_ride_id: string }

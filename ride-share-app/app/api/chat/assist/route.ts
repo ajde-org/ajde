@@ -5,7 +5,7 @@ import type { AiErrorCode } from "@/lib/chat/ai-contract";
 
 export const maxDuration = 60;
 const status: Record<AiErrorCode, number> = { disabled: 503, invalid: 400, unavailable: 403, database: 503, empty: 422,
-  too_large: 422, rate_limit: 429, missing_key: 503, timeout: 504, provider: 502, refusal: 422, invalid_output: 502 };
+  too_large: 422, rate_limit: 429, provider_rate_limit: 503, pending: 202, conflict: 409, missing_key: 503, timeout: 504, provider: 502, refusal: 422, invalid_output: 502 };
 const headers = { "Cache-Control": "private, no-store" };
 
 export async function POST(request: Request) {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
     input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch { return Response.json(aiFailure("invalid"), { status: 400, headers }); }
-  const result = await assistRoom(input, request.signal, await getLocale());
+  const result = await assistRoom(input, request.signal, await getLocale(), request.headers.get("Idempotency-Key"));
   return Response.json(result, { status: result.ok ? 200 : status[result.code],
-    headers: { ...headers, ...(!result.ok && result.code === "rate_limit" ? { "Retry-After": "60" } : {}) } });
+    headers: { ...headers, ...(!result.ok && result.code === "rate_limit" && result.retryAfterSeconds ? { "Retry-After": String(result.retryAfterSeconds) } : {}) } });
 }

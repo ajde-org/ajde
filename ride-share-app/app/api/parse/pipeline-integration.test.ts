@@ -128,3 +128,4 @@ it("keeps screenshot extraction separate from the explicitly selected checked im
   expect(JSON.stringify(saved)).not.toContain("data:image");
   expect(JSON.stringify(service.model.mock.calls[1][0].input)).not.toContain(unselected);
 });
+vi.mock("@/lib/ai/operation", async original => ({ ...await original<typeof import("@/lib/ai/operation")>(), runAiOperation: async (_options: unknown, work: () => Promise<unknown>) => work() }));

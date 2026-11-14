@@ -23,7 +23,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 it("isolates untrusted input, disables storage/tools, limits output, and uses bounded provider options", async () => {
   await runChatAssistant(request, [message]);
-  expect(mocks.options).toHaveBeenCalledWith({ apiKey: "test-only", timeout: 30000, maxRetries: 0 });
+  expect(mocks.options).toHaveBeenCalledWith(expect.objectContaining({ apiKey: "test-only", timeout: 30000, maxRetries: 0, fetch: expect.any(Function) }));
   const input = mocks.parse.mock.calls[0][0];
   expect(input).toMatchObject({ model: "chat-override", store: false, max_output_tokens: 3000 });
   expect(input.tools).toBeUndefined();

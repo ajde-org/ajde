@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+import { z } from "zod";
 import { aiImportPipelineEnabled } from "@/lib/ai/import-pipeline-config";
+import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 import { readScreenshot, ScreenshotReaderError } from "@/lib/ai/read-screenshot";
 import { isSupportedScreenshot } from "@/lib/ai/screenshot-contract";
 import { createClient } from "@/lib/supabase/server";
@@ -21,10 +24,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Send valid multipart form data with one screenshot.", code: "invalid_input" }, { status: 400 });
   }
   const entries = [...form.entries()];
-  const image = form.get("image");
-  if (entries.length !== 1 || !(image instanceof File) || !isSupportedScreenshot(image.type, image.size)) {
+  const input = z.object({ image: z.instanceof(File).refine(image => isSupportedScreenshot(image.type, image.size)) }).strict().safeParse(Object.fromEntries(entries));
+  if (entries.length !== 1 || !input.success) {
     return Response.json({ error: "Choose one nonempty PNG, JPEG, or WebP screenshot up to 4 MB.", code: "invalid_input" }, { status: 400 });
   }
+  const image = input.data.image;
   let bytes: Uint8Array;
   try {
     bytes = new Uint8Array(await image.arrayBuffer());
@@ -32,9 +36,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "The screenshot upload could not be read. Try another image or paste the text.", code: "invalid_input" }, { status: 400 });
   }
   try {
-    const result = await readScreenshot({ bytes, mimeType: image.type });
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "screenshot", signal: request.signal, ...aiRequestIdentity(request, { imageHash: createHash("sha256").update(bytes).digest("hex"), mimeType: image.type }) }, () => readScreenshot({ bytes, mimeType: image.type }));
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    const failure = aiOperationFailure(error);
+    if (failure) return failure;
     if (error instanceof ScreenshotReaderError) {
       const status = error.code === "missing_key" ? 503 : error.code === "invalid_input" ? 400 : error.code === "refusal" || error.code === "unreadable" ? 422 : 502;
       return Response.json({ error: error.message, code: error.code }, { status });

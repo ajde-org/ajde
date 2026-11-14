@@ -1,4 +1,5 @@
 import "server-only";
+import { runAiOperation, AiOperationError } from "@/lib/ai/operation";
 import type { Locale } from "@/lib/i18n/config";
 import { isChatAiEnabled } from "./ai-feature";
 import { aiModelSchema, aiRequestSchema, type AiErrorCode, type AiResult } from "./ai-contract";
@@ -11,15 +12,17 @@ const errors: Record<AiErrorCode, string> = {
   invalid: "Ask a question between 1 and 1,000 characters about this chat.",
   unavailable: "This ride room is unavailable.", database: "Chat history could not be loaded. Please retry.",
   empty: "No messages to summarize or ask about yet.", too_large: "Chat is too long for AI assistance. You can still browse its full history.",
-  rate_limit: "AI request limit reached. Wait a minute before trying again.",
+  rate_limit: "AI request limit reached. Retry after the indicated time.",
+  provider_rate_limit: "AI is temporarily busy. Please try again later.",
+  pending: "This AI request is already running.", conflict: "This request was already used. Start a new action to retry.",
   missing_key: "AI chat assistance is not configured. You can still read and send messages.",
   timeout: "AI took too long to respond. Please try again.", provider: "AI is temporarily unavailable. Please try again.",
   refusal: "AI could not answer this request. Try a different question about the chat.",
   invalid_output: "AI could not provide a verified response. Please try again.",
 };
-export function aiFailure(code: AiErrorCode): AiResult { return { ok: false, code, error: errors[code] }; }
+export function aiFailure(code: AiErrorCode): Extract<AiResult, { ok: false }> { return { ok: false, code, error: errors[code] }; }
 
-export async function assistRoom(input: unknown, signal?: AbortSignal, locale: Locale = "en"): Promise<AiResult> {
+export async function assistRoom(input: unknown, signal?: AbortSignal, locale: Locale = "en", requestId?: string | null): Promise<AiResult> {
   if (!isChatAiEnabled()) return aiFailure("disabled");
   const parsed = aiRequestSchema.safeParse(input);
   if (!parsed.success) return aiFailure("invalid");
@@ -33,10 +36,8 @@ export async function assistRoom(input: unknown, signal?: AbortSignal, locale: L
     const before = await roomAccess(request.rideId);
     if (!before.ok) return aiFailure(before.code);
     if (before.user.id !== access.user.id) return aiFailure("unavailable");
-    const permit = await before.supabase.rpc("try_chat_ai_request");
-    if (permit.error) return aiFailure("database");
-    if (!permit.data) return aiFailure("rate_limit");
-    const output = await runChatAssistant(request, transcript.messages, signal, locale);
+    const output = await runAiOperation({ supabase: before.supabase, userId: before.user.id, feature: "chat_assist", signal, requestId,
+      input: { request, cutoff: transcript.cutoff, locale } }, () => runChatAssistant(request, transcript.messages, signal, locale));
     const after = await roomAccess(request.rideId);
     if (!after.ok) return aiFailure(after.code);
     if (after.user.id !== access.user.id) return aiFailure("unavailable");
@@ -51,6 +52,13 @@ export async function assistRoom(input: unknown, signal?: AbortSignal, locale: L
         sources: [...new Set(item.messageIds)].map(id => byId.get(id)!) })),
       messageCount: transcript.messages.length, cutoff: transcript.cutoff } };
   } catch (error) {
+    if (error instanceof AiOperationError) {
+      if ("retryAfterSeconds" in error.failure) return { ...aiFailure("rate_limit"), retryAfterSeconds: error.failure.retryAfterSeconds, retryAt: error.failure.retryAt };
+      if (error.failure.reason === "pending" || error.failure.reason === "conflict") return aiFailure(error.failure.reason);
+      if (error.failure.reason === "invalid_request_id") return aiFailure("invalid");
+      if (error.failure.reason === "disabled" || error.failure.reason === "spend_cutoff") return aiFailure("disabled");
+      return aiFailure(error.failure.reason === "timeout" ? "timeout" : error.failure.reason === "missing_key" ? "missing_key" : "database");
+    }
     if (error instanceof TranscriptTooLarge) return aiFailure("too_large");
     if (error instanceof ChatAiError) return aiFailure(error.code);
     return aiFailure("database");

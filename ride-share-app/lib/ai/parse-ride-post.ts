@@ -1,5 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
+import { aiProviderFetch } from "./operation-context";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import { parsedRidePostSchema, type ParsedRidePost } from "./parsed-ride-post";
@@ -55,7 +56,7 @@ function openAIClient() {
   if (!apiKey) {
     throw new RideParserError("OpenAI is not configured.", "missing_key");
   }
-  return new OpenAI({ apiKey });
+  return new OpenAI({ apiKey, timeout: 20_000, maxRetries: 0, fetch: aiProviderFetch, logLevel: "off" });
 }
 
 function parserPrompt(context: Required<Pick<ParseRidePostContext, "now" | "timezone">>) {
@@ -288,6 +289,7 @@ export async function parseRidePost(
   try {
     const response = await openAIClient().responses.parse({
       model,
+      max_output_tokens: 4000,
       store: false,
       input: [
         { role: "system", content: parserPrompt({ now, timezone }) },

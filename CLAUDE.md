@@ -27,6 +27,11 @@ Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `
 - Contact details (`phone`, `instagram`, `facebook`, `social_url`) are private: read them only through `getContactDetails()` (`lib/profiles/contact-details.ts`), and write them with a plain update or insert, not an upsert. A new public `profiles` column needs a SELECT grant in its migration.
 - Use the user's Supabase client so RLS applies. The admin client (`lib/supabase/admin.ts`) is only for server code that must read across users, and returns only what the caller may see.
 - Server-side modules import `server-only`. Secrets never go in `NEXT_PUBLIC_*` variables.
+- AI admission policy is database-owned; see `docs/AI_RATE_LIMITING.md` for the shared admission,
+  deadline, and server-only lease-release contracts. All AI entry points use `runAiOperation()`;
+  all SDK/direct provider calls use `aiProviderFetch` for bounds and content-free accounting.
+  Do not add a paid call outside that context or enable SDK retries. Monetary controls are optional,
+  server-only protective thresholds; unknown usage/cost must never be reported as zero.
 - Validate input with zod in every server action and API route.
 - Preview deployments use the production database: don't test destructive actions on previews.
 

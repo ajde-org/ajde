@@ -1,4 +1,5 @@
 import { getLocale } from "@/lib/i18n/server";
+import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 import { localizedName } from "@/lib/i18n/locations";
 import {
   explainMatch,
@@ -77,5 +78,13 @@ export async function POST(request: Request) {
     }];
   });
 
-  return Response.json({ explanations: await explainMatch(facts, input.data.context, undefined, locale) }, { headers: { "Cache-Control": "private, no-store" } });
+  if (!facts.length) return Response.json({ explanations: [] });
+  // Missing provider configuration retains the existing local-template fast path.
+  if (!process.env.OPENAI_API_KEY?.trim()) return Response.json({ explanations: await explainMatch(facts, input.data.context, async () => [], locale) });
+  try {
+    const explanations = await runAiOperation({ supabase, userId: user.id, feature: "explain", signal: request.signal, ...aiRequestIdentity(request, { ...input.data, locale }) }, () => explainMatch(facts, input.data.context, undefined, locale));
+    return Response.json({ explanations }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    return aiOperationFailure(error) ?? Response.json({ explanations: [] });
+  }
 }
