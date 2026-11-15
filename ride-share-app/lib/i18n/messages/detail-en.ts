@@ -1,4 +1,11 @@
 export const detailEn = {
+  "detail.memberSince": "Member since {date}",
+  "detail.completed.one": "{count} completed ride",
+  "detail.completed.other": "{count} completed rides",
+  "detail.ratings.one": "{count} rating",
+  "detail.ratings.other": "{count} ratings",
+  "detail.meetDriver": "Meet your driver →",
+
   "notes.toMk": "Translate to Macedonian",
   "notes.toEn": "Translate to English",
   "notes.translating": "Translating…",

@@ -37,3 +37,10 @@ it('hides prompt settings by default while keeping travel descriptors editable',
   expect(screen.queryByRole('button', {name:'+ Add a prompt'})).toBeNull()
   expect(screen.getByLabelText('Music')).toBeTruthy()
 })
+
+it.each(['en', 'mk'] as const)('offers only the first and last conversation choices in %s', locale => {
+  render(<PersonalityFields initial={{ conversation: 'warm_up', prompts: [] }} />, { locale })
+  const select = document.querySelector('select[name="conversation"]') as HTMLSelectElement
+  expect(Array.from(select.options, option => option.value)).toEqual(['', 'chatty', 'quiet'])
+  expect(select.value).toBe('')
+})

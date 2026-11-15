@@ -15,9 +15,9 @@ export function PersonalityFields({ initial, promptsEnabled = false }: { initial
       <legend className="font-display text-xl font-bold">{t("driverProfile.preferences")}</legend>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{travelDescriptors.map(descriptor => <label key={descriptor.key} className="block text-sm font-semibold text-slate-800">
         {t(`driverProfile.editor.${descriptor.key}`)}
-        <select name={descriptor.key} defaultValue={initial[descriptor.key] ?? ''} className={fieldClass}>
+        <select name={descriptor.key} defaultValue={descriptor.key === 'conversation' && initial.conversation === 'warm_up' ? '' : initial[descriptor.key] ?? ''} className={fieldClass}>
           <option value="">{t("driverProfile.editor.omit")}</option>
-          {descriptor.options.map(option => <option key={option.value} value={option.value}>{t(`driverProfile.${descriptor.key}.${option.value}` as StaticMessageKey)}</option>)}
+          {descriptor.options.filter(option => option.value !== 'warm_up').map(option => <option key={option.value} value={option.value}>{t(`driverProfile.${descriptor.key}.${option.value}` as StaticMessageKey)}</option>)}
         </select>
       </label>)}</div>
     </fieldset>

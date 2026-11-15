@@ -76,3 +76,10 @@ New wording introduced while integrating AJDE-29 with the ride timing and securi
 | `onboarding.social` | Social profile | Профил на друштвена мрежа | fc8cebd8096c | Approved by user, 2026-11-09 |
 | `onboarding.bio` | Bio | Биографија | f95a0d6ed2b4 | Approved by user, 2026-11-09 |
 | `onboarding.gender` | Gender | Пол | 94829103f2ff | Approved by user, 2026-11-09 |
+| `detail.memberSince` | Member since {date} | Член од {date} | 6bbc26c48e90 | Pending |
+| `detail.completed.one` | {count} completed ride | {count} завршено патување | 148ed7fce98c | Pending |
+| `detail.completed.other` | {count} completed rides | {count} завршени патувања | 568d1da6841f | Pending |
+| `detail.ratings.one` | {count} rating | {count} оцена | ca1d3497ff6d | Pending |
+| `detail.ratings.other` | {count} ratings | {count} оцени | 770c7f153e9b | Pending |
+| `detail.meetDriver` | Meet your driver → | Запознај го твојот возач → | eee6e8948d89 | Pending |
+| `ride.departureTime` | {date}, Skopje time | {date}, Скопје | 949199630fb4 | Pending |
