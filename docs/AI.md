@@ -145,6 +145,83 @@ The plausibility checker never exposes model prose directly: it builds warnings 
 
 Validation on 2026-11-01: both live cases in `tests/live/draft-warnings.live.test.ts` passed (approximate `11 casot` import and weekday-only offer). The first pass exposed internal field names in generated prose; the shared prompt now explicitly excludes implementation details. The import time guard also recognizes Latin `casot`/`chasot` and Cyrillic `часот`, preventing a false missing-time warning. Mocked tests cover required bilingual output, persistence, locale switching without another request, legacy compatibility and deterministic checks. The full suite passed 1,030 tests with one outdated provider fixture failure; updating that fixture to include Macedonian output made all three affected integration tests pass. Type checking and lint passed. Live evidence is in `.scratch/ajde-29/bilingual-warnings-live.log` (ignored).
 
+## Prompt injection and output safety (AJDE-41)
+
+Source posts, search queries, screenshots, chat questions, author labels, transcript messages,
+location names, and vehicle names are untrusted data. All nine model request paths say so,
+including the retained, unused note translator. Embedded overrides, fake JSON/system-role
+messages, and requests to reveal prompts do not grant authority. Search and post parsing send
+server catalogs and source text in separate JSON messages. A catalog authorizes references,
+not instructions in its names or aliases. This wording is defense in depth, not a proof that
+any model resists injection.
+
+The application enforces these boundaries independently of prompt compliance:
+
+| Flow | Response and use boundary |
+| --- | --- |
+| Search | Runtime extraction and result schemas, canonical location resolution, code-built date bounds and fixed query filters. No model-generated SQL or query operators. |
+| Post import | Bilingual provider schema, canonical city/pickup validation including pickup-city membership, and code-cleared import/saved-car/car-model references because this parser receives no such catalog. Vehicle text remains editable. |
+| Offer description | Provider and application schemas, server-owned source/import/distance fields, location resolution, and car selection limited to the caller's catalog. |
+| Location fallback | Runtime envelope and strict choice schemas reject malformed types, extra fields, and confidence outside 0..1. Resolution accepts only a supplied candidate with the matching kind and ID. |
+| Screenshot | Runtime post schema and ten-post limit. Transcription preserves embedded instructions verbatim. Only the explicitly selected text enters the post parser. |
+| Chat | Runtime answer schema, source IDs restricted to the authorized transcript, and access checked before and after inference. No tools. |
+| Match explanation | Runtime response schema, supplied ride IDs only, unsupported-fact checks, and localized deterministic fallback on invalid or unavailable output. The prose checks are heuristic, not a general factuality guarantee. |
+| Plausibility checker | Runtime finding schema, only three named read-only tools, strict argument schemas, canonical draft route/departure binding, call budgets, and evidence-derived warning text. |
+| Retained note translation | Runtime translation schema, plain text only, no tools or writes. The service currently has no UI caller. |
+
+`app/api/parse/route.ts` creates the session-bound Supabase client and passes that same client
+to `createRideCheckTools`. `similar-rides-tool.ts` uses a fixed select of ride IDs, route,
+time, price, and capacity with fixed route/status/time filters. It cannot accept arbitrary
+query structure or read profiles, contacts, messages, or imports. Database RLS remains the
+access authority. `road-distance.ts` uses the same client and public canonical city coordinates.
+No checker tool creates a privileged client.
+
+Imported text is saved to `imports`, not `rides`. The import UI requires explicit continuation
+to the editable offer form, and publication requires a separate user submission. The form and
+server validate again, including car ownership and the import's owner. AI prose is rendered
+as React text, including chat answers, explanations, notes, and warnings. It is not HTML,
+Markdown with executable links, JavaScript, SQL, or an instruction dispatched to a tool.
+Provider failures become fixed user-facing errors or local fallbacks; raw exceptions and
+credentials are not returned to the browser.
+
+### Moderation decision
+
+Automated offensive/illegal-content moderation is explicitly deferred for AJDE-41, as chosen
+by the product owner. There is **no content screening before model submission or publication**
+for ride posts or chat. Auth, membership checks, schema validation, import review, and the
+explicit publish action remain enforced, but none constitutes content moderation. Chat
+messages are sent by room members without an AI approval step. Provider refusals are handled
+as failures, not used as a moderation policy. Verbatim screenshot and note text may therefore
+contain offensive material.
+
+The repository has a `reports` table, but no reporting UI, operational review queue, published
+content policy, or appeal workflow was found. Those must not be described as existing user
+protection. `AI_IMPORT_PIPELINE_ENABLED` and `CHAT_AI_ENABLED` control AI features, not whether
+ordinary ride/chat publication is screened. This deferral avoids silently choosing prohibited
+content categories, blocking thresholds, or a naive keyword blacklist in a security patch.
+A later moderation feature needs an agreed content policy, enforcement at both AI submission
+and publication/message-send boundaries, localized notices, and an operational review path.
+This ticket makes no moderated-launch or illegal-content-prevention claim.
+
+### Regression evidence and limitations
+
+`lib/ai/prompt-boundaries.test.ts` exercises production request builders through a mocked
+provider for overrides, fake roles/JSON, disclosure requests, and multilingual instructions.
+`lib/ai/openai-location-fallback.test.ts` exercises the actual fallback transport boundary and
+resolver with invented IDs, wrong kinds, invalid schemas, and malformed envelopes.
+`lib/ai/prompt-injection.test.ts` rejects hostile application outputs and asserts the complete
+localized explanation fallback. `app/api/parse/pipeline-integration.test.ts` preserves hostile
+screenshot text through explicit selection and import, rejects an invented action, and checks
+that no ride access/publication occurs. Existing checker, canonical-location, chat authorization,
+import UI, and publication tests remain the evidence for their respective boundaries.
+These mocked tests prove deterministic application behavior, not real-model injection resistance.
+
+The configured live endpoint returned `404 page not found` for the AJDE-41 evaluation run.
+`npm run eval:parser` and `npm run eval:search` exited 1. `npm run test:live` reported 19 failed
+and 1 passed out of 20; the passing explanation case can use a local fallback and is not proof
+of a successful model response. Live multilingual quality and injection resistance remain
+unverified in this environment. Credentials and endpoint configuration were not changed.
+
 ## Driver-note translation (AJDE-29)
 
 Status: the driver-note translation UI was removed at the user's request on 2026-10-31. Ride details now show original notes only and do not call this action. The implementation and validation below describe the retained, unused translation service.

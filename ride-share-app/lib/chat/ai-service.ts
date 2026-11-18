@@ -4,6 +4,7 @@ import { isChatAiEnabled } from "./ai-feature";
 import { aiModelSchema, aiRequestSchema, type AiErrorCode, type AiResult } from "./ai-contract";
 import { loadTranscript, TranscriptTooLarge } from "./transcript";
 import { roomAccess } from "./server";
+import { getOpenAIConfig } from "@/lib/ai/openai-config";
 import { ChatAiError, runChatAssistant } from "@/lib/ai/chat-assistant";
 
 const errors: Record<AiErrorCode, string> = {
@@ -29,7 +30,7 @@ export async function assistRoom(input: unknown, signal?: AbortSignal, locale: L
     if (!access.ok) return aiFailure(access.code);
     const transcript = await loadTranscript(access);
     if (!transcript.cutoff) return aiFailure("empty");
-    if (!process.env.OPENAI_API_KEY?.trim()) return aiFailure("missing_key");
+    if (!getOpenAIConfig()) return aiFailure("missing_key");
     const before = await roomAccess(request.rideId);
     if (!before.ok) return aiFailure(before.code);
     if (before.user.id !== access.user.id) return aiFailure("unavailable");

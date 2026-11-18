@@ -1,10 +1,11 @@
+import { getOpenAIConfig } from "@/lib/ai/openai-config";
 import { beforeAll, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { runChatAssistant } from "@/lib/ai/chat-assistant";
 import { runOpenAIExplanationModel } from "@/lib/ai/explain-match";
 
 beforeAll(() => {
-  if (!process.env.OPENAI_API_KEY?.trim()) throw new Error("OPENAI_API_KEY is required for the paid locale evaluation.");
+  if (!getOpenAIConfig()) throw new Error("AJDE_OPENAI_API_KEY is required for the paid locale evaluation.");
 });
 
 it.each(["en", "mk"] as const)("generates %s explanations and cited answers from synthetic multilingual facts", async locale => {
