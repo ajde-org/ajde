@@ -1,5 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
+import { getOpenAIConfig } from "./openai-config";
 import { zodTextFormat } from "openai/helpers/zod";
 import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems";
 import type { ResponseInputItem, ResponseOutputItem, FunctionTool } from "openai/resources/responses/responses";
@@ -48,9 +49,9 @@ const tools: FunctionTool[] = [{
 }];
 
 async function runModel(request: Parameters<CheckerModelRunner>[0]) {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) throw new Error("OpenAI is not configured");
-  const client = new OpenAI({ apiKey, timeout: 15_000, maxRetries: 0 });
+  const config = getOpenAIConfig();
+  if (!config) throw new Error("OpenAI is not configured");
+  const client = new OpenAI({ ...config, timeout: 15_000, maxRetries: 0 });
   return client.responses.parse({
     model: process.env.OPENAI_CHECK_MODEL?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-5.4-mini",
     store: false, include: ["reasoning.encrypted_content"],

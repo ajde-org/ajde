@@ -1,5 +1,6 @@
 import 'server-only';
 import OpenAI from 'openai';
+import { getOpenAIConfig } from './openai-config';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 
@@ -261,11 +262,11 @@ async function runOpenAISearchModel({
   now,
   timeZone,
 }: Parameters<SearchModelRunner>[0]): Promise<SearchModelOutput> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey)
+  const config = getOpenAIConfig();
+  if (!config)
     throw new SearchParserError('OpenAI is not configured.', 'missing_key');
 
-  const client = new OpenAI({ apiKey, timeout: 10_000 });
+  const client = new OpenAI({ ...config, timeout: 10_000 });
   const model =
     process.env.OPENAI_SEARCH_MODEL?.trim() ||
     process.env.OPENAI_MODEL?.trim() ||

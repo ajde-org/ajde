@@ -1,6 +1,7 @@
 import "server-only";
 import type { Locale } from "@/lib/i18n/config";
 import OpenAI from "openai";
+import { getOpenAIConfig } from "./openai-config";
 import { zodTextFormat } from "openai/helpers/zod";
 import { aiModelSchema, type AiErrorCode, type AiRequest, type TranscriptMessage } from "@/lib/chat/ai-contract";
 
@@ -9,8 +10,9 @@ export class ChatAiError extends Error {
 }
 
 export async function runChatAssistant(request: AiRequest, messages: TranscriptMessage[], signal?: AbortSignal, locale: Locale = "en") {
-  if (!process.env.OPENAI_API_KEY?.trim()) throw new ChatAiError("missing_key");
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30_000, maxRetries: 0 });
+  const config = getOpenAIConfig();
+  if (!config) throw new ChatAiError("missing_key");
+  const client = new OpenAI({ ...config, timeout: 30_000, maxRetries: 0 });
   try {
     const response = await client.responses.parse({
       model: process.env.OPENAI_CHAT_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini",

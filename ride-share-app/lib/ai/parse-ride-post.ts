@@ -1,5 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
+import { getOpenAIConfig } from "./openai-config";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import { parsedRidePostSchema, type ParsedRidePost } from "./parsed-ride-post";
@@ -51,11 +52,11 @@ export class RideParserError extends Error {
 }
 
 function openAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
+  const config = getOpenAIConfig();
+  if (!config) {
     throw new RideParserError("OpenAI is not configured.", "missing_key");
   }
-  return new OpenAI({ apiKey });
+  return new OpenAI(config);
 }
 
 function parserPrompt(context: Required<Pick<ParseRidePostContext, "now" | "timezone">>) {
