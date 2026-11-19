@@ -73,7 +73,7 @@ New wording introduced while integrating AJDE-29 with the ride timing and securi
 | `driverProfile.editor.answer` | Your answer | Твојот одговор | 2692734d4ea0 | Approved by user, 2026-11-09 |
 | `driverProfile.editor.placeholder` | A little personality goes a long way… | Покажи ни дел од твојот карактер… | 1c2aaf53ccd2 | Approved by user, 2026-11-09 |
 | `driverProfile.editor.add` | + Add a prompt | + Додај прашање | 86b5c92ddeac | Approved by user, 2026-11-09 |
-| `onboarding.social` | Social profile | Профил на друштвена мрежа | fc8cebd8096c | Approved by user, 2026-11-09 |
+| `onboarding.social` | Social profile | Профил на социјална мрежа | fc8cebd8096c | Approved by user, 2026-11-09 |
 | `onboarding.bio` | Bio | Биографија | f95a0d6ed2b4 | Approved by user, 2026-11-09 |
 | `onboarding.gender` | Gender | Пол | 94829103f2ff | Approved by user, 2026-11-09 |
 | `detail.memberSince` | Member since {date} | Член од {date} | 6bbc26c48e90 | Pending |
