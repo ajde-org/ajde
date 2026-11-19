@@ -1,4 +1,11 @@
 export const detailMk = {
+  "detail.memberSince": "Член од {date}",
+  "detail.completed.one": "{count} завршено патување",
+  "detail.completed.other": "{count} завршени патувања",
+  "detail.ratings.one": "{count} оцена",
+  "detail.ratings.other": "{count} оцени",
+  "detail.meetDriver": "Запознај го твојот возач →",
+
   "notes.toMk": "Преведи на македонски",
   "notes.toEn": "Преведи на англиски",
   "notes.translating": "Се преведува…",

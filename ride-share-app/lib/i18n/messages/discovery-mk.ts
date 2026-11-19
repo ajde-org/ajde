@@ -63,7 +63,7 @@ export const discoveryMk = {
     "Дел од пребарувањето не е поддржан. Користи ги достапните рачни филтри.",
   "ride.to": "до",
   "ride.time": "Време во Скопје",
-  "ride.departureTime": "{date}, време во Скопје",
+  "ride.departureTime": "{date}, Скопје",
   "ride.free": "Бесплатно",
   "ride.noCharge": "без надомест",
   "ride.perSeat": "по место",
