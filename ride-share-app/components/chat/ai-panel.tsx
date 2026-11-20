@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 import { type Locale } from "@/lib/i18n/config";
 import { formatDateTime, formatNumber, plural } from "@/lib/i18n/format";
 import { useEffect, useId, useRef, useState } from "react";
@@ -32,6 +33,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
   const panel = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
   const focusQuestion = useRef(false);
+  const recovery = useAiRecovery();
 
   useEffect(() => () => { sequence.current++; request.current?.abort(); }, []);
   useEffect(() => {
@@ -58,21 +60,25 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
 
   async function run(payload: AiRequest) {
     if (request.current || closing) return;
+    const requestId = recovery.start();
+    if (!requestId) return;
     const controller = new AbortController();
     request.current = controller;
     const current = ++sequence.current;
     const requestLocale = locale;
     setOpen(true); setPending(true); setError(""); setAnswer(null); setLastRequest(payload);
     try {
-      const response = await fetch("/api/chat/assist", { method: "POST", headers: { "Content-Type": "application/json" },
+      const response = await fetch("/api/chat/assist", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify(payload), signal: controller.signal, cache: "no-store" });
       const parsed = aiResultSchema.safeParse(await response.json());
       if (controller.signal.aborted || current !== sequence.current) return;
+      recovery.observe(response);
       if (!parsed.success) throw new Error("Unexpected response");
       const data = parsed.data;
       if (!data.ok) {
+        if (recovery.accept(data)) return;
         if (data.code === "unavailable") { setAnswer(null); setQuestion(""); onUnavailable(); }
-        setError(`chatAi.error.${data.code}`);
+        setError(`chatAi.error.${["provider_rate_limit", "pending", "conflict"].includes(data.code) ? "provider" : data.code}`);
         return;
       }
       setAnswerLocale(requestLocale);
@@ -83,11 +89,12 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
     } catch {
       if (!controller.signal.aborted && current === sequence.current) setError("chatAi.network");
     } finally {
-      if (current === sequence.current) { request.current = null; setPending(false); }
+      if (current === sequence.current) { request.current = null; recovery.finish(); setPending(false); }
     }
   }
   function close() {
     sequence.current++; request.current?.abort(); request.current = null;
+    recovery.finish();
     setPending(false);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setOpen(false);
@@ -99,7 +106,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
 
   return <div className="min-w-0 border-t border-slate-100 px-4 py-3 sm:px-5">
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" className="btn-secondary min-h-9 px-3 py-2 text-sm" disabled={pending}
+      <button type="button" className="btn-secondary min-h-9 px-3 py-2 text-sm" disabled={pending || recovery.blocked}
         aria-haspopup="dialog" onClick={event => { trigger.current = event.currentTarget; void run({ rideId, mode: "summary" }); }}>{t("chatAi.summary")}</button>
       <button type="button" className="btn-secondary min-h-9 px-3 py-2 text-sm" aria-expanded={open} aria-controls={panelId}
         aria-haspopup="dialog" onClick={event => { trigger.current = event.currentTarget; focusQuestion.current = true; setOpen(true); if (open) input.current?.focus(); }}>{t("chatAi.ask")}</button>
@@ -136,7 +143,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
         <button type="button" autoFocus onClick={close} className="btn-secondary shrink-0 px-3 py-2 text-sm" aria-label={t("chatAi.closeLabel")}>{t("chatAi.close")}</button>
       </header>
       <div className="shrink-0 border-b border-slate-200 bg-white px-5 py-3 sm:px-7">
-        <button type="button" disabled={pending || closing} className="btn-secondary min-h-9 px-3 py-2 text-sm disabled:opacity-50"
+        <button type="button" disabled={pending || closing || recovery.blocked} className="btn-secondary min-h-9 px-3 py-2 text-sm disabled:opacity-50"
           onClick={() => void run({ rideId, mode: "summary" })}>{t("chatAi.summary")}</button>
       </div>
       <div className="min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7">
@@ -148,12 +155,13 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
           placeholder={t("chatAi.placeholder")} aria-describedby={`${panelId}-hint`} />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <p id={`${panelId}-hint`} className="text-xs text-slate-500">{t("chatAi.hint", { count: formatNumber(locale, question.length) })}</p>
-          <button type="submit" disabled={pending || !question.trim()} className="btn-primary min-h-9 px-4 py-2 text-sm disabled:opacity-50">{t("chatAi.submit")}</button>
+          <button type="submit" disabled={pending || recovery.blocked || !question.trim()} className="btn-primary min-h-9 px-4 py-2 text-sm disabled:opacity-50">{t("chatAi.submit")}</button>
         </div>
       </form>
       <p role="status" className="mt-2 text-sm text-slate-600">{pending ? t("chatAi.reading") : ""}</p>
-      {error ? <div className="mt-2"><p role="alert" className="text-sm text-red-700">{notice(error, "chatAi.error.provider")}</p>
-        {lastRequest ? <button type="button" className="mt-2 text-sm font-semibold text-brand-700 underline" disabled={pending}
+      <AiRetryNotice action="chat" recovery={recovery} />
+      {error || recovery.retryAt ? <div className="mt-2">{error ? <p role="alert" className="text-sm text-red-700">{notice(error, "chatAi.error.provider")}</p> : null}
+        {lastRequest ? <button type="button" className="mt-2 text-sm font-semibold text-brand-700 underline" disabled={pending || recovery.blocked}
           onClick={() => void run(lastRequest)}>{t("chatAi.retry")}</button> : null}</div> : null}
       <div ref={result} tabIndex={-1} aria-label={t("chatAi.response")} aria-live="polite" className="[overflow-wrap:anywhere] focus:outline-brand-500">
         {answer ? <div className="mt-6 space-y-4 border-t border-slate-200 pt-5">
@@ -179,7 +187,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
             </li>)}</ul>}
           <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">{t(`chatAi.basis.${plural(locale, answer.messageCount)}`, { count: formatNumber(locale, answer.messageCount), date: date(answer.cutoff.created_at) })}</p>
           {stale ? <p role="status" className="text-sm font-medium text-amber-800">{t("chatAi.stale")}</p> : null}
-          <button type="button" className="text-sm font-semibold text-brand-700 underline" disabled={pending}
+          <button type="button" className="text-sm font-semibold text-brand-700 underline" disabled={pending || recovery.blocked}
             onClick={() => void run(answer.mode === "summary" ? { rideId, mode: "summary" } : { rideId, mode: "question", question: answeredQuestion })}>{t("chatAi.refresh")}</button>
           </div>
         </div> : null}

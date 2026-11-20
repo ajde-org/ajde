@@ -4,6 +4,7 @@ co2.csv
 logos/
 .worktrees/
 .scratch/
+.reports/
 # Supabase CLI state
 ride-share-app/supabase/.temp/
 

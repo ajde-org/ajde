@@ -3,6 +3,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { formatDateTime, formatMoney, formatNumber, plural } from "@/lib/i18n/format";
 import { createTranslator } from "@/lib/i18n/translate";
 import OpenAI from "openai";
+import { aiProviderFetch } from "./operation-context";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import { matchExplanationResponseSchema } from "./explain-match-schema";
@@ -75,6 +76,10 @@ export async function explainMatch(
     }
   }
 
+  return formatRideExplanations(rides, locale, accepted);
+}
+
+export async function formatRideExplanations(rides: readonly ExplainRideFact[], locale: Locale, accepted: ReadonlyMap<string, string> = new Map()) {
   const messages = locale === "mk" ? (await import("@/lib/i18n/messages/mk")).mk : (await import("@/lib/i18n/messages/en")).en;
   const t = createTranslator(messages);
   return rides.map((ride) => ({
@@ -178,10 +183,11 @@ function formatDeparture(value: string) {
 export async function runOpenAIExplanationModel({ rides, search, locale }: Parameters<ExplanationModelRunner>[0]) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("OpenAI is not configured.");
-  const client = new OpenAI({ apiKey, timeout: 10_000 });
+  const client = new OpenAI({ apiKey, timeout: 10_000, maxRetries: 0, fetch: aiProviderFetch, logLevel: "off" });
   const model = process.env.OPENAI_EXPLAIN_MODEL?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-5.4-mini";
   const response = await client.responses.parse({
     model,
+    max_output_tokens: 4000,
     store: false,
     input: [
       {

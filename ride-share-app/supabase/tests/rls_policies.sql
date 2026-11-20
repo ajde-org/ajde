@@ -53,6 +53,30 @@ $$;
 grant execute on function pg_temp.assert_true(boolean, text), pg_temp.denied(text, text),
   pg_temp.affected(text), pg_temp.rejected(text, text), pg_temp.as_user(int) to anon, authenticated;
 
+-- Only the admission RPC can debit the allowance.
+do $$ declare table_name text; api_role text; begin
+  foreach table_name in array array['ai_admission_policies', 'ai_admission_features', 'ai_admission_buckets', 'ai_operations', 'ai_provider_usage', 'ai_request_events', 'ai_policy_versions'] loop
+    foreach api_role in array array['anon', 'authenticated'] loop
+      perform pg_temp.assert_true(not has_table_privilege(api_role, 'public.' || table_name,
+        'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'), api_role || ' cannot access ' || table_name);
+    end loop;
+  end loop;
+  perform pg_temp.assert_true(not has_function_privilege('anon', 'public.admit_ai_operation(text,uuid,uuid)', 'EXECUTE'), 'anonymous admission denied');
+  perform pg_temp.assert_true(not has_function_privilege('authenticated', 'public.cleanup_ai_operations()', 'EXECUTE'), 'client cannot erase admissions');
+end $$;
+
+-- Even accidentally granting SELECT leaves the metadata closed by RLS.
+grant select on public.ai_admission_policies, public.ai_admission_features,
+  public.ai_admission_buckets, public.ai_operations to authenticated;
+set local role authenticated;
+select pg_temp.assert_true((select count(*) = 0 from public.ai_admission_policies), 'policy rows hidden by RLS');
+select pg_temp.assert_true((select count(*) = 0 from public.ai_admission_features), 'feature mappings hidden by RLS');
+select pg_temp.assert_true((select count(*) = 0 from public.ai_admission_buckets), 'burst state hidden by RLS');
+select pg_temp.assert_true((select count(*) = 0 from public.ai_operations), 'operation metadata hidden by RLS');
+reset role;
+revoke select on public.ai_admission_policies, public.ai_admission_features,
+  public.ai_admission_buckets, public.ai_operations from authenticated;
+
 -- Logged out: catalogs only, no profiles, no contacts, no trip data.
 set local role anon;
 select pg_temp.denied($q$select full_name from public.profiles$q$, 'anon reads profiles');

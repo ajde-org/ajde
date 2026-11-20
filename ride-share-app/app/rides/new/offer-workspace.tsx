@@ -1,4 +1,5 @@
 "use client";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 
 import { emptyOfferDraft, offerInterpretationSchema } from "@/lib/rides/offer-interpretation";
 import { translateDraftWarning } from "@/lib/i18n/draft-warning";
@@ -69,6 +70,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
   const [publishing, setPublishing] = useState<string[]>([]);
   const locks = useRef(new Set<string>());
   const interpretationEpoch = useRef(0);
+  const recovery = useAiRecovery();
   const tabsRef = useRef(tabs);
   useLayoutEffect(() => { tabsRef.current = tabs; }, [tabs]);
   const drafts = useMemo(() => tabs.filter(item => !item.publishedId), [tabs]);
@@ -136,14 +138,18 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     setSnapshot(null); setMessage("offer.draftsRestored");
   }
   async function fill() {
+    const requestId = recovery.start();
+    if (!requestId) return;
     const target = tab;
     const epoch = ++interpretationEpoch.current;
     setInterpreting(true); setMessage(null); setPublishNotice(null); setRetry(false); setSnapshot(null);
     let failure: OfferNotice = "offer.interpretFailed";
     try {
-      const response = await fetch("/api/rides/interpret", { method: "POST", headers: { "Content-Type": "application/json" },
+      const response = await fetch("/api/rides/interpret", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify({ text, mode: "create" }), signal: AbortSignal.timeout(25000) });
+      recovery.observe(response);
       const body = await response.json();
+      if (!response.ok && recovery.accept(body)) { setRetry(true); return; }
       if (!response.ok) throw new Error("Interpretation failed");
       const result = offerInterpretationSchema.parse(body);
       if (epoch !== interpretationEpoch.current) { failure = "offer.descriptionChanged"; throw new Error("Description changed"); }
@@ -154,7 +160,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
       setTabs(previous => [...previous.map(item => item.id === target.id && item.revision === target.revision && !item.publishedId ? applyOfferTrip(item, result.trips[0]) : item), ...extra]);
       setFilled(true); setMessage("offer.filled");
     } catch { setMessage(failure); setRetry(true); }
-    finally { setInterpreting(false); }
+    finally { recovery.finish(); setInterpreting(false); }
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -209,7 +215,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     <p id="offer-description-hint" className="text-[.8125rem] text-slate-500">{filled ? t("offer.reviewBeforePublish") : t("offer.describeHint")}</p>
     {filled
       ? <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || publishing.length > 0} onClick={startOver}>{t("offer.startOver")}</button>
-      : <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || !text.trim() || publishing.length > 0}
+      : <button className="btn-secondary min-h-11 px-3 py-2 text-[.8125rem] disabled:opacity-50" type="button" disabled={savingCar || interpreting || recovery.blocked || !text.trim() || publishing.length > 0}
         onClick={() => { void fill(); }}>{interpreting ? t("offer.filling") : t("offer.fill")}</button>}
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-white p-3 sm:flex-nowrap">
@@ -223,9 +229,10 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
       <Link href="/rides/import" className="btn-secondary min-h-11 w-full border-brand-200 px-4 py-2 text-[.8125rem] text-brand-800 hover:bg-brand-50 sm:w-auto">{t("offer.importLink")}</Link>
     </div>
     </div>
+    <AiRetryNotice action="formFill" recovery={recovery} />
     {message && <p role="status">{t(message)}{snapshot && <> <button type="button" className="font-semibold underline" onClick={restoreSnapshot}>{t("offer.undo")}</button></>}</p>}
     {publishNotice && <p role="status">{t(publishNotice === "draft" ? "offer.savedContinue" : "offer.publishedContinue")}</p>}
-    {retry && <button type="button" className="btn-secondary" disabled={savingCar || interpreting || publishing.length > 0 || Boolean(tab.publishedId)} onClick={() => { void fill(); }}>{t("offer.retry")}</button>}
+    {retry && <button type="button" className="btn-secondary" disabled={savingCar || interpreting || recovery.blocked || publishing.length > 0 || Boolean(tab.publishedId)} onClick={() => { void fill(); }}>{t("offer.retry")}</button>}
     <div role="tablist" aria-label={t("offer.draftTabs")} className={drafts.length === 1 ? "sr-only" : "flex flex-wrap gap-2"}>
       {drafts.map((item, index) => <div key={item.id} role="presentation" className={`inline-flex min-w-0 max-w-full items-center rounded-full border ${item.id === tab.id ? "bg-brand-600 border-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
         <button type="button" role="tab" id={`tab-${item.id}`} aria-controls={`panel-${item.id}`}

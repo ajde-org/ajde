@@ -1,8 +1,9 @@
 import { offerApiContext } from "@/lib/rides/offer-api-auth";
+import { withAiAllowance, runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 import { parseOfferDescription, OfferDescriptionError } from "@/lib/ai/parse-offer-description";
 import { offerRequestSchema } from "@/lib/rides/offer-interpretation";
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const context = await offerApiContext();
   if (context instanceof Response) return context;
   const { supabase, user } = context;
@@ -16,9 +17,13 @@ export async function POST(request: Request) {
   ]);
   if (cities.error || pickups.error || cars.error || models.error) return Response.json({ error: "Catalogs could not be loaded. Retry or enter details manually." }, { status: 503 });
   try {
-    const result = await parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data });
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "interpret", signal: request.signal, ...aiRequestIdentity(request) }, () => parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data }));
     return Response.json(result);
   } catch (error) {
+    const failure = aiOperationFailure(error);
+    if (failure) return failure;
     return Response.json({ error: error instanceof OfferDescriptionError ? error.message : "Interpretation failed. Retry or enter details manually." }, { status: 422 });
   }
 }
+
+export const POST = withAiAllowance(handlePost);

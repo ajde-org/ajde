@@ -1,7 +1,7 @@
 import { getLocale } from "@/lib/i18n/server";
 import { localizedName } from "@/lib/i18n/locations";
 import {
-  explainMatch,
+  formatRideExplanations,
   type ExplainRideFact,
 } from "@/lib/ai/explain-match";
 import {
@@ -77,5 +77,6 @@ export async function POST(request: Request) {
     }];
   });
 
-  return Response.json({ explanations: await explainMatch(facts, input.data.context, undefined, locale) }, { headers: { "Cache-Control": "private, no-store" } });
+  const explanations = await formatRideExplanations(facts, locale);
+  return Response.json({ explanations }, { headers: { "Cache-Control": "private, no-store" } });
 }

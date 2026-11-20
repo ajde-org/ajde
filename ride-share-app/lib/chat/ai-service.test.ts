@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/ai/accounting", () => ({ recordAiEvent: vi.fn(), recordProviderUsage: vi.fn() }));
 const mocks = vi.hoisted(() => ({ access: vi.fn(), transcript: vi.fn(), model: vi.fn(), permit: vi.fn() }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: async () => ({ data: true, error: null }) }) }));
 vi.mock("server-only", () => ({}));
 vi.mock("./server", () => ({ roomAccess: mocks.access }));
 vi.mock("./transcript", async original => ({ ...await original<typeof import("./transcript")>(), loadTranscript: mocks.transcript }));
@@ -15,7 +17,7 @@ beforeEach(() => {
   vi.stubEnv("OPENAI_API_KEY", "test-only");
   mocks.access.mockReset().mockResolvedValue(access);
   mocks.transcript.mockReset().mockResolvedValue({ messages: [msg], cutoff: { id: msg.id, created_at: msg.created_at } });
-  mocks.permit.mockReset().mockResolvedValue({ data: true, error: null });
+  mocks.permit.mockReset().mockResolvedValue({ data: { admitted: true, operationId: "94000000-0000-4000-8000-000000000002", admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
   mocks.model.mockReset().mockResolvedValue({ insufficientEvidence: false, items: [{ category: "decision", text: "Meet at 17:30", messageIds: [msg.id] }] });
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -25,7 +27,7 @@ describe("private AI service", () => {
     const result = await assistRoom(request);
     expect(result).toMatchObject({ ok: true, value: { mode, messageCount: 1, items: [{ sources: [msg] }] } });
     expect(mocks.access).toHaveBeenCalledTimes(3);
-    expect(mocks.permit).toHaveBeenCalledWith("try_chat_ai_request");
+    expect(mocks.permit).toHaveBeenCalledWith("admit_ai_operation", { p_feature: "chat_assist" });
     expect(mocks.model).toHaveBeenCalledWith(mode === "summary" ? request : { ...request, question: "When?" }, [msg], undefined, "en");
   });
   it.each([{ messages: [msg] }, { userId: "forged" }, { mode: "question", question: " " }, { mode: "question", question: "a".repeat(1001) }, { rideId: "bad" }])("rejects invalid/forged input", async extra => {
@@ -62,7 +64,7 @@ describe("private AI service", () => {
   vi.stubEnv("OPENAI_API_KEY", "");
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "missing_key" });
     vi.stubEnv("CHAT_AI_ENABLED", "true");
-  vi.stubEnv("OPENAI_API_KEY", "test-only"); mocks.permit.mockResolvedValueOnce({ data: false, error: null });
+  vi.stubEnv("OPENAI_API_KEY", "test-only"); mocks.permit.mockResolvedValueOnce({ data: { admitted: false, reason: "allowance_limit", retryAfterSeconds: 13, retryAt: new Date(Date.now() + 13_000).toISOString() }, error: null });
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "rate_limit" });
     mocks.permit.mockResolvedValueOnce({ data: null, error: {} });
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "database" });

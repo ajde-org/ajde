@@ -58,7 +58,7 @@ async function RideFeedContent({ rawParams }: { rawParams: Record<string, string
 
   return (
     <>
-        <NaturalLanguageSearch key={naturalQuery} currentParams={currentParams} initialQuery={naturalQuery} />
+        <NaturalLanguageSearch currentParams={currentParams} initialQuery={naturalQuery} />
         {interpretation ? (
           <SearchInterpretation
             result={interpretation}

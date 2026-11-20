@@ -26,10 +26,11 @@ export const aiAnswerSchema = z.object({
 });
 export type AiAnswer = z.infer<typeof aiAnswerSchema>;
 export const aiErrorCodeSchema = z.enum(["disabled", "invalid", "unavailable", "database", "empty", "too_large",
-  "rate_limit", "missing_key", "timeout", "provider", "refusal", "invalid_output"]);
+  "rate_limit", "provider_rate_limit", "pending", "conflict", "missing_key", "timeout", "provider", "refusal", "invalid_output"]);
 export type AiErrorCode = z.infer<typeof aiErrorCodeSchema>;
 export const aiResultSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), value: aiAnswerSchema }),
-  z.object({ ok: z.literal(false), code: aiErrorCodeSchema, error: z.string() }),
+  z.object({ ok: z.literal(false), code: aiErrorCodeSchema, error: z.string(),
+    retryAfterSeconds: z.number().int().positive().optional(), retryAt: z.string().optional() }),
 ]);
 export type AiResult = z.infer<typeof aiResultSchema>;
