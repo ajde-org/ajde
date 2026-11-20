@@ -1,3 +1,4 @@
+import { withAiAllowance } from "@/lib/ai/operation";
 import { getLocale } from "@/lib/i18n/server";
 import { isChatAiEnabled } from "@/lib/chat/ai-feature";
 import { assistRoom, aiFailure } from "@/lib/chat/ai-service";
@@ -8,7 +9,7 @@ const status: Record<AiErrorCode, number> = { disabled: 503, invalid: 400, unava
   too_large: 422, rate_limit: 429, provider_rate_limit: 503, pending: 202, conflict: 409, missing_key: 503, timeout: 504, provider: 502, refusal: 422, invalid_output: 502 };
 const headers = { "Cache-Control": "private, no-store" };
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   if (!isChatAiEnabled()) return Response.json(aiFailure("disabled"), { status: 503, headers });
   // Cookie-authenticated, same-origin requests only; never expose a paid cross-site endpoint.
   if (request.headers.get("origin") !== new URL(request.url).origin) {
@@ -33,3 +34,5 @@ export async function POST(request: Request) {
   return Response.json(result, { status: result.ok ? 200 : status[result.code],
     headers: { ...headers, ...(!result.ok && result.code === "rate_limit" && result.retryAfterSeconds ? { "Retry-After": String(result.retryAfterSeconds) } : {}) } });
 }
+
+export const POST = withAiAllowance(handlePost);

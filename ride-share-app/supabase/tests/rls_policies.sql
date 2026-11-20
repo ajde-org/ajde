@@ -61,7 +61,7 @@ do $$ declare table_name text; api_role text; begin
         'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'), api_role || ' cannot access ' || table_name);
     end loop;
   end loop;
-  perform pg_temp.assert_true(not has_function_privilege('anon', 'public.admit_ai_operation(text,uuid)', 'EXECUTE'), 'anonymous admission denied');
+  perform pg_temp.assert_true(not has_function_privilege('anon', 'public.admit_ai_operation(text,uuid,uuid)', 'EXECUTE'), 'anonymous admission denied');
   perform pg_temp.assert_true(not has_function_privilege('authenticated', 'public.cleanup_ai_operations()', 'EXECUTE'), 'client cannot erase admissions');
 end $$;
 

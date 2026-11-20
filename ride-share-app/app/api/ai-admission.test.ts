@@ -40,7 +40,7 @@ const entries = [
 ];
 beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("OPENAI_API_KEY", "test-only"); vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "false");
-  mocks.rpc.mockResolvedValue({ data: { admitted: true, operationId: id, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
+  mocks.rpc.mockResolvedValue({ data: { admitted: true, lowAllowanceFullAt: "2026-12-01T12:00:00Z", operationId: id, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
   mocks.release.mockResolvedValue({ data: true, error: null });
   mocks.search.mockResolvedValue(context); mocks.parse.mockResolvedValue({ classification: "offer", sourceLanguage: "mk", draft: { ...emptyOfferDraft(), source: "imported", confidence: 1 } });
   mocks.read.mockResolvedValue({ posts: [] }); mocks.interpret.mockResolvedValue({ trips: [] }); mocks.explain.mockResolvedValue([]);
@@ -51,8 +51,9 @@ describe.each(entries)("$feature endpoint admission", entry => {
   beforeEach(() => { if (entry.feature === "screenshot") vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "true"); });
   it("uses one admission RPC for a paid action", async () => {
     const result = await entry.handler(entry.request());
+    expect(result.headers.get("X-AI-Allowance-Full-At")).toBe("2026-12-01T12:00:00Z");
     expect(result.status).toBe(200); expect(entry.model).toHaveBeenCalledTimes(1);
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("admit_ai_operation", { p_feature: entry.feature });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("admit_ai_operation", { p_feature: entry.feature, ...(entry.feature === "screenshot" && { p_request_id: expect.any(String) }) });
     expect(mocks.release).not.toHaveBeenCalled();
   });
   it("makes zero model calls on denial and preserves exact retry information", async () => {
@@ -86,4 +87,17 @@ it("charges only search and formats ride explanations locally across a complete 
   expect(explained.status).toBe(200);
   expect(mocks.rpc.mock.calls.map(call => call[1].p_feature)).toEqual(["search"]);
   expect(mocks.search).toHaveBeenCalledTimes(1); expect(mocks.explain).toHaveBeenCalledTimes(1);
+});
+
+it("returns the next screenshot time on the last affordable successful read", async () => {
+  vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "true");
+  const now = Date.now();
+  const nextActionAt = new Date(now + 60_000).toISOString();
+  mocks.rpc.mockResolvedValue({ error: null, data: { admitted: true, operationId: id,
+    admittedAt: new Date(now).toISOString(), deadlineAt: new Date(now + 120_000).toISOString(), nextActionAt } });
+  const response = await screenshot(upload());
+  expect(response.status).toBe(200);
+  expect(response.headers.get("X-AI-Next-Action-At")).toBe(nextActionAt);
+  expect(response.headers.has("X-AI-Allowance-Full-At")).toBe(false);
+  expect(mocks.read).toHaveBeenCalledOnce();
 });

@@ -16,7 +16,15 @@ import { sharingEn } from "./sharing-en";
 import { explanationsEn } from "./explanations-en";
 
 export const en = {
-  "ai.retryAt": "You have used the available AI requests. Try again after {time}",
+  "ai.timeToday": "at {time}",
+  "ai.timeTomorrow": "tomorrow at {time}",
+  "ai.allowanceLow": "Your AI allowance is running low. If you pause now, it will be full again {time}.",
+  "ai.screenshotRetryAt": "You can read another screenshot {time}.",
+  "ai.screenshotReady": "You can read another screenshot now.",
+  "ai.draftRetryAt": "You can create another review draft {time}.",
+  "ai.draftReady": "You can create another review draft now.",
+  "ai.retryReady": "You can try this AI action again now.",
+  "ai.retryAt": "You have used the available AI requests. Try again {time}",
   ...timingEn,
   ...carColorsEn,
   ...errorsEn,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
+import { withAiAllowance, runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 
 import { createOpenAILocationFallback } from "@/lib/ai/openai-location-fallback";
 import { parseRidePost, RideParserError } from "@/lib/ai/parse-ride-post";
@@ -10,11 +10,12 @@ import type { RideCheckMetadata } from "@/lib/ai/ride-check-contract";
 import { createClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({
+  screenshotRequestId: z.uuid().optional(),
   text: z.string().trim().min(10).max(5_000),
   sourceHint: z.enum(["viber", "facebook", "other"]).nullable(),
 });
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    return await runAiOperation({ supabase, userId: user.id, feature: "parse", signal: request.signal, ...aiRequestIdentity(request) }, async () => {
+    const response = await runAiOperation({ supabase, userId: user.id, feature: "parse", screenshotRequestId: input.data.screenshotRequestId, signal: request.signal, ...aiRequestIdentity(request) }, async () => {
       let parsed;
       try {
         parsed = await parseRidePost(input.data.text, {
@@ -120,7 +121,11 @@ export async function POST(request: Request) {
 
       return Response.json({ importId: imported.id, parsed, ...(check ? { check } : {}) });
     });
+    if (input.data.screenshotRequestId) response.headers.set("X-AI-Draft-Redeemed", "1");
+    return response;
   } catch (error) {
     return aiOperationFailure(error) ?? Response.json({ error: "The parser failed unexpectedly." }, { status: 500 });
   }
 }
+
+export const POST = withAiAllowance(handlePost);

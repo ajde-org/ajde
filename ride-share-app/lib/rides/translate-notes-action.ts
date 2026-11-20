@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { runAiOperation, AiOperationError } from "@/lib/ai/operation";
+import { collectAiAllowance, runAiOperation, AiOperationError } from "@/lib/ai/operation";
 import { requireCompleteProfile } from "@/lib/auth/session";
 import { isAllowedStudentEmail } from "@/lib/auth/email-domain";
 import { createClient } from "@/lib/supabase/server";
@@ -29,9 +29,9 @@ export async function translateRideNotes(input: unknown) {
     const notes = await accessibleNotes();
     if (!notes) return { ok: false } as const;
     if (notes.length > RIDE_LIMITS.notesLength) return { ok: false } as const;
-    const translation = await runAiOperation({ supabase: client, userId: user.id, feature: "translate_notes", requestId: parsed.data.requestId }, () => translateRideNotesText(notes, locale));
+    const { result: translation, fullAt, nextActionAt } = await collectAiAllowance(() => runAiOperation({ supabase: client, userId: user.id, feature: "translate_notes", requestId: parsed.data.requestId }, () => translateRideNotesText(notes, locale)));
     if (await accessibleNotes() !== notes) return { ok: false } as const;
-    return { ok: true, source: notes, translation } as const;
+    return { ok: true, source: notes, translation, ...(fullAt && { lowAllowanceFullAt: fullAt }), ...(nextActionAt && { nextActionAt }) } as const;
   } catch (error) {
     if (error instanceof AiOperationError) return { ok: false, code: "retryAfterSeconds" in error.failure ? "rate_limit" : error.failure.reason, ...error.failure } as const;
     return { ok: false } as const;

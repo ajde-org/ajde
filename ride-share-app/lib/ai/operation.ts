@@ -1,10 +1,28 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { admitAiOperation, type AiFeature, type AiAdmissionResult } from "./admission";
 import { aiOperationStorage, aiOperationExpired, type AiOperationContext } from "./operation-context";
 import { recordAiEvent } from "./accounting";
+
+const allowanceNotice = new AsyncLocalStorage<{ fullAt?: string; nextActionAt?: string }>();
+
+export async function collectAiAllowance<T>(work: () => Promise<T>) {
+  const notice: { fullAt?: string; nextActionAt?: string } = {};
+  const result = await allowanceNotice.run(notice, work);
+  return { result, ...notice };
+}
+
+export function withAiAllowance(handler: (request: Request) => Promise<Response>) {
+  return async (request: Request) => {
+    const { result, fullAt, nextActionAt } = await collectAiAllowance(() => handler(request));
+    if (nextActionAt) result.headers.set("X-AI-Next-Action-At", nextActionAt);
+    if (fullAt) result.headers.set("X-AI-Allowance-Full-At", fullAt);
+    return result;
+  };
+}
 
 export class AiOperationError extends Error {
   constructor(readonly failure: Exclude<AiAdmissionResult, { admitted: true }> |
@@ -19,6 +37,7 @@ export type AiOperationOptions = {
   feature: AiFeature;
   signal?: AbortSignal;
   requestId?: string | null;
+  screenshotRequestId?: string;
 };
 
 export function aiRequestIdentity(request: Request) {
@@ -47,8 +66,13 @@ async function startAiOperation<T>(options: AiOperationOptions, work: (context: 
     throw new AiOperationError({ admitted: false, reason: "invalid_request_id" });
   }
   const admissionStarted = performance.now();
-  const admission = await admitAiOperation(options.supabase, options.feature, options.requestId);
+  const admission = await admitAiOperation(options.supabase, options.feature, options.requestId, options.screenshotRequestId);
   if (!admission.admitted) throw new AiOperationError(admission);
+  const notice = allowanceNotice.getStore();
+  if (notice) {
+    notice.fullAt = admission.lowAllowanceFullAt;
+    notice.nextActionAt = admission.nextActionAt;
+  }
   const controller = new AbortController();
   // Database-relative duration minus the entire RPC round trip is conservative even
   // when application/database clocks disagree or admission waited on a user lock.

@@ -27,13 +27,17 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   const { t, notice } = useI18n();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"facebook" | "viber">("viber");
+  const [screenshotRequestId, setScreenshotRequestId] = useState<string | null>(null);
   const [screenshotText, setScreenshotText] = useState("");
   const [result, setResult] = useState<ParseResponse | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [readingScreenshot, setReadingScreenshot] = useState(false);
-  const recovery = useAiRecovery();
+  const textRecovery = useAiRecovery();
+  const includedRecovery = useAiRecovery();
   const screenshotMode = pipelineEnabled && mode === "facebook";
+  const includedDraft = screenshotMode ? screenshotRequestId : null;
+  const recovery = includedDraft ? includedRecovery : textRecovery;
   const postText = screenshotMode ? screenshotText : text;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -49,8 +53,10 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
       const response = await fetch("/api/parse", {
         method: "POST",
         headers: { "content-type": "application/json", "Idempotency-Key": requestId },
-        body: JSON.stringify({ text: postText, sourceHint: screenshotMode ? "facebook" : "viber" }),
+        body: JSON.stringify({ ...(includedDraft && { screenshotRequestId: includedDraft }), text: postText, sourceHint: screenshotMode ? "facebook" : "viber" }),
       });
+      if (includedDraft && (response.headers?.get("X-AI-Draft-Redeemed") === "1" || response.ok || response.status === 409)) setScreenshotRequestId(null);
+      recovery.observe(response);
       const payload: unknown = await response.json();
 
       if (!response.ok) {
@@ -101,8 +107,8 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           </button>)}
         </div> : null}
         {pipelineEnabled ? <div hidden={!screenshotMode}>
-          <ScreenshotImport disabled={pending} onBusyChange={setReadingScreenshot}
-            onClearSelection={() => { setScreenshotText(""); setResult(null); setError(""); }}
+          <ScreenshotImport onRead={setScreenshotRequestId} disabled={pending} onBusyChange={setReadingScreenshot}
+            onClearSelection={() => { setScreenshotRequestId(null); setScreenshotText(""); setResult(null); setError(""); }}
             onSelect={post => { setScreenshotText(post.text); setResult(null); setError(""); }} />
         </div> : null}
         {!screenshotMode ? <label className="block text-sm font-medium text-slate-700">
@@ -133,7 +139,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
         </div>
       </form>
 
-      <AiRetryNotice recovery={recovery} />
+      <AiRetryNotice action="draft" recovery={recovery} />
       {error ? (
         <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           {notice(error, "import.parseFailed")}

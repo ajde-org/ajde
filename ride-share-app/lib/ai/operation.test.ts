@@ -92,7 +92,7 @@ describe("shared AI operation", () => {
     mocks.admit.mockResolvedValue({ admitted: false, reason: "conflict" });
     const work = vi.fn();
     await expect(runAiOperation({ ...options, requestId: operationId }, work)).rejects.toMatchObject({ failure: { reason: "conflict" } });
-    expect(mocks.admit).toHaveBeenCalledExactlyOnceWith(options.supabase, options.feature, operationId);
+    expect(mocks.admit).toHaveBeenCalledExactlyOnceWith(options.supabase, options.feature, operationId, undefined);
     expect(work).not.toHaveBeenCalled();
   });
   it("bounds accumulated search input before dispatch", async () => {

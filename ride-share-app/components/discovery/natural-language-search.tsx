@@ -15,12 +15,18 @@ export function NaturalLanguageSearch({
   currentParams: string;
   initialQuery: string;
 }) {
+  const recovery = useAiRecovery();
+  return <SearchForm key={initialQuery} {...{ currentParams, initialQuery, recovery }} />;
+}
+
+function SearchForm({ currentParams, initialQuery, recovery }: {
+  currentParams: string; initialQuery: string; recovery: ReturnType<typeof useAiRecovery>;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [error, setError] = useState<"discovery.shortQuery" | "discovery.unavailable" | "discovery.invalidResult" | "discovery.offline" | null>(null);
   const [pending, setPending] = useState(false);
-  const recovery = useAiRecovery();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,6 +46,7 @@ export function NaturalLanguageSearch({
         headers: { "content-type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify({ query: normalized }),
       });
+      recovery.observe(response);
       const payload: unknown = await response.json();
       if (!response.ok) {
         if (recovery.accept(payload)) return;

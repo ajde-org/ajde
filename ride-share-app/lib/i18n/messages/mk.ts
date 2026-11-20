@@ -18,7 +18,15 @@ import { explanationsMk } from "./explanations-mk";
 
 // Draft Macedonian copy. Record human wording review in the ticket or pull request.
 export const mk = {
-  "ai.retryAt": "Ги искористивте достапните ВИ барања. Обидете се повторно по {time}",
+  "ai.timeToday": "во {time}",
+  "ai.timeTomorrow": "утре во {time}",
+  "ai.allowanceLow": "Ви преостануваат малку ВИ барања. Ако сега направите пауза, повторно ќе ги имате сите на располагање {time}.",
+  "ai.screenshotRetryAt": "Можете повторно да прочитате слика од екранот {time}.",
+  "ai.screenshotReady": "Сега можете повторно да прочитате слика од екранот.",
+  "ai.draftRetryAt": "Можете повторно да создадете драфт за проверка {time}.",
+  "ai.draftReady": "Сега можете повторно да создадете драфт за проверка.",
+  "ai.retryReady": "Сега можете повторно да се обидете со оваа ВИ функција.",
+  "ai.retryAt": "Ги искористивте достапните ВИ барања. Обидете се повторно {time}",
   ...timingMk,
   ...carColorsMk,
   ...errorsMk,

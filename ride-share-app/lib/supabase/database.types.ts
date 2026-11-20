@@ -95,6 +95,7 @@ export type Database = {
         Row: {
           admitted_at: string
           deadline_at: string
+          draft_included: boolean
           feature: string
           id: string
           policy_group: string
@@ -105,6 +106,7 @@ export type Database = {
         Insert: {
           admitted_at: string
           deadline_at: string
+          draft_included?: boolean
           feature: string
           id?: string
           policy_group: string
@@ -114,6 +116,7 @@ export type Database = {
         Update: {
           admitted_at?: string
           deadline_at?: string
+          draft_included?: boolean
           feature?: string
           id?: string
           policy_group?: string
@@ -1056,7 +1059,11 @@ export type Database = {
     }
     Functions: {
       admit_ai_operation: {
-        Args: { p_feature: string; p_request_id?: string }
+        Args: {
+          p_feature: string
+          p_request_id?: string
+          p_screenshot_request_id?: string
+        }
         Returns: Json
       }
       can_rate_ride: {

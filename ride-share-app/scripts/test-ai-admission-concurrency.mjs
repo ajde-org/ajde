@@ -20,25 +20,32 @@ async function query(sql) {
     throw new Error(`Local SQL test failed: ${error.stderr || error.code || "psql unavailable"}`);
   }
 }
-const users = [randomUUID(), randomUUID()];
-async function admit(user, requestId = randomUUID(), feature = "search") {
+const users = [randomUUID(), randomUUID(), randomUUID()];
+async function admit(user, requestId = randomUUID(), feature = "search", screenshotId = null) {
   const result = await query(`begin; set local role authenticated;
     set local request.jwt.claim.sub = '${user}';
-    select public.admit_ai_operation('${feature}', '${requestId}'); commit;`);
+    select public.admit_ai_operation('${feature}', '${requestId}', ${screenshotId ? `'${screenshotId}'` : "null"}); commit;`);
   return JSON.parse(result);
 }
 try {
-  await query(`insert into auth.users(id) values ('${users[0]}'), ('${users[1]}');`);
+  await query(`insert into auth.users(id) values ('${users[0]}'), ('${users[1]}'), ('${users[2]}');`);
+  const capacity = Number(await query("select burst_capacity from public.ai_admission_policies where policy_group = 'explicit'"));
   const heavy = await Promise.all(Array.from({ length: 8 }, () => admit(users[0], randomUUID(), "parse")));
-  assert.equal(heavy.filter(row => row.admitted).length, 2);
+  assert.equal(heavy.filter(row => row.admitted).length, Math.floor(capacity / 6));
   assert.ok(heavy.filter(row => !row.admitted).every(row => row.reason === "allowance_limit"));
   const searches = await Promise.all(Array.from({ length: 8 }, () => admit(users[0])));
-  assert.equal(searches.filter(row => row.admitted).length, 4);
+  assert.equal(searches.filter(row => row.admitted).length, capacity % 6);
   const key = randomUUID();
   const duplicates = await Promise.all(Array.from({ length: 8 }, () => admit(users[1], key)));
   assert.equal(duplicates.filter(row => row.admitted).length, 1);
   assert.equal(duplicates.filter(row => row.reason === "conflict").length, 7);
+  const screenshot = randomUUID();
+  assert.ok((await admit(users[2], screenshot, "screenshot")).admitted);
+  assert.equal((await admit(users[1], randomUUID(), "parse", screenshot)).reason, "conflict");
+  const drafts = await Promise.all(Array.from({ length: 8 }, () => admit(users[2], randomUUID(), "parse", screenshot)));
+  assert.equal(drafts.filter(row => row.admitted).length, 1);
+  assert.equal(drafts.filter(row => row.reason === "conflict").length, 7);
   console.log("Weighted admission, user isolation and duplicate races passed.");
 } finally {
-  await query(`delete from auth.users where id in ('${users[0]}','${users[1]}');`);
+  await query(`delete from auth.users where id in ('${users[0]}','${users[1]}','${users[2]}');`);
 }

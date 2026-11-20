@@ -72,6 +72,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
         body: JSON.stringify(payload), signal: controller.signal, cache: "no-store" });
       const parsed = aiResultSchema.safeParse(await response.json());
       if (controller.signal.aborted || current !== sequence.current) return;
+      recovery.observe(response);
       if (!parsed.success) throw new Error("Unexpected response");
       const data = parsed.data;
       if (!data.ok) {

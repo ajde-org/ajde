@@ -36,7 +36,7 @@ it("shows only the active input, preserves Viber text across toggles, and submit
 });
 
 it("reads a Facebook screenshot and explicitly parses only the selected post", async () => {
-  const transport = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ posts: [post(), post("Барам превоз утре", "request"), post("Здраво 👋", "other")] })).mockResolvedValueOnce(Response.json(review));
+  const transport = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ posts: [post(), post("Барам превоз утре", "request"), post("Здраво 👋", "other")] }, { headers: { "X-AI-Next-Action-At": new Date(Date.now() + 240_000).toISOString(), "X-AI-Screenshot-Request": "95000000-0000-4000-8000-000000000021" } })).mockResolvedValueOnce(Response.json(review));
   vi.stubGlobal("fetch", transport);
   render(<ImportRideForm cities={cities} pipelineEnabled />);
   await screenshotMode();
@@ -45,6 +45,7 @@ it("reads a Facebook screenshot and explicitly parses only the selected post", a
   expect(screen.queryByRole("textbox")).toBeNull();
   expect(screen.getByRole("button", { name: "Selected post" }).getAttribute("aria-pressed")).toBe("true");
   expect(transport).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText(/Or upload a screenshot/)).toHaveProperty("disabled", true);
   await userEvent.click(screen.getByRole("button", { name: "Viber text" }));
   expect(screen.getByRole("textbox")).toHaveProperty("value", "");
   await screenshotMode();
@@ -56,7 +57,7 @@ it("reads a Facebook screenshot and explicitly parses only the selected post", a
   expect(transport.mock.calls[1][0]).toBe("/api/parse");
   expect((transport.mock.calls[0][1]?.headers as Record<string, string>)["Idempotency-Key"])
     .not.toBe((transport.mock.calls[1][1]?.headers as Record<string, string>)["Idempotency-Key"]);
-  expect(JSON.parse(String(transport.mock.calls[1][1]?.body))).toEqual({ text: transcript, sourceHint: "facebook" });
+  expect(JSON.parse(String(transport.mock.calls[1][1]?.body))).toEqual({ text: transcript, sourceHint: "facebook", screenshotRequestId: "95000000-0000-4000-8000-000000000021" });
   expect(screen.getByRole("link", { name: "Continue to editable ride form" })).toBeTruthy();
 });
 
@@ -66,7 +67,7 @@ it("retains a denied screenshot and offers a deliberate retry without rereading 
   render(<ImportRideForm cities={cities} pipelineEnabled />);
   await screenshotMode();
   await userEvent.upload(screen.getByLabelText(/Or upload a screenshot/), file());
-  expect(await screen.findByText(/Try again after/)).toBeTruthy();
+  expect(await screen.findByText(/You can read another screenshot /)).toBeTruthy();
   expect(screen.getByText("ride.png")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Retry reading" })).toHaveProperty("disabled", true);
   expect(transport).toHaveBeenCalledTimes(1);
@@ -141,4 +142,20 @@ it("blocks mode switching and parsing during a screenshot read", async () => {
   await screen.findByRole("button", { name: "Use this post" });
   expect(screen.getByRole("button", { name: "Viber text" })).toHaveProperty("disabled", false);
   expect(screen.getByRole("button", { name: "Create review draft" })).toHaveProperty("disabled", true);
+});
+
+it("keeps the last successful read and blocks the next upload immediately", async () => {
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ posts: [post()] }, {
+    headers: { "X-AI-Next-Action-At": new Date(Date.now() + 60_000).toISOString() },
+  }));
+  vi.stubGlobal("fetch", transport);
+  render(<ImportRideForm cities={cities} pipelineEnabled />);
+  await screenshotMode();
+  const input = screen.getByLabelText(/Or upload a screenshot/);
+  await userEvent.upload(input, file());
+  expect(await screen.findByText(/You can read another screenshot /)).toBeTruthy();
+  expect(input).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Use this post" })).toHaveProperty("disabled", false);
+  fireEvent.drop(screen.getByRole("region", { name: "Upload screenshot" }), { dataTransfer: { files: [file()] } });
+  expect(transport).toHaveBeenCalledTimes(1);
 });

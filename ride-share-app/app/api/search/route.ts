@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
+import { withAiAllowance, runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 
 import { createOpenAILocationFallback } from "@/lib/ai/openai-location-fallback";
 import {
@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({ query: z.string().trim().min(2).max(300) });
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -103,3 +103,5 @@ export async function POST(request: Request) {
     return Response.json({ error: messages[error.code], code: error.code }, { status });
   }
 }
+
+export const POST = withAiAllowance(handlePost);

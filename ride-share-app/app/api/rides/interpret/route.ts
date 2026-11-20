@@ -1,9 +1,9 @@
 import { offerApiContext } from "@/lib/rides/offer-api-auth";
-import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
+import { withAiAllowance, runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 import { parseOfferDescription, OfferDescriptionError } from "@/lib/ai/parse-offer-description";
 import { offerRequestSchema } from "@/lib/rides/offer-interpretation";
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const context = await offerApiContext();
   if (context instanceof Response) return context;
   const { supabase, user } = context;
@@ -25,3 +25,5 @@ export async function POST(request: Request) {
     return Response.json({ error: error instanceof OfferDescriptionError ? error.message : "Interpretation failed. Retry or enter details manually." }, { status: 422 });
   }
 }
+
+export const POST = withAiAllowance(handlePost);

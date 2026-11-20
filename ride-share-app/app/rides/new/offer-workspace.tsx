@@ -147,6 +147,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
     try {
       const response = await fetch("/api/rides/interpret", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": requestId },
         body: JSON.stringify({ text, mode: "create" }), signal: AbortSignal.timeout(25000) });
+      recovery.observe(response);
       const body = await response.json();
       if (!response.ok && recovery.accept(body)) { setRetry(true); return; }
       if (!response.ok) throw new Error("Interpretation failed");

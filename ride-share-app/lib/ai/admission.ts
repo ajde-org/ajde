@@ -18,6 +18,8 @@ export const aiAdmissionSchema = z.union([
     operationId: z.uuid(),
     admittedAt: timestamp,
     deadlineAt: timestamp,
+    nextActionAt: timestamp.optional(),
+    lowAllowanceFullAt: timestamp.optional(),
   }).refine(value => Date.parse(value.admittedAt) < Date.parse(value.deadlineAt)),
   z.object({
     admitted: z.literal(false),
@@ -36,9 +38,10 @@ export async function admitAiOperation(
   supabase: Pick<SupabaseClient<Database>, "rpc">,
   feature: AiFeature,
   requestId?: string | null,
+  screenshotRequestId?: string,
 ): Promise<AiAdmissionResult> {
   try {
-    const { data, error } = await supabase.rpc("admit_ai_operation", { p_feature: feature, ...(requestId && { p_request_id: requestId }) });
+    const { data, error } = await supabase.rpc("admit_ai_operation", { p_feature: feature, ...(requestId && { p_request_id: requestId }), ...(screenshotRequestId && { p_screenshot_request_id: screenshotRequestId }) });
     if (error) return { admitted: false, reason: "storage_unavailable" };
     const parsed = aiAdmissionSchema.safeParse(data);
     return parsed.success ? parsed.data : { admitted: false, reason: "storage_unavailable" };
