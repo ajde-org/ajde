@@ -18,6 +18,38 @@ HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); 
 beforeEach(() => { vi.stubGlobal("matchMedia", () => ({ matches: true })); denied.mockReset(); fetcher.mockReset().mockResolvedValue(Response.json({ ok: true, value: answer })); vi.stubGlobal("fetch", fetcher); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const mount = () => render(<ChatAiPanel rideId={rideId} latest={source} onUnavailable={denied} />);
+it.each(["en", "mk"] as const)("warns, blocks, and unlocks chat AI in %s", async locale => {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date("2026-11-20T21:00:00Z"));
+    const messages = locale === "mk" ? mk : en;
+    const retryAt = new Date(Date.now() + 60_000).toISOString();
+    const success = { ok: true, value: answer };
+    fetcher.mockResolvedValueOnce(Response.json(success, { headers: { "X-AI-Allowance-Full-At": retryAt } }))
+      .mockResolvedValueOnce(Response.json(success, { headers: { "X-AI-Next-Action-At": retryAt } }))
+      .mockResolvedValueOnce(Response.json({ ok: false, code: "rate_limit", error: "Limit reached", retryAt: new Date(Date.now() + 120_000).toISOString(), retryAfterSeconds: 60 }, { status: 429 }));
+    render(<ChatAiPanel rideId={rideId} latest={source} onUnavailable={denied} />, { locale });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: messages["chatAi.summary"] })));
+    expect(screen.getByText(messages["ai.chatLow"])).toBeTruthy();
+    const dialog = within(screen.getByRole("dialog"));
+    const summary = dialog.getByRole("button", { name: messages["chatAi.summary"] });
+    fireEvent.change(dialog.getByLabelText(messages["chatAi.question"]), { target: { value: "Where?" } });
+    const submit = dialog.getByRole("button", { name: messages["chatAi.submit"] });
+    expect(submit).toHaveProperty("disabled", false);
+    await act(async () => fireEvent.click(submit));
+    expect(screen.getByText(messages["ai.chatRetryAt"].replace("{time}", locale === "mk" ? "во: 22:01" : "22:01"))).toBeTruthy();
+    expect(summary).toHaveProperty("disabled", true);
+    expect(submit).toHaveProperty("disabled", true);
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(summary).toHaveProperty("disabled", false);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    await act(async () => fireEvent.click(summary));
+    expect(screen.getByText(messages["ai.chatRetryAt"].replace("{time}", locale === "mk" ? "во: 22:02" : "22:02"))).toBeTruthy();
+    expect(submit).toHaveProperty("disabled", true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
 it("hides an old-language answer after switching while retaining the typed question", async () => {
   const panel = <ChatAiPanel rideId={rideId} latest={source} onUnavailable={denied} />;
   const view = render(<I18nProvider locale="en" messages={en}>{panel}</I18nProvider>);

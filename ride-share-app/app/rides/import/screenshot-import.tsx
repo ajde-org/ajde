@@ -1,12 +1,13 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
-import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
+import { AiRetryNotice, type useAiRecovery } from "@/components/ai-recovery";
 import { formatNumber, plural } from "@/lib/i18n/format";
 import { useRef, useState } from "react";
 import { isSupportedScreenshot, screenshotResponseSchema, type ScreenshotPost } from "@/lib/ai/screenshot-contract";
 
 type Props = {
+  recovery: ReturnType<typeof useAiRecovery>;
   disabled: boolean;
   onRead: (requestId: string | null) => void;
   onBusyChange: (busy: boolean) => void;
@@ -14,7 +15,7 @@ type Props = {
   onClearSelection: () => void;
 };
 
-export function ScreenshotImport({ disabled, onRead, onBusyChange, onSelect, onClearSelection }: Props) {
+export function ScreenshotImport({ recovery, disabled, onRead, onBusyChange, onSelect, onClearSelection }: Props) {
   const { locale, t, notice } = useI18n();
   const [posts, setPosts] = useState<ScreenshotPost[]>([]);
   const [pending, setPending] = useState(false);
@@ -23,7 +24,6 @@ export function ScreenshotImport({ disabled, onRead, onBusyChange, onSelect, onC
   const [selected, setSelected] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const busy = useRef(false);
-  const recovery = useAiRecovery();
 
   async function read(image: File) {
     if (disabled || busy.current) return;

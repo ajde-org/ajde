@@ -67,12 +67,15 @@ it("retains a denied screenshot and offers a deliberate retry without rereading 
   render(<ImportRideForm cities={cities} pipelineEnabled />);
   await screenshotMode();
   await userEvent.upload(screen.getByLabelText(/Or upload a screenshot/), file());
-  expect(await screen.findByText(/You can read another screenshot /)).toBeTruthy();
+  const screenshotNotice = await screen.findByText(/You’ve used all your AI image-parsing requests\. Please retry at: /);
+  const time = screenshotNotice.textContent?.match(/\d{2}:\d{2}/)?.[0];
+  expect(time).toBeTruthy();
   expect(screen.getByText("ride.png")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Retry reading" })).toHaveProperty("disabled", true);
   expect(transport).toHaveBeenCalledTimes(1);
   await userEvent.click(screen.getByRole("button", { name: "Viber text" }));
   expect(screen.getByRole("textbox", { name: "Post text" })).toHaveProperty("disabled", false);
+  expect(screen.getByText(/You’ve used all your AI requests for creating drafts from text/).textContent).toBe(`You’ve used all your AI requests for creating drafts from text. Please retry at: ${time}`);
 });
 
 it("retries dropped screenshots and clears the selected draft when the image is removed", async () => {
@@ -153,7 +156,7 @@ it("keeps the last successful read and blocks the next upload immediately", asyn
   await screenshotMode();
   const input = screen.getByLabelText(/Or upload a screenshot/);
   await userEvent.upload(input, file());
-  expect(await screen.findByText(/You can read another screenshot /)).toBeTruthy();
+  expect(await screen.findByText(/You’ve used all your AI image-parsing requests\. Please retry at: /)).toBeTruthy();
   expect(input).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: "Use this post" })).toHaveProperty("disabled", false);
   fireEvent.drop(screen.getByRole("region", { name: "Upload screenshot" }), { dataTransfer: { files: [file()] } });

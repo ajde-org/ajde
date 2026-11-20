@@ -110,7 +110,7 @@ function SearchForm({ currentParams, initialQuery, recovery }: {
           </button>
         ) : null}
       </form>
-      <AiRetryNotice recovery={recovery} />
+      <AiRetryNotice action="search" recovery={recovery} />
       {error ? <p role="alert" className="mt-3 rounded-xl bg-white px-4 py-3 text-sm text-brand-700">{t(error)}</p> : null}
     </section>
   );

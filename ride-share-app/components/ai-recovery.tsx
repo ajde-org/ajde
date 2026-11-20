@@ -53,11 +53,14 @@ const skopjeDay = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Skopje", 
 
 const recoveryMessages = {
   generic: { wait: "ai.retryAt", ready: "ai.retryReady" },
-  screenshot: { wait: "ai.screenshotRetryAt", ready: "ai.screenshotReady" },
-  draft: { wait: "ai.draftRetryAt", ready: "ai.draftReady" },
+  chat: { wait: "ai.chatRetryAt", ready: "ai.retryReady", warning: "ai.chatLow" },
+  screenshot: { wait: "ai.screenshotRetryAt", ready: "ai.screenshotReady", warning: "ai.screenshotLow" },
+  search: { wait: "ai.searchRetryAt", ready: "ai.retryReady", warning: "ai.searchLow" },
+  formFill: { wait: "ai.formFillRetryAt", ready: "ai.retryReady", warning: "ai.formFillLow" },
+  draft: { wait: "ai.draftRetryAt", ready: "ai.draftReady", warning: "ai.draftLow" },
 } as const;
 
-export function AiRetryNotice({ recovery, action = "generic" }: { action?: "generic" | "screenshot" | "draft"; recovery: Pick<ReturnType<typeof useAiRecovery>, "retryAt" | "blocked" | "fullAt"> }) {
+export function AiRetryNotice({ recovery, action = "generic" }: { action?: keyof typeof recoveryMessages; recovery: Pick<ReturnType<typeof useAiRecovery>, "retryAt" | "blocked" | "fullAt"> }) {
   const { locale, t } = useI18n();
   function refillTime(value: string) {
     // Pad the displayed estimate only; the recovery timer uses server eligibility.
@@ -65,8 +68,8 @@ export function AiRetryNotice({ recovery, action = "generic" }: { action?: "gene
     const today = skopjeDay.format(new Date());
     const target = skopjeDay.format(instant);
     const time = formatDateTime(locale, instant, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-    if (target === today) return t("ai.timeToday", { time });
-    if (Date.parse(target) - Date.parse(today) === 86_400_000) return t("ai.timeTomorrow", { time });
+    if (target === today) return t("warning" in messages ? "ai.retryTimeToday" : "ai.timeToday", { time });
+    if (Date.parse(target) - Date.parse(today) === 86_400_000) return t("warning" in messages ? "ai.retryTimeTomorrow" : "ai.timeTomorrow", { time });
     return formatDateTime(locale, instant, { dateStyle: "short", timeStyle: "short" });
   }
   const messages = recoveryMessages[action];
@@ -76,7 +79,8 @@ export function AiRetryNotice({ recovery, action = "generic" }: { action?: "gene
   } else if (recovery.retryAt) {
     message = t(messages.ready);
   } else if (recovery.fullAt) {
-    message = t("ai.allowanceLow", { time: refillTime(recovery.fullAt) });
+    if ("warning" in messages) message = t(messages.warning);
+    else message = t("ai.allowanceLow", { time: refillTime(recovery.fullAt) });
   } else return null;
   return <p role="status" className="mt-3 break-words rounded-xl bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
     {message}

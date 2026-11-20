@@ -229,7 +229,7 @@ function WorkspaceSession(props: OfferWorkspaceProps) {
       <Link href="/rides/import" className="btn-secondary min-h-11 w-full border-brand-200 px-4 py-2 text-[.8125rem] text-brand-800 hover:bg-brand-50 sm:w-auto">{t("offer.importLink")}</Link>
     </div>
     </div>
-    <AiRetryNotice recovery={recovery} />
+    <AiRetryNotice action="formFill" recovery={recovery} />
     {message && <p role="status">{t(message)}{snapshot && <> <button type="button" className="font-semibold underline" onClick={restoreSnapshot}>{t("offer.undo")}</button></>}</p>}
     {publishNotice && <p role="status">{t(publishNotice === "draft" ? "offer.savedContinue" : "offer.publishedContinue")}</p>}
     {retry && <button type="button" className="btn-secondary" disabled={savingCar || interpreting || recovery.blocked || publishing.length > 0 || Boolean(tab.publishedId)} onClick={() => { void fill(); }}>{t("offer.retry")}</button>}

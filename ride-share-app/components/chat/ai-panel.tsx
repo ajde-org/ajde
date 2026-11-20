@@ -159,7 +159,7 @@ export function ChatAiPanel({ rideId, latest, onUnavailable }: {
         </div>
       </form>
       <p role="status" className="mt-2 text-sm text-slate-600">{pending ? t("chatAi.reading") : ""}</p>
-      <AiRetryNotice recovery={recovery} />
+      <AiRetryNotice action="chat" recovery={recovery} />
       {error || recovery.retryAt ? <div className="mt-2">{error ? <p role="alert" className="text-sm text-red-700">{notice(error, "chatAi.error.provider")}</p> : null}
         {lastRequest ? <button type="button" className="mt-2 text-sm font-semibold text-brand-700 underline" disabled={pending || recovery.blocked}
           onClick={() => void run(lastRequest)}>{t("chatAi.retry")}</button> : null}</div> : null}

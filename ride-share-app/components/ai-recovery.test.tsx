@@ -19,7 +19,7 @@ it.each(["en", "mk"] as const)("retains input and waits for a deliberate retry i
   expect(screen.getByRole("textbox")).toHaveProperty("value", "Skopje tomorrow");
   const button = form.querySelector('button[type="submit"]')!;
   expect(button).toHaveProperty("disabled", true);
-  expect(screen.getByRole("status").textContent).toContain(locale === "mk" ? "утре во 00:00" : "tomorrow at 00:00");
+  expect(screen.getByRole("status").textContent).toBe(locale === "mk" ? "Ги искористивте достапните ВИ барања за пребарување објави. Обидете се повторно утре во: 00:00" : "You’ve used all your AI search requests. Please retry at: tomorrow at 00:00");
   expect(screen.getByRole("status").textContent).not.toContain("00:00:01");
   const directory = process.env.AI_RECOVERY_FIXTURE_DIR;
   if (directory) { mkdirSync(directory, { recursive: true }); writeFileSync(join(directory, `retry-${locale}.html`), `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main class="mx-auto max-w-3xl p-4">${view.container.innerHTML}<a href="/rides" class="btn-secondary mt-4 inline-block">${locale === "en" ? "Manual filters" : "Рачни филтри"}</a></main></body></html>`); }
@@ -41,9 +41,7 @@ it.each(["en", "mk"] as const)("warns before exhaustion without disabling search
   const view = render(<NaturalLanguageSearch currentParams="" initialQuery="Ohrid tomorrow" />, { locale });
   const form = view.container.querySelector("form")!;
   await act(async () => { fireEvent.submit(form); });
-  expect(screen.getByRole("status").textContent).toContain(locale === "en" ? "running low" : "малку ВИ барања");
-  expect(screen.getByRole("status").textContent).toContain("21:27");
-  expect(screen.getByRole("status").textContent).not.toMatch(/21:27:|20\.11/);
+  expect(screen.getByRole("status").textContent).toBe(locale === "en" ? "Warning: You have almost used all the available AI search requests" : "Предупредување: Речиси ги искористивте достапните ВИ барања за пребарување објави.");
   expect(form.querySelector('button[type="submit"]')).toHaveProperty("disabled", false);
   await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
   expect(screen.queryByRole("status")).toBeNull();

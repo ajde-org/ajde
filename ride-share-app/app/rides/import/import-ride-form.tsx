@@ -33,11 +33,11 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [readingScreenshot, setReadingScreenshot] = useState(false);
-  const textRecovery = useAiRecovery();
+  const importRecovery = useAiRecovery();
   const includedRecovery = useAiRecovery();
   const screenshotMode = pipelineEnabled && mode === "facebook";
   const includedDraft = screenshotMode ? screenshotRequestId : null;
-  const recovery = includedDraft ? includedRecovery : textRecovery;
+  const recovery = includedDraft ? includedRecovery : importRecovery;
   const postText = screenshotMode ? screenshotText : text;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -107,7 +107,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           </button>)}
         </div> : null}
         {pipelineEnabled ? <div hidden={!screenshotMode}>
-          <ScreenshotImport onRead={setScreenshotRequestId} disabled={pending} onBusyChange={setReadingScreenshot}
+          <ScreenshotImport recovery={importRecovery} onRead={setScreenshotRequestId} disabled={pending} onBusyChange={setReadingScreenshot}
             onClearSelection={() => { setScreenshotRequestId(null); setScreenshotText(""); setResult(null); setError(""); }}
             onSelect={post => { setScreenshotText(post.text); setResult(null); setError(""); }} />
         </div> : null}
@@ -139,7 +139,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
         </div>
       </form>
 
-      <AiRetryNotice action="draft" recovery={recovery} />
+      {!screenshotMode || includedDraft ? <AiRetryNotice action="draft" recovery={recovery} /> : null}
       {error ? (
         <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           {notice(error, "import.parseFailed")}

@@ -31,10 +31,10 @@ try {
   await query(`insert into auth.users(id) values ('${users[0]}'), ('${users[1]}'), ('${users[2]}');`);
   const capacity = Number(await query("select burst_capacity from public.ai_admission_policies where policy_group = 'explicit'"));
   const heavy = await Promise.all(Array.from({ length: 8 }, () => admit(users[0], randomUUID(), "parse")));
-  assert.equal(heavy.filter(row => row.admitted).length, Math.floor(capacity / 6));
+  assert.equal(heavy.filter(row => row.admitted).length, Math.floor(capacity / 8));
   assert.ok(heavy.filter(row => !row.admitted).every(row => row.reason === "allowance_limit"));
   const searches = await Promise.all(Array.from({ length: 8 }, () => admit(users[0])));
-  assert.equal(searches.filter(row => row.admitted).length, capacity % 6);
+  assert.equal(searches.filter(row => row.admitted).length, capacity % 8);
   const key = randomUUID();
   const duplicates = await Promise.all(Array.from({ length: 8 }, () => admit(users[1], key)));
   assert.equal(duplicates.filter(row => row.admitted).length, 1);
