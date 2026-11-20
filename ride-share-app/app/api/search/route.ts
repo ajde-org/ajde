@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   ];
 
   try {
-    const result = await runAiOperation({ supabase, userId: user.id, feature: "search", signal: request.signal, ...aiRequestIdentity(request, input.data) }, () => parseSearchQuery(input.data.query, {
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "search", signal: request.signal, ...aiRequestIdentity(request) }, () => parseSearchQuery(input.data.query, {
       candidates,
       now: new Date(),
       timeZone: "Europe/Skopje",

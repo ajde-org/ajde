@@ -36,8 +36,7 @@ token), plus AI operation lease release and metadata cleanup (`docs/AI_RATE_LIMI
 | `trip_shares` | the booking's passenger | the booking's passenger creates and deletes |
 | `messages`, `ratings` | ride room members / rater and ratee | see their sections |
 | `ride_comments`, `reports`, `chat_ai_budgets`, `ride_routing_gate` | nobody | nobody (definer functions only) |
-| `ai_admission_policies`, `ai_admission_features`, `ai_admission_buckets`, `ai_operations` | nobody | nobody (admission RPC; server-only release/cleanup) |
-| `ai_execution_keys` | nobody | nobody (claim RPC; server-only binding/completion) |
+| `ai_admission_policies`, `ai_admission_features`, `ai_admission_buckets`, `ai_operations` | nobody | nobody (admission RPC; server-only cleanup) |
 | `ai_provider_usage`, `ai_request_events`, `ai_policy_versions` | server only | usage/events: server inserts; policy history: migration trigger |
 
 - Contact columns (`phone`, `instagram`, `facebook`, `social_url`) are withheld by column grants
@@ -294,19 +293,6 @@ bookings 1--* trip_shares
 
 ## Database behavior
 
-- `ai_execution_keys` keeps a user-scoped UUID request key and unique claim-generation UUID, feature, HMAC input
-  fingerprint, optional admitted operation, expiry and completion timestamp. It stores no request
-  or result content. `claim_ai_execution(uuid,text,text)` derives the session user and serializes
-  first claims with the admission user lock. Matching in-flight requests return pending; mismatched
-  input/feature returns conflict. Completed keys never execute again. Results are not replayed or
-  cached: a deliberate new action needs a new key. Service-only `bind_ai_execution(uuid,uuid,uuid,uuid)`
-  binds only a live matching owner/feature admission and claim generation;
-  `finish_ai_execution(uuid,uuid,uuid)` is idempotent for that generation. Stale callbacks cannot
-  complete a subsequently reused request key.
-  RLS and revoked API table privileges protect this state. Auth deletion cascades; trusted cleanup
-  deletes expired keys. Retention starts at ten minutes and extends on binding to at least
-  one minute after lease expiry, preventing expiry during live work even after admission delays.
-
 - `ai_provider_usage` records one unique provider-attempt UUID, originating operation, user and
   feature, requested/actual model, nullable input/cached-input/output tokens, duration, outcome,
   price version, nullable estimated USD cost, and database recording time. Unknown/missing usage,
@@ -318,38 +304,12 @@ bookings 1--* trip_shares
   Both enable RLS with no client privileges and grant only service-role reads/inserts. They retain
   35 days of metadata, cascade on Auth deletion, and contain no prompts, images, transcripts, or
   generated content. Accounting failure is logged without raw error content and never reruns AI.
-  `ai_spend_last_day()` is a read-only service-only aggregate of known rolling-24-hour cost and
-  unknown-call counts; monetary thresholds remain unconfigured until a launch budget is selected.
 - `ai_policy_versions` preserves database-owned effective timestamps and full validated policy
   snapshots. Initial values are copied at migration time; `record_ai_policy_version()` records
   reviewed updates and stamps their effective time. No API role can read/write policy history.
   It is server-readable configuration history, retained independently of user measurements.
 
-- AI admission policy lives in `ai_admission_policies`: validated defaults are 30 explicit actions
-  per rolling hour, including at most 10 screenshots, a four-permit burst with one permit refilled
-  every ten seconds, and two concurrent operations. Automatic explanations have a separate proposed
-  60/hour and two-operation allowance without a burst bucket. `ai_admission_features` owns the
-  feature-to-group mapping. Only reviewed migrations change either configuration table.
-  `ai_admission_buckets` stores fractional permits and database refill times per Auth user/group.
-  `ai_operations` stores each successful admission and its feature, group, deadline, lease expiry,
-  and optional release time, with indexed rolling-hour, screenshot, and live-lease lookups.
-  Both user-owned tables cascade on Auth account deletion. No raw AI content is stored.
-- `admit_ai_operation(text)` is authenticated-only, SECURITY DEFINER with an empty search path.
-  It derives `auth.uid()` and takes a user-scoped transaction advisory lock, covering simultaneous
-  first admissions. All constraints are checked atomically at the database time after locking;
-  timestamps exactly one hour old have expired. Denials consume nothing and return the longest
-  wait across exhausted constraints. Successful admissions consume a fractional burst permit and
-  create a unique lease with a 120-second operation deadline and 180-second expiry by default.
-  Server integration enforces a monotonic duration derived from database admitted/deadline times,
-  subtracting the admission RPC round trip to remain conservative under clock skew and lock waits.
-  `release_ai_operation(uuid,uuid)` is idempotent and service-role-only, matches operation and owner,
-  and frees concurrency without refunding admissions. Clients cannot release running leases.
-  `cleanup_ai_operations()` is service-role-only maintenance, retaining operations for 35 days and
-  pruning inactive old buckets, expired execution keys, old usage and request events. The daily
-  Vercel job in `vercel.json` calls `/api/internal/ai-cleanup`; configure the server-only
-  `CRON_SECRET` before rollout. Enforcement never depends on cleanup for permit correctness.
-  All four tables enable RLS with no API policies and no PUBLIC/anon/authenticated privileges.
-  See [AI admission controls](../../docs/AI_RATE_LIMITING.md) for the server contract and ranges.
+- `ai_admission_features.weight` and the explicit row of `ai_admission_policies` define the continuously refilling allowance. `admit_ai_operation(text,uuid)` derives the caller from Auth and serializes duplicate detection, refill, debit and operation insertion per user. `ai_admission_buckets` stores fractional points. `ai_operations` retains the deadline and optional request UUID, unique per user. The service-only cleanup removes old admissions, usage, events and inactive buckets after 35 days. See [AI rate limiting](../../docs/AI_RATE_LIMITING.md).
 
 - `chat_ai_budgets` stores an Auth user UUID and at most five recent admission timestamps, with
   cascading account deletion, RLS and no public/anonymous/authenticated table privileges.

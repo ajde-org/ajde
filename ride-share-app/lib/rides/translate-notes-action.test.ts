@@ -16,7 +16,7 @@ function database(status: string, bookingStatus: string | null = null) {
   });
 }
 beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("OPENAI_API_KEY", "test-only");
-  mocks.permit.mockResolvedValue({ data: { admitted: true, operationId: rideId, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString(), leaseExpiresAt: new Date(Date.now() + 180_000).toISOString() }, error: null });
+  mocks.permit.mockResolvedValue({ data: { admitted: true, operationId: rideId, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
   mocks.release.mockResolvedValue({ data: true, error: null });
   mocks.user.mockResolvedValue({ id: "passenger", email: "test@students.finki.ukim.mk" }); mocks.translate.mockResolvedValue("Превод"); database("published"); });
 afterEach(() => vi.unstubAllEnvs());
@@ -43,16 +43,16 @@ it("allows accepted passengers on completed rides and hides provider errors", as
   mocks.translate.mockRejectedValue(new Error("Private provider details"));
   expect(await translateRideNotes({ rideId, locale: "en" })).toEqual({ ok: false });
   expect(mocks.translate).toHaveBeenCalledOnce();
-  expect(mocks.release).toHaveBeenCalledTimes(1);
+  expect(mocks.release).not.toHaveBeenCalled();
 });
 
 it("returns retry timing without calling translation when limited", async () => {
-  mocks.permit.mockResolvedValue({ data: { admitted: false, reason: "hourly_limit", retryAfterSeconds: 31, retryAt: "2026-11-15T12:00:31Z" }, error: null });
+  mocks.permit.mockResolvedValue({ data: { admitted: false, reason: "allowance_limit", retryAfterSeconds: 31, retryAt: "2026-11-15T12:00:31Z" }, error: null });
   expect(await translateRideNotes({ rideId, locale: "mk" })).toMatchObject({ ok: false, code: "rate_limit", retryAfterSeconds: 31 });
   expect(mocks.translate).not.toHaveBeenCalled(); expect(mocks.release).not.toHaveBeenCalled();
 });
 it("discards generated notes when ride access is lost during the model call", async () => {
   mocks.translate.mockImplementation(async () => { database("draft"); return "Private translation"; });
   expect(await translateRideNotes({ rideId, locale: "en" })).toEqual({ ok: false });
-  expect(mocks.release).toHaveBeenCalledTimes(1);
+  expect(mocks.release).not.toHaveBeenCalled();
 });

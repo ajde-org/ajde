@@ -4,7 +4,6 @@ import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "../lib/supabase/admin";
 import { supabaseUrl } from "../lib/supabase/env";
-import { aiSpendPolicy } from "../lib/ai/spend-control";
 import { buildAiUsageReport, type AiReportData } from "../lib/ai/usage-report";
 
 loadEnvConfig(process.cwd());
@@ -40,7 +39,7 @@ async function main() {
   if (collectionStartedAt && !Number.isFinite(collectionStartedAt.getTime())) throw new Error("Invalid AI_TELEMETRY_ENABLED_AT");
   const data = { operations, usage, events, policies: policy.data } as AiReportData;
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(new URL(supabaseUrl()).hostname);
-  const report = buildAiUsageReport(data, { days, generatedAt, collectionStartedAt, previous, local, spendPolicy: aiSpendPolicy() });
+  const report = buildAiUsageReport(data, { days, generatedAt, collectionStartedAt, previous, local });
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.${randomUUID()}.tmp`;
   try { await writeFile(temporary, report, "utf8"); await rename(temporary, path); }

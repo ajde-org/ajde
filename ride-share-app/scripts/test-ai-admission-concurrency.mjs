@@ -21,47 +21,24 @@ async function query(sql) {
   }
 }
 const users = [randomUUID(), randomUUID()];
-async function admit(user) {
+async function admit(user, requestId = randomUUID(), feature = "search") {
   const result = await query(`begin; set local role authenticated;
     set local request.jwt.claim.sub = '${user}';
-    select public.admit_ai_operation('search'); commit;`);
+    select public.admit_ai_operation('${feature}', '${requestId}'); commit;`);
   return JSON.parse(result);
 }
-async function reset() {
-  await query(`delete from public.ai_operations where user_id in ('${users[0]}','${users[1]}');
-    delete from public.ai_admission_buckets where user_id in ('${users[0]}','${users[1]}');`);
-}
-
 try {
   await query(`insert into auth.users(id) values ('${users[0]}'), ('${users[1]}');`);
-  // Separate psql processes give separate connections and competing transactions,
-  // including INSERT/lock races before the first user state exists.
-  let results = await Promise.all(Array.from({ length: 12 }, () => admit(users[0])));
-  assert.equal(results.filter(result => result.admitted).length, 2, "only two first admissions acquire leases");
-  assert.ok(results.filter(result => !result.admitted).every(result => result.reason === "concurrency_limit"));
-  assert.equal(await query(`select count(*) from public.ai_operations where user_id = '${users[0]}'`), "2");
-
-  await reset();
-  await query(`insert into public.ai_operations(user_id, policy_group, feature,
-    admitted_at, deadline_at, lease_expires_at, released_at)
-    select '${users[0]}', 'explicit', 'search', clock_timestamp() - interval '30 minutes',
-      clock_timestamp() - interval '28 minutes', clock_timestamp() - interval '27 minutes',
-      clock_timestamp() - interval '29 minutes' from generate_series(1, 29);`);
-  results = await Promise.all(Array.from({ length: 12 }, () => admit(users[0])));
-  assert.equal(results.filter(result => result.admitted).length, 1, "29/30 race admits exactly one request");
-  assert.ok(results.filter(result => !result.admitted).every(result => result.reason === "hourly_limit"));
-  assert.equal(await query(`select count(*) from public.ai_operations where user_id = '${users[0]}'`), "30");
-
-  await reset();
-  results = await Promise.all(users.flatMap(user => Array.from({ length: 4 }, () => admit(user))));
-  assert.equal(results.filter(result => result.admitted).length, 4, "parallel users each acquire two leases");
-  const requestId = randomUUID();
-  const claims = await Promise.all(Array.from({ length: 12 }, async () => JSON.parse(await query(`begin;
-    set local role authenticated; set local request.jwt.claim.sub = '${users[0]}';
-    select public.claim_ai_execution('${requestId}', 'search', '${"a".repeat(64)}'); commit;`))));
-  assert.equal(claims.filter(claim => claim.state === "claimed").length, 1, "one process claims duplicate request execution");
-  assert.equal(claims.filter(claim => claim.state === "pending").length, 11);
-  console.log("AI admission concurrency checks passed (first admissions, 29/30 race, user isolation, duplicate execution).");
+  const heavy = await Promise.all(Array.from({ length: 8 }, () => admit(users[0], randomUUID(), "parse")));
+  assert.equal(heavy.filter(row => row.admitted).length, 2);
+  assert.ok(heavy.filter(row => !row.admitted).every(row => row.reason === "allowance_limit"));
+  const searches = await Promise.all(Array.from({ length: 8 }, () => admit(users[0])));
+  assert.equal(searches.filter(row => row.admitted).length, 4);
+  const key = randomUUID();
+  const duplicates = await Promise.all(Array.from({ length: 8 }, () => admit(users[1], key)));
+  assert.equal(duplicates.filter(row => row.admitted).length, 1);
+  assert.equal(duplicates.filter(row => row.reason === "conflict").length, 7);
+  console.log("Weighted admission, user isolation and duplicate races passed.");
 } finally {
   await query(`delete from auth.users where id in ('${users[0]}','${users[1]}');`);
 }

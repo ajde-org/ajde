@@ -24,7 +24,6 @@ it("invalidates old-language explanations and ignores their late response after 
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
   view.rerender(<I18nProvider locale="mk" messages={mk}>{content}</I18nProvider>);
   await screen.findByText("Одговара на рутата Скопје до Битола.");
-  expect(fetcher.mock.calls[0][1].headers["Idempotency-Key"]).toEqual(expect.any(String));
   await act(async () => finishEnglish(Response.json({ explanations: [{ rideId: id, explanation: "Old English explanation for Skopje." }] })));
   expect(screen.queryByText("Old English explanation for Skopje.")).toBeNull();
   expect(fetcher).toHaveBeenCalledTimes(2);

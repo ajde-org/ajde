@@ -64,7 +64,7 @@ export function RideResults({
       entry = { complete: false, promise: (async () => {
         try {
           const response = await fetch("/api/explain", {
-            method: "POST", headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+            method: "POST", headers: { "content-type": "application/json" },
             body: JSON.stringify({ rideIds: snapshot.rideIds, context: snapshot.searchContext }),
           });
           if (!response.ok) return null;
@@ -79,8 +79,7 @@ export function RideResults({
     void entry.promise.then(explanations => {
       if (active && explanations) setLoaded({ requestKey, explanations });
     });
-    // No automatic retry after denial. Pending paid work finishes once and stale results
-    // are ignored, including after locale changes; the server owns its deadline.
+    // Ignore responses for earlier searches and locales.
     return () => { active = false; };
   }, [requestKey]);
 

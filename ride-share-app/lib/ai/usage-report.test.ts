@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { buildAiUsageReport, preserveAiReviewLog, type AiReportData } from "./usage-report";
 const now = new Date("2026-11-14T12:00:00Z");
-const options = { days: 7, generatedAt: now, spendPolicy: { alertUsd: null, cutoffUsd: null, effectiveAt: null } };
+const options = { days: 7, generatedAt: now };
 function data(): AiReportData {
   return {
     operations: [{ id: "private-operation", user_id: "private-user-id", feature: "parse", policy_group: "explicit", admitted_at: "2026-11-13T12:00:00Z" }],
@@ -18,7 +18,7 @@ it("aggregates actions, costs, denials and latency without exposing user or oper
   expect(report).toContain("| screenshot | screenshot_limit | 1 |");
   expect(report).toContain("distinct users hitting limits: 1");
   expect(report).not.toContain("private-user-id"); expect(report).not.toContain("private-operation");
-  expect(report).toContain("comparison data is insufficient"); expect(report).toContain("monetary enforcement disabled");
+  expect(report).toContain("comparison data is insufficient");
 });
 it("leaves unknown usage and missing-operation measurements unknown, never zero-priced", () => {
   const fixture = data(); fixture.usage[0].estimated_cost_usd = null;

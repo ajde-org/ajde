@@ -29,8 +29,7 @@ export async function translateRideNotes(input: unknown) {
     const notes = await accessibleNotes();
     if (!notes) return { ok: false } as const;
     if (notes.length > RIDE_LIMITS.notesLength) return { ok: false } as const;
-    const translation = await runAiOperation({ supabase: client, userId: user.id, feature: "translate_notes", requestId: parsed.data.requestId,
-      input: { rideId, locale, source: notes } }, () => translateRideNotesText(notes, locale));
+    const translation = await runAiOperation({ supabase: client, userId: user.id, feature: "translate_notes", requestId: parsed.data.requestId }, () => translateRideNotesText(notes, locale));
     if (await accessibleNotes() !== notes) return { ok: false } as const;
     return { ok: true, source: notes, translation } as const;
   } catch (error) {

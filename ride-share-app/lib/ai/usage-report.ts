@@ -36,8 +36,7 @@ function period(data: AiReportData, start: number, end: number) {
   return { operations, usage, events, unknownCalls, missingOperations, knownCost, denied };
 }
 
-export function buildAiUsageReport(data: AiReportData, options: { days: number; generatedAt: Date; collectionStartedAt?: Date; previous?: string; local?: boolean;
-  spendPolicy: { alertUsd: number | null; cutoffUsd: number | null; effectiveAt: string | null } }) {
+export function buildAiUsageReport(data: AiReportData, options: { days: number; generatedAt: Date; collectionStartedAt?: Date; previous?: string; local?: boolean }) {
   const review = preserveAiReviewLog(options.previous);
   const end = options.generatedAt.getTime(), start = end - options.days * 86400000, priorStart = start - options.days * 86400000;
   const current = period(data, start, end), previous = period(data, priorStart, start);
@@ -70,33 +69,21 @@ export function buildAiUsageReport(data: AiReportData, options: { days: number; 
   const denials = new Map<string, number>();
   for (const event of current.denied) {
     const feature = features.includes(event.feature) ? event.feature : "unknown";
-    const reason = ["hourly_limit", "screenshot_limit", "burst_limit", "concurrency_limit"].includes(event.reason ?? "") ? event.reason : "unknown";
+    const reason = ["allowance_limit", "hourly_limit", "screenshot_limit", "burst_limit", "concurrency_limit"].includes(event.reason ?? "") ? event.reason : "unknown";
     const key = `${feature} | ${reason}`; denials.set(key, (denials.get(key) ?? 0) + 1);
   }
   for (const [key, total] of [...denials].sort()) lines.push(`| ${key} | ${total} |`);
   if (!denials.size) lines.push("| — | no recorded denials | 0 |");
-  lines.push("", "## Per-user usage and high-usage sessions", "", "| Group | Active users | Actions/user p50 | p90 | p95 | p99 | High-usage sessions |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
+  lines.push("", "## Per-user usage", "", "| Group | Active users | Actions/user p50 | p90 | p95 | p99 |", "| --- | ---: | ---: | ---: | ---: | ---: |");
   for (const group of ["explicit", "explanation"]) {
     const users = new Map<string, number[]>();
     for (const operation of current.operations.filter(row => row.policy_group === group)) {
       const times = users.get(operation.user_id) ?? []; times.push(Date.parse(operation.admitted_at)); users.set(operation.user_id, times);
     }
-    const policy = [...data.policies].filter(row => row.policy_group === group).sort((a,b) => Date.parse(b.effective_at) - Date.parse(a.effective_at))[0];
-    const configuration = policy?.configuration;
-    const limit = configuration && typeof configuration === "object" && !Array.isArray(configuration) && typeof configuration.hourly_limit === "number" ? configuration.hourly_limit : null;
-    let highSessions = 0;
-    for (const times of users.values()) {
-      times.sort((a,b) => a - b); let length = 0, last = -Infinity;
-      for (const instant of [...times, Infinity]) {
-        if (instant - last > 30 * 60000) { if (limit !== null && length >= Math.ceil(limit * 0.8)) highSessions++; length = 0; }
-        length++; last = instant;
-      }
-    }
     const values = [...users.values()].map(times => times.length);
-    lines.push(`| ${group} | ${users.size} | ${percentile(values, .5)} | ${percentile(values, .9)} | ${percentile(values, .95)} | ${percentile(values, .99)} | ${limit === null ? "unknown" : highSessions} |`);
+    lines.push(`| ${group} | ${users.size} | ${percentile(values, .5)} | ${percentile(values, .9)} | ${percentile(values, .95)} | ${percentile(values, .99)} |`);
   }
-  lines.push("", "Sessions split after 30 minutes of inactivity; high usage means at least 80% of the current group's hourly allowance in one session. This is a reporting indicator, not the rolling-window admission calculation.",
-    "", "## Equal-period comparison", "");
+  lines.push("", "## Equal-period comparison", "");
   if (!covered) lines.push("Insufficient verified coverage for a reliable comparison. Counts below describe recorded activity only.");
   lines.push(`Recorded admissions: ${current.operations.length} current / ${previous.operations.length} previous.`,
     `Known spend subtotal: ${money(current.knownCost)} current / ${money(previous.knownCost)} previous.`,
@@ -108,9 +95,6 @@ export function buildAiUsageReport(data: AiReportData, options: { days: number; 
   for (const policy of [...data.policies].filter(row => Date.parse(row.effective_at) < end).sort((a,b) => Date.parse(a.effective_at) - Date.parse(b.effective_at))) {
     lines.push(`| ${policy.policy_group === "explanation" ? "explanation" : "explicit"} | ${new Date(policy.effective_at).toISOString()} | ${JSON.stringify(policy.configuration).replaceAll("|", "\\|")} |`);
   }
-  lines.push("", "## Spend controls", "", `Rolling-24-hour spend alert: ${options.spendPolicy.alertUsd === null ? "unset; launch budget input required" : money(options.spendPolicy.alertUsd)}.`,
-    `Protective cutoff: ${options.spendPolicy.cutoffUsd === null ? "unset; monetary enforcement disabled" : money(options.spendPolicy.cutoffUsd)}; effective at: ${options.spendPolicy.effectiveAt ?? "not configured"}.`,
-    "The cutoff is a protective threshold, not an exact billing ceiling: in-flight calls, unrecorded usage, unknown prices, and accounting failures can cause overshoot. AI_KILL_SWITCH=true stops new paid calls independently.",
-    "", "## Measurement limits", "", "Metadata is retained for 35 days. Reporting stops on query or pagination failure and preserves the previous file. Unknown usage is never priced as zero. Storage outages can also prevent error-event persistence; inspect the server's AI accounting/lease error logs for gaps. No prompts, generated content, emails, or user identifiers are included.", "", review, "");
+  lines.push("", "## Measurement limits", "", "Metadata is retained for 35 days. Reporting stops on query or pagination failure and preserves the previous file. Unknown usage is never priced as zero. Storage outages can also prevent error-event persistence; inspect the server's AI accounting error logs for gaps. No prompts, generated content, emails, or user identifiers are included.", "", review, "");
   return lines.join("\n");
 }

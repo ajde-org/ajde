@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { aiImportPipelineEnabled } from "@/lib/ai/import-pipeline-config";
 import { runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "The screenshot upload could not be read. Try another image or paste the text.", code: "invalid_input" }, { status: 400 });
   }
   try {
-    const result = await runAiOperation({ supabase, userId: user.id, feature: "screenshot", signal: request.signal, ...aiRequestIdentity(request, { imageHash: createHash("sha256").update(bytes).digest("hex"), mimeType: image.type }) }, () => readScreenshot({ bytes, mimeType: image.type }));
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "screenshot", signal: request.signal, ...aiRequestIdentity(request) }, () => readScreenshot({ bytes, mimeType: image.type }));
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const failure = aiOperationFailure(error);

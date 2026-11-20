@@ -36,8 +36,7 @@ export async function assistRoom(input: unknown, signal?: AbortSignal, locale: L
     const before = await roomAccess(request.rideId);
     if (!before.ok) return aiFailure(before.code);
     if (before.user.id !== access.user.id) return aiFailure("unavailable");
-    const output = await runAiOperation({ supabase: before.supabase, userId: before.user.id, feature: "chat_assist", signal, requestId,
-      input: { request, cutoff: transcript.cutoff, locale } }, () => runChatAssistant(request, transcript.messages, signal, locale));
+    const output = await runAiOperation({ supabase: before.supabase, userId: before.user.id, feature: "chat_assist", signal, requestId }, () => runChatAssistant(request, transcript.messages, signal, locale));
     const after = await roomAccess(request.rideId);
     if (!after.ok) return aiFailure(after.code);
     if (after.user.id !== access.user.id) return aiFailure("unavailable");
@@ -54,9 +53,9 @@ export async function assistRoom(input: unknown, signal?: AbortSignal, locale: L
   } catch (error) {
     if (error instanceof AiOperationError) {
       if ("retryAfterSeconds" in error.failure) return { ...aiFailure("rate_limit"), retryAfterSeconds: error.failure.retryAfterSeconds, retryAt: error.failure.retryAt };
-      if (error.failure.reason === "pending" || error.failure.reason === "conflict") return aiFailure(error.failure.reason);
+      if (error.failure.reason === "conflict") return aiFailure(error.failure.reason);
       if (error.failure.reason === "invalid_request_id") return aiFailure("invalid");
-      if (error.failure.reason === "disabled" || error.failure.reason === "spend_cutoff") return aiFailure("disabled");
+      if (error.failure.reason === "disabled") return aiFailure("disabled");
       return aiFailure(error.failure.reason === "timeout" ? "timeout" : error.failure.reason === "missing_key" ? "missing_key" : "database");
     }
     if (error instanceof TranscriptTooLarge) return aiFailure("too_large");

@@ -76,6 +76,10 @@ export async function explainMatch(
     }
   }
 
+  return formatRideExplanations(rides, locale, accepted);
+}
+
+export async function formatRideExplanations(rides: readonly ExplainRideFact[], locale: Locale, accepted: ReadonlyMap<string, string> = new Map()) {
   const messages = locale === "mk" ? (await import("@/lib/i18n/messages/mk")).mk : (await import("@/lib/i18n/messages/en")).en;
   const t = createTranslator(messages);
   return rides.map((ride) => ({

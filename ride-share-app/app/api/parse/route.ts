@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    return await runAiOperation({ supabase, userId: user.id, feature: "parse", signal: request.signal, ...aiRequestIdentity(request, input.data) }, async () => {
+    return await runAiOperation({ supabase, userId: user.id, feature: "parse", signal: request.signal, ...aiRequestIdentity(request) }, async () => {
       let parsed;
       try {
         parsed = await parseRidePost(input.data.text, {

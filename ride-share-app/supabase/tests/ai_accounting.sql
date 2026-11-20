@@ -16,8 +16,6 @@ values ('95000000-0000-4000-8000-000000000010', current_setting('test.ai_operati
 insert into public.ai_provider_usage(id, operation_id, user_id, feature, duration_ms, outcome, price_version)
 values ('95000000-0000-4000-8000-000000000011', current_setting('test.ai_operation_id')::uuid, auth.uid(),
   'search', 20, 'timeout', 'test-version');
-select pg_temp.assert_true((public.ai_spend_last_day()->>'knownSpendUsd')::numeric = 0.00138, 'spend sums known costs');
-select pg_temp.assert_true((public.ai_spend_last_day()->>'unknownCalls')::integer = 1, 'unknown usage remains visible');
 do $$ begin
   begin insert into public.ai_provider_usage(id, operation_id, user_id, feature, duration_ms, outcome, price_version)
     values ('95000000-0000-4000-8000-000000000010', current_setting('test.ai_operation_id')::uuid, auth.uid(), 'search', 0, 'unknown', 'test');
@@ -29,16 +27,14 @@ do $$ begin
   exception when check_violation then null; end;
 end $$;
 insert into public.ai_request_events(user_id, feature, outcome, reason)
-values (auth.uid(), 'screenshot', 'denied', 'screenshot_limit');
+values (auth.uid(), 'screenshot', 'denied', 'allowance_limit');
 reset role;
-select pg_temp.assert_true(not has_function_privilege('authenticated','public.ai_spend_last_day()','EXECUTE'), 'spend access is server-only');
-select pg_temp.assert_true(not has_function_privilege('anon','public.ai_spend_last_day()','EXECUTE'), 'anonymous spend access denied');
 
 -- Historical policy values survive tuning, with database-owned effective timestamps.
 create temporary table policy_count as select count(*) as n from public.ai_policy_versions;
-update public.ai_admission_policies set hourly_limit = 31 where policy_group = 'explicit';
+update public.ai_admission_policies set burst_capacity = 17 where policy_group = 'explicit';
 select pg_temp.assert_true((select count(*) from public.ai_policy_versions) = (select n + 1 from policy_count), 'policy history recorded');
-select pg_temp.assert_true(exists (select 1 from public.ai_policy_versions where configuration->>'hourly_limit' = '30'), 'old policy retained');
+select pg_temp.assert_true(exists (select 1 from public.ai_policy_versions where configuration->>'burst_capacity' = '16'), 'old policy retained');
 update public.ai_provider_usage set recorded_at = clock_timestamp() - interval '36 days';
 update public.ai_request_events set recorded_at = clock_timestamp() - interval '36 days' where user_id = auth.uid();
 select public.cleanup_ai_operations();

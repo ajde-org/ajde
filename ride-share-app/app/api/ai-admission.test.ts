@@ -9,7 +9,7 @@ vi.mock("@/lib/ai/parse-search-query", async original => ({ ...await original<ty
 vi.mock("@/lib/ai/parse-ride-post", async original => ({ ...await original<typeof import("@/lib/ai/parse-ride-post")>(), parseRidePost: mocks.parse }));
 vi.mock("@/lib/ai/read-screenshot", async original => ({ ...await original<typeof import("@/lib/ai/read-screenshot")>(), readScreenshot: mocks.read }));
 vi.mock("@/lib/ai/parse-offer-description", async original => ({ ...await original<typeof import("@/lib/ai/parse-offer-description")>(), parseOfferDescription: mocks.interpret }));
-vi.mock("@/lib/ai/explain-match", () => ({ explainMatch: mocks.explain }));
+vi.mock("@/lib/ai/explain-match", () => ({ formatRideExplanations: mocks.explain }));
 import { POST as search } from "./search/route";
 import { POST as parse } from "./parse/route";
 import { POST as screenshot } from "./parse/screenshot/route";
@@ -37,11 +37,10 @@ const entries = [
   { feature: "parse", handler: parse, request: () => json({ text: "Skopje Veles tomorrow at 17:00", sourceHint: "other" }), model: mocks.parse },
   { feature: "screenshot", handler: screenshot, request: upload, model: mocks.read },
   { feature: "interpret", handler: interpret, request: () => json({ text: "Skopje Veles tomorrow", mode: "create" }), model: mocks.interpret },
-  { feature: "explain", handler: explain, request: () => json({ rideIds: [id], context }), model: mocks.explain },
 ];
 beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("OPENAI_API_KEY", "test-only"); vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "false");
-  mocks.rpc.mockResolvedValue({ data: { admitted: true, operationId: id, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString(), leaseExpiresAt: new Date(Date.now() + 180_000).toISOString() }, error: null });
+  mocks.rpc.mockResolvedValue({ data: { admitted: true, operationId: id, admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
   mocks.release.mockResolvedValue({ data: true, error: null });
   mocks.search.mockResolvedValue(context); mocks.parse.mockResolvedValue({ classification: "offer", sourceLanguage: "mk", draft: { ...emptyOfferDraft(), source: "imported", confidence: 1 } });
   mocks.read.mockResolvedValue({ posts: [] }); mocks.interpret.mockResolvedValue({ trips: [] }); mocks.explain.mockResolvedValue([]);
@@ -50,14 +49,14 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe.each(entries)("$feature endpoint admission", entry => {
   beforeEach(() => { if (entry.feature === "screenshot") vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "true"); });
-  it("admits one action and releases its lease", async () => {
+  it("uses one admission RPC for a paid action", async () => {
     const result = await entry.handler(entry.request());
     expect(result.status).toBe(200); expect(entry.model).toHaveBeenCalledTimes(1);
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("admit_ai_operation", { p_feature: entry.feature });
-    expect(mocks.release).toHaveBeenCalledWith("release_ai_operation", { p_operation_id: id, p_user_id: id });
+    expect(mocks.release).not.toHaveBeenCalled();
   });
   it("makes zero model calls on denial and preserves exact retry information", async () => {
-    mocks.rpc.mockResolvedValue({ data: { admitted: false, reason: "hourly_limit", retryAfterSeconds: 41, retryAt: "2026-11-15T12:00:41Z" }, error: null });
+    mocks.rpc.mockResolvedValue({ data: { admitted: false, reason: "allowance_limit", retryAfterSeconds: 41, retryAt: "2026-11-15T12:00:41Z" }, error: null });
     const result = await entry.handler(entry.request());
     expect(result.status).toBe(429); expect(result.headers.get("retry-after")).toBe("41");
     expect(await result.json()).toMatchObject({ code: "rate_limit", retryAfterSeconds: 41 });
@@ -80,11 +79,11 @@ it("invalid input consumes no allowance", async () => {
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 
-it("admits search and its optional explanation separately across a complete mocked flow", async () => {
+it("charges only search and formats ride explanations locally across a complete mocked flow", async () => {
   const searched = await search(json({ query: "Skopje tomorrow" }));
   const { result } = await searched.json();
   const explained = await explain(json({ rideIds: [id], context: result }));
   expect(explained.status).toBe(200);
-  expect(mocks.rpc.mock.calls.map(call => call[1].p_feature)).toEqual(["search", "explain"]);
+  expect(mocks.rpc.mock.calls.map(call => call[1].p_feature)).toEqual(["search"]);
   expect(mocks.search).toHaveBeenCalledTimes(1); expect(mocks.explain).toHaveBeenCalledTimes(1);
 });

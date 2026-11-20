@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   ]);
   if (cities.error || pickups.error || cars.error || models.error) return Response.json({ error: "Catalogs could not be loaded. Retry or enter details manually." }, { status: 503 });
   try {
-    const result = await runAiOperation({ supabase, userId: user.id, feature: "interpret", signal: request.signal, ...aiRequestIdentity(request, input.data) }, () => parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data }));
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "interpret", signal: request.signal, ...aiRequestIdentity(request) }, () => parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data }));
     return Response.json(result);
   } catch (error) {
     const failure = aiOperationFailure(error);

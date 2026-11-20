@@ -17,7 +17,7 @@ beforeEach(() => {
   vi.stubEnv("OPENAI_API_KEY", "test-only");
   mocks.access.mockReset().mockResolvedValue(access);
   mocks.transcript.mockReset().mockResolvedValue({ messages: [msg], cutoff: { id: msg.id, created_at: msg.created_at } });
-  mocks.permit.mockReset().mockResolvedValue({ data: { admitted: true, operationId: "94000000-0000-4000-8000-000000000002", admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString(), leaseExpiresAt: new Date(Date.now() + 180_000).toISOString() }, error: null });
+  mocks.permit.mockReset().mockResolvedValue({ data: { admitted: true, operationId: "94000000-0000-4000-8000-000000000002", admittedAt: new Date().toISOString(), deadlineAt: new Date(Date.now() + 120_000).toISOString() }, error: null });
   mocks.model.mockReset().mockResolvedValue({ insufficientEvidence: false, items: [{ category: "decision", text: "Meet at 17:30", messageIds: [msg.id] }] });
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -64,7 +64,7 @@ describe("private AI service", () => {
   vi.stubEnv("OPENAI_API_KEY", "");
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "missing_key" });
     vi.stubEnv("CHAT_AI_ENABLED", "true");
-  vi.stubEnv("OPENAI_API_KEY", "test-only"); mocks.permit.mockResolvedValueOnce({ data: { admitted: false, reason: "hourly_limit", retryAfterSeconds: 13, retryAt: new Date(Date.now() + 13_000).toISOString() }, error: null });
+  vi.stubEnv("OPENAI_API_KEY", "test-only"); mocks.permit.mockResolvedValueOnce({ data: { admitted: false, reason: "allowance_limit", retryAfterSeconds: 13, retryAt: new Date(Date.now() + 13_000).toISOString() }, error: null });
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "rate_limit" });
     mocks.permit.mockResolvedValueOnce({ data: null, error: {} });
     expect(await assistRoom({ rideId, mode: "summary" })).toMatchObject({ code: "database" });

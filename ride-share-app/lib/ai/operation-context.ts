@@ -2,7 +2,6 @@ import "server-only";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { AiFeature } from "./admission";
 import { recordProviderUsage } from "./accounting";
-import { checkAiSpend } from "./spend-control";
 
 export type AiOperationContext = {
   operationId: string;
@@ -12,12 +11,17 @@ export type AiOperationContext = {
   expiresAtMonotonic?: number;
   signal: AbortSignal;
   calls: number;
+  inputBytes?: number;
   closed: boolean;
-  serviceUnavailable?: "spend_cutoff" | "storage_unavailable";
 };
 export const aiOperationStorage = new AsyncLocalStorage<AiOperationContext>();
 export const MAX_PROVIDER_CALLS: Record<AiFeature, number> = {
-  search: 3, parse: 8, screenshot: 1, interpret: 1, chat_assist: 1, translate_notes: 1, explain: 1,
+  search: 3, parse: 8, screenshot: 1, interpret: 1, chat_assist: 1, translate_notes: 1,
+};
+// Cumulative UTF-8 provider payload per action, including schemas, catalog and tool history.
+// Screenshot has a separate binary upload and one bounded vision call.
+const ACTION_INPUT_BYTES: Record<Exclude<AiFeature, "screenshot">, number> = {
+  search: 46000, parse: 262144, interpret: 80000, chat_assist: 180000, translate_notes: 32000,
 };
 export function aiOperationExpired(context: AiOperationContext) {
   return context.expiresAtMonotonic === undefined ? Date.now() >= context.deadlineAt : performance.now() >= context.expiresAtMonotonic;
@@ -44,16 +48,14 @@ export const aiProviderFetch: typeof fetch = async (input, init) => {
   const body = init?.body;
   const maxBytes = context?.feature === "screenshot" ? 6 * 1024 * 1024 : 256 * 1024;
   if (typeof body !== "string" || Buffer.byteLength(body, "utf8") > maxBytes) throw new Error("AI input too large");
-  const spend = await checkAiSpend();
-  if (spend !== "allowed") {
-    if (context) context.serviceUnavailable = spend;
-    throw new Error("AI is temporarily unavailable");
+  if (context) {
+    if (context.feature !== "screenshot") {
+      const total = (context.inputBytes ?? 0) + Buffer.byteLength(body, "utf8");
+      if (total > ACTION_INPUT_BYTES[context.feature]) throw new Error("AI operation input limit exceeded");
+      context.inputBytes = total;
+    }
+    context.calls++;
   }
-  // A spend-store round trip may cross the operation deadline.
-  signal?.throwIfAborted();
-  if (context && (context.closed || aiOperationExpired(context))) throw new Error("AI operation deadline exceeded");
-  if (context && context.calls >= MAX_PROVIDER_CALLS[context.feature]) throw new Error("AI model round limit exceeded");
-  if (context) context.calls++;
   const started = Date.now();
   let model: string | null = null;
   try { const value = JSON.parse(body); if (typeof value.model === "string") model = value.model.slice(0, 160); } catch { /* Provider validates malformed JSON. */ }
