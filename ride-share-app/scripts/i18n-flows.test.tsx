@@ -61,6 +61,12 @@ vi.mock("@/lib/supabase/server", () => ({
     },
   }),
 }));
+vi.mock("@/lib/profiles/public-profile", () => ({
+  getPublicProfile: async () => ({ createdAt: "2026-11-01T12:00:00Z", completedRides: 2, personality: { prompts: [] } }),
+}));
+vi.mock("@/lib/ratings/queries", () => ({
+  getProfileRatingSummary: async () => ({ count: 2, average: 4.5 }),
+}));
 vi.mock("@/lib/rides/ride-view", () => ({
   getRide: async () => ride,
   getRideFeed: async () => (state.empty ? [] : [ride]),
@@ -193,6 +199,11 @@ it.each(["en", "mk"] as const)(
         ? "Барањето за место е испратено до возачот."
         : "Seat request sent to the driver.",
     );
+    expect(html).toContain(locale === "mk" ? "Член од 11.2026" : "Member since 11.2026");
+    expect(html).toContain(locale === "mk" ? "2 завршени патувања" : "2 completed rides");
+    expect(html).toContain(locale === "mk" ? "2 оцени" : "2 ratings");
+    expect(html).toContain(locale === "mk" ? "Запознај го твојот возач" : "Meet your driver");
+    expect(html).toContain(locale === "mk" ? "4,5/5" : "4.5/5");
     expect(html).toContain("Original driver text");
     expect(html).not.toContain("Original custom tag");
     expect(html).toContain(locale === "mk" ? "Забрането пушење" : "No smoking");

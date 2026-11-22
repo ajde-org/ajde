@@ -120,10 +120,18 @@ The application requires a valid phone (7–15 digits, optional leading +) for p
 `verified_at` records verification. It also has `created_at` and trigger-maintained `updated_at`.
 Names must be 2–100 trimmed characters, university names 2–160, and bios at most 500 characters.
 `social_url` stores an optional HTTPS profile URL (up to 500 characters), validated on save; credentials and non-HTTPS URLs are rejected. Existing social columns are preserved.
-`driver_details` is public JSON for optional travel preferences (`conversation`, `music`, `pets`,
-`smoking`) and up to three driving prompt answers (`prompts`: unique known `id`, 1–180 character
-`answer`). It defaults to `{"prompts": []}` and is checked by the immutable `valid_driver_details(jsonb)`;
-it never holds contact data.
+`driver_details` is a non-null JSON object, defaulting to `{"prompts": []}`. It stores optional
+`conversation` (`chatty`, `warm_up`, `quiet`), `music` (`playlist`, `shared`, `quiet`),
+`pets` (`welcome`, `ask`, `no_pets`), and `smoking` (`no_smoking`, `stops`) descriptors, plus
+up to three unique driving prompts. Each prompt has a catalog `id` (`superpower`, `playlist`,
+`snack`, `detour`, `passenger`, `unpopular_opinion`) and a nonblank answer of at most 180 trimmed
+characters. `valid_driver_details(jsonb)` enforces shape, catalog values, uniqueness and limits
+in a CHECK constraint; the application also validates and trims with Zod. Empty preferences stay
+absent, and removing prompts saves an empty array. These details are public and contain no contact
+fields. They describe personal preferences, not a replacement for each ride's rules.
+Public profiles display the actual `created_at` month as `MM.YYYY`. Their completed-rides total
+combines completed drives with accepted passenger bookings on completed rides, excluding their own
+drives from the passenger count. If either count fails, the total is unavailable rather than partial.
 The Tier 1 demo seed creates 25 clearly synthetic, verified student profiles with deterministic IDs.
 
 ### `cities`
@@ -355,3 +363,7 @@ Types were regenerated from the migrated hosted PostgreSQL catalog using Supabas
 `@supabase/postgrest-typegen` through a rollback-only transaction. The ratings follow-up migration
 restricts writable columns and private-note input without changing the room contract.
 
+
+AJDE-38 types were regenerated from all repository migrations in disposable local PostgreSQL 16
+using `@supabase/postgrest-typegen` 0.6.0. Driver-detail constraints are covered by
+`tests/driver_profile_details.sql`, included in the schema smoke suite.

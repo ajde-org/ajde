@@ -14,7 +14,7 @@ vi.mock("@/lib/i18n/actions", () => ({ changeLocale }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/profiles/contact-details", () => ({ getContactDetails: async (_client: unknown, ids: string[]) => ({ data: new Map(ids.map(id => [id, { id, phone: "+38970123456", social_url: null, instagram: null, facebook: null }])), error: null }) }));
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: async () => ({ id: "profile" }) }));
-vi.mock("@/lib/profiles/public-profile", () => ({ getPublicProfile: async () => ({ id: "profile", fullName: "Original Profile Name", photoUrl: "/fixture.png", university: "Универзитет Св. Кирил и Методиј", bio: "Original authored biography", gender: "non_binary" }) }));
+vi.mock("@/lib/profiles/public-profile", () => ({ getPublicProfile: async () => ({ id: "profile", fullName: "Original Profile Name", photoUrl: "/fixture.png", university: "Универзитет Св. Кирил и Методиј", bio: "Original authored biography", gender: "non_binary", createdAt: "2024-05-15T12:00:00Z", completedRides: 0, personality: { prompts: [] } }) }));
 vi.mock("@/lib/impact/queries", () => ({ getImpactSummary: vi.fn() }));
 vi.mock("@/components/ratings/profile-rating-summary", async importOriginal => ({
   ...await importOriginal<typeof import("@/components/ratings/profile-rating-summary")>(),
@@ -81,7 +81,7 @@ it.each(["driver", "passenger"] as const)("previews %s trip cards before the loc
     await waitFor(() => expect(screen.getAllByRole("heading", { name: "Скопје до Битола" }).length).toBeGreaterThan(0));
     expect(container.textContent).toContain(mk["trips.openChat"]);
     expect(container.textContent).not.toContain(en["trips.openChat"]);
-    expect(container.textContent).toContain(view === "driver" ? "29.3.2027" : "мар.");
+    expect(container.textContent).toContain(view === "driver" ? "29.03.2027" : "мар.");
     expect(container.textContent).toContain(view === "driver" ? "Original Passenger" : "Original Driver");
     await act(async () => { finish({ ok: false }); });
     await waitFor(() => expect(screen.getAllByRole("heading", { name: "Skopje to Bitola" }).length).toBeGreaterThan(0));
@@ -128,6 +128,8 @@ it.each(["en", "mk"] as const)("renders remaining flow fixtures and preserves au
   </div>);
   expect(profile).toContain("Original Driver");
   expect(profile).toContain(messages["share.title"]);
+  expect(profile).toContain(messages["rating.title"]);
+  expect(profile).toContain(locale === "mk" ? "4,5" : "4.5");
   const fullProfile = fixture("profile", await ProfilePage({ params: Promise.resolve({ id: "profile" }), searchParams: Promise.resolve({}) }));
   expect(fullProfile).toContain("Original authored biography");
   expect(fullProfile).toContain(messages["profile.gender.non_binary"]);

@@ -268,6 +268,7 @@ rollback;
 
 \ir chat_ai.sql
 
+\ir driver_profile_details.sql
 \ir ride_timing.sql
 
 \ir api_privileges.sql
