@@ -33,6 +33,8 @@ Ajde is a ride-sharing app for everyone in Macedonia. The Next.js app lives in `
 ## Code and tests
 
 - Tests sit next to the code (`*.test.ts`). New logic comes with tests.
+- Formatting is Prettier (`ride-share-app/.prettierrc.json`); don't format by hand. `npm run format` / `npm run format:check`.
+- A pre-commit hook (husky + lint-staged, installed by `npm install`) runs `eslint --fix` and `prettier --write` on staged files. Don't skip it with `--no-verify`.
 - Before opening a PR, run from `ride-share-app/`: `npm test`, `npm run lint`, `npx tsc --noEmit`.
 - Mock OpenAI in tests. Live evals (`npm run eval:*`, `npm run test:live`) cost credits: run them only when changing prompts or AI behaviour, and put the results in the PR.
 
