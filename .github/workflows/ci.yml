@@ -1,0 +1,57 @@
+# Lint, type check and unit tests for the Next.js app in ride-share-app/.
+#
+# The "checks" job is meant to be a required status check on dev and main.
+# No build (Vercel builds a preview for every PR), no database tests and no
+# live OpenAI evals. Tests mock OpenAI and Supabase, so no secrets are needed.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ride-share-app
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          # Matches the Node version of the Vercel project.
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ride-share-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        # tsc needs the route and image types that Next.js generates.
+        run: |
+          npx next typegen
+          npx tsc --noEmit
+
+      - name: Test
+        run: npm test

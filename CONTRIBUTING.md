@@ -17,6 +17,7 @@ How code is committed and merged in this repository. Applies to human and automa
 ## Pull requests
 
 - Every PR needs 1 approval. You can't approve your own.
+- CI (lint, type check, tests) must pass before merging.
 - Feature PRs target `dev` and are **squash merged**, so each ticket lands on `dev` as one commit.
 - Releases are a PR from `dev` to `main`, merged with a **merge commit** so every squash commit from `dev` ends up on `main`.
 - Hotfixes: admins can merge a PR without approval when it's urgent. A fix merged straight into `main` must then be merged back into `dev`.
