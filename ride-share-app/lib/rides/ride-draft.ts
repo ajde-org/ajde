@@ -38,7 +38,18 @@ export const rideDraftWarningSchema = z.object({
     "unsupported",
   ]),
   message: z.string().trim().min(1).max(300),
+  translationMk: z.object({ source: z.string().max(300), text: z.string().trim().min(1).max(1200) }).optional(),
 });
+
+// Require both languages from the original interpretation. Stored drafts keep
+// the optional, source-bound shape so older imports remain readable.
+export const modelRideDraftWarningSchema = rideDraftWarningSchema.omit({ translationMk: true }).extend({
+  messageMk: z.string().trim().min(1).max(1200),
+});
+
+export function normalizeModelWarning({ messageMk, ...warning }: z.infer<typeof modelRideDraftWarningSchema>): RideDraftWarning {
+  return { ...warning, translationMk: { source: warning.message, text: messageMk } };
+}
 
 export const rideDraftLocationSchema = z.object({
   cityId: nullableIdSchema,

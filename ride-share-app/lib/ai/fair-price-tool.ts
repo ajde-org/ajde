@@ -1,4 +1,7 @@
 import { calculateRideEstimate } from "../rides/ride-estimate";
+import { createTranslator } from "../i18n/translate";
+import { mk } from "../i18n/messages/mk";
+import { formatNumber } from "../i18n/format";
 import { fairPriceArgsSchema, fairPriceResultSchema, type FairPriceArgs, type FairPriceResult } from "./ride-check-contract";
 import type { CheckTraceEntry } from "./ride-check-contract";
 import type { ImportedRideDraft, RideDraftWarning } from "../rides/ride-draft";
@@ -45,5 +48,15 @@ export function fairPriceWarning(price: number | null, result: FairPriceResult):
   const ratio = price / result.pricePerSeatMkd;
   if (ratio >= 0.3 && ratio <= 2.5) return null;
   const a = result.assumptions;
-  return { field: "pricePerSeatMkd", code: "needs_review", message: `Per-seat price ${price} MKD is ${ratio > 2.5 ? "high" : "low"} versus calculated ${result.pricePerSeatMkd} MKD. Basis: ${a.distanceKm} km, ${a.availableSeats} available seats, ${a.fuelType}${a.defaultFuelType ? " (default)" : ""}, ${a.consumptionL100Km} L/100 km${a.defaultConsumption ? " (default)" : ""}, ${a.fuelPriceMkdL} MKD/L; tolls excluded. Review your price.`.slice(0, 300) };
+  const message = `Per-seat price ${price} MKD is ${ratio > 2.5 ? "high" : "low"} versus calculated ${result.pricePerSeatMkd} MKD. Basis: ${a.distanceKm} km, ${a.availableSeats} available seats, ${a.fuelType}${a.defaultFuelType ? " (default)" : ""}, ${a.consumptionL100Km} L/100 km${a.defaultConsumption ? " (default)" : ""}, ${a.fuelPriceMkdL} MKD/L; tolls excluded. Review your price.`.slice(0, 300);
+  const t = createTranslator(mk);
+  const number = (value: number) => formatNumber("mk", value);
+  // This warning is calculated by code, so use catalog copy rather than AI.
+  const text = t("warning.fairPrice", {
+    price: number(price), estimate: number(result.pricePerSeatMkd), level: t(ratio > 2.5 ? "warning.priceHigh" : "warning.priceLow"),
+    distance: number(a.distanceKm), seats: number(a.availableSeats), fuel: t(a.fuelType === "diesel" ? "warning.diesel" : "warning.petrol"),
+    fuelDefault: a.defaultFuelType ? t("warning.default") : "", consumption: number(a.consumptionL100Km),
+    consumptionDefault: a.defaultConsumption ? t("warning.default") : "", fuelPrice: number(a.fuelPriceMkdL),
+  });
+  return { field: "pricePerSeatMkd", code: "needs_review", message, translationMk: { source: message, text } };
 }

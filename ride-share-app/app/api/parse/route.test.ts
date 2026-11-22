@@ -35,6 +35,18 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
+it("persists and returns dynamic warning translations through the draft schema", async () => {
+  vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "false");
+  const original = parsed();
+  original.draft.warnings = [{ field: "departureAt", code: "ambiguous", message: "Around 11:00, not an exact time.", translationMk: { source: "Around 11:00, not an exact time.", text: "Околу 11:00, не е точно време." } }];
+  stubs.parse.mockResolvedValue(original);
+  const response = await POST(request());
+  const payload = await response.json();
+  const persisted = stubs.insert.mock.calls[0][0].parsed_json;
+  expect(parsedRidePostSchema.parse(payload.parsed).draft.warnings[0].translationMk?.text).toBe("Околу 11:00, не е точно време.");
+  expect(persisted.draft.warnings).toEqual(payload.parsed.draft.warnings);
+});
+
 it.each([undefined, "false", "invalid"])("preserves text importing without check metadata when flag is %s", async flag => {
   vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", flag);
   const response = await POST(request({ pipelineEnabled: true }));

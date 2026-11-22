@@ -71,6 +71,47 @@ it("rejects recurring schedules and propagates provider failure without generati
   await expect(parseOfferDescription({ text: "skp bt", mode: "create" }, { ...context, modelRunner: async () => { throw new Error("offline"); } })).rejects.toThrow();
 });
 
+const ohrid = { id: 5, name_en: "Ohrid", name_mk: "Охрид", aliases: [] };
+const roundTripText = "Skopje - Ohrid petok 8:30, nazad nedela 18h. 2 mesta po 500 den";
+const roundTrip = (recurring: boolean): OfferModelOutput => {
+  const leg = (from: string, to: string, weekday: number, dateEvidence: string, timeLocal: string, timeEvidence: string) => ({
+    draft: { ...emptyOfferDraft(), seatsTotal: 2, pricePerSeatMkd: 500,
+      origin: { cityId: null, pickupPointId: null, rawText: from }, destination: { cityId: null, pickupPointId: null, rawText: to } },
+    mentioned: ["origin", "destination", "departureDate", "departureTime", "seatsTotal", "pricePerSeatMkd"] as OfferModelOutput["trips"][number]["mentioned"],
+    dateLocal: null, weekday, dateEvidence, timeLocal, timeEvidence, carText: null,
+  });
+  return { recurring, trips: [leg("Skopje", "Ohrid", 5, "petok", "08:30", "8:30"), leg("Ohrid", "Skopje", 0, "nedela", "18:00", "18h")] };
+};
+
+it.each([false, true])("splits an outbound and return trip into two drafts with shared seats and price (recurring=%s)", async recurring => {
+  const result = await parseOfferDescription({ text: roundTripText, mode: "create" }, { ...context,
+    cities: [...cities, ohrid], modelRunner: async () => roundTrip(recurring) });
+  expect(result.trips).toHaveLength(2);
+  expect(result.trips[0].draft).toMatchObject({ origin: { cityId: 1 }, destination: { cityId: 5 },
+    departureAt: "2026-09-25T06:30:00.000Z", seatsTotal: 2, pricePerSeatMkd: 500 });
+  expect(result.trips[1].draft).toMatchObject({ origin: { cityId: 5 }, destination: { cityId: 1 },
+    departureAt: "2026-09-27T16:00:00.000Z", seatsTotal: 2, pricePerSeatMkd: 500 });
+  const recurringWarning = expect.objectContaining({ message: expect.stringContaining("repeating schedule") });
+  for (const trip of result.trips) {
+    if (recurring) expect(trip.draft.warnings).toContainEqual(recurringWarning);
+    else expect(trip.draft.warnings).not.toContainEqual(recurringWarning);
+  }
+});
+
+it.each([
+  ["every saturday 4pm skp bt", "saturday"],
+  ["секоја сабота 16ч скп бт", "сабота"],
+  ["sekoj petok 8:30 Skopje Ohrid", "petok"],
+])("still rejects a recurring schedule that names a weekday: %s", async (text, dateEvidence) => {
+  await expect(parseOfferDescription({ text, mode: "create" }, { ...context,
+    modelRunner: async () => ({ recurring: true, trips: [{ ...raw.trips[0], dateEvidence }] }) })).rejects.toThrow("recurring");
+});
+
+it("rejects a recurring result whose trips are not dated by the driver's text", async () => {
+  await expect(parseOfferDescription({ text: "skp bt 4pm, back 6pm", mode: "create" }, { ...context,
+    modelRunner: async () => ({ recurring: true, trips: [{ ...raw.trips[0], dateEvidence: "saturday" }] }) })).rejects.toThrow("recurring");
+});
+
 it("retains an explicit weekday evidenced by the model even if its mention list omitted the date", async () => {
   const result = await parseOfferDescription({ text: "saturday 4pm", mode: "create" }, {
     ...context, modelRunner: async () => ({ recurring: false, trips: [{ ...raw.trips[0], mentioned: ["departureTime"] }] }),

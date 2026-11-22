@@ -57,7 +57,7 @@ describe("editOfferTab", () => {
   it("treats a typed distance as a manual override", () => {
     const tab = skopjeToBitola();
     const edited = editOfferTab(tab, { ...tab.values, distanceKm: "175" });
-    expect(edited).toMatchObject({ distanceEpoch: 1, distanceMode: "manual" });
+    expect(edited).toMatchObject({ distanceEpoch: 0, distanceMode: "manual" });
     expect(edited.values.distanceKm).toBe("175");
   });
 

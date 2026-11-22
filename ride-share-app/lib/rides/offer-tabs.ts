@@ -6,6 +6,7 @@ export type OfferTab = {
   id: string; source: RideDraft["source"]; importId: string | null; values: OfferValues;
   warnings: RideDraft["warnings"]; revision: number; distanceEpoch: number;
   distanceMode: "auto" | "manual" | "resolved" | "error"; distanceMessage: string;
+  estimatedDurationMinutes?: number | null;
   publishedId: string | null;
 };
 export function createOfferTab(draft: RideDraft, id: string): OfferTab {
@@ -17,9 +18,10 @@ export function createOfferTab(draft: RideDraft, id: string): OfferTab {
 export function editOfferTab(tab: OfferTab, values: OfferValues): OfferTab {
   const changedRoute = values.originCityId !== tab.values.originCityId || values.destinationCityId !== tab.values.destinationCityId;
   const changedDistance = values.distanceKm !== tab.values.distanceKm;
-  return { ...tab, revision: tab.revision + 1, values: changedRoute ? { ...values, distanceKm: "" } : values,
-    distanceEpoch: tab.distanceEpoch + (changedRoute || changedDistance ? 1 : 0),
+  return { ...tab, revision: tab.revision + 1, values: changedRoute ? { ...values, distanceKm: "", durationMinutes: "" } : values,
+    distanceEpoch: tab.distanceEpoch + (changedRoute ? 1 : 0),
     distanceMode: changedRoute ? "auto" : changedDistance ? "manual" : tab.distanceMode,
+    estimatedDurationMinutes: changedRoute ? null : tab.estimatedDurationMinutes,
     distanceMessage: changedRoute || changedDistance ? "" : tab.distanceMessage };
 }
 export function applyOfferTrip(tab: OfferTab, trip: OfferTrip): OfferTab {

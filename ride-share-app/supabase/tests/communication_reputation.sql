@@ -94,8 +94,13 @@ set local role anon;
 select set_config('request.jwt.claim.sub', '', true);
 select pg_temp.expect_error('select * from public.ratings', '42501');
 select pg_temp.expect_error('select * from public.messages', '42501');
-select pg_temp.assert_true((select average = 3 and count = 2 from public.profile_rating_summary('00000000-0000-0000-0000-000000000001')), 'Public average counts each pair once despite multiple seats');
-select pg_temp.assert_true((select average = 5 and count = 1 from public.profile_rating_summary('00000000-0000-0000-0000-000000000002')), 'Single public rating');
+-- Rating summaries are for signed-in users, like the profiles they belong to.
+select pg_temp.expect_error($q$select * from public.profile_rating_summary('00000000-0000-0000-0000-000000000001')$q$, '42501');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', true);
+select pg_temp.assert_true((select average = 3 and count = 2 from public.profile_rating_summary('00000000-0000-0000-0000-000000000001')), 'Average counts each pair once despite multiple seats');
+select pg_temp.assert_true((select average = 5 and count = 1 from public.profile_rating_summary('00000000-0000-0000-0000-000000000002')), 'Single rating');
 select pg_temp.assert_true((select average is null and count = 0 from public.profile_rating_summary('00000000-0000-0000-0000-000000000008')), 'Empty aggregate has no invented score');
 
 reset role;

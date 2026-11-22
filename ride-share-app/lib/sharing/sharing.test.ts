@@ -74,6 +74,17 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("trip sharing actions and public query", () => {
+  it("localizes public route labels while keeping authored driver and car values intact", async () => {
+    Object.assign(db.rows.cities[0], { name_mk: "Скопје" });
+    Object.assign(db.rows.cities[1], { name_mk: "Битола" });
+    Object.assign(db.rows.pickup_points[0], { name_mk: "Главна станица" });
+    await createTripShare(bookingId);
+    db.user = null;
+    expect(await getSharedItinerary(token, "mk")).toMatchObject({
+      origin: "Скопје", destination: "Битола", pickup: "Главна станица",
+      driver: { name: "Driver Student" }, car: { color: "Blue" },
+    });
+  });
   it("lets an accepted passenger create a share with a limited signed-out itinerary", async () => {
     const result = await createTripShare(bookingId);
     expect(result).toEqual({ ok: true, share: { id: "33333333-3333-4333-8333-333333333333", token, expiresAt: "2026-09-23T12:00:00.000Z" } });

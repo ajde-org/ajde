@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@/lib/i18n/testing";
 import { emptyOfferDraft } from "@/lib/rides/offer-interpretation";
 import { ImportRideForm } from "./import-ride-form";
 
@@ -84,9 +84,9 @@ it("retains all three tool summaries through the import response boundary", asyn
     callId: "similar-1", tool: "find_similar_rides", args: { originCityId: 1, destinationCityId: 2, departureAt: "2026-09-23T15:00:00Z" },
     result: { rides: [{ id: "20000000-0000-4000-8000-000000000001", departureAt: "2026-09-23T15:30:00Z", pricePerSeatMkd: 150, seatsAvailable: 2 }] },
   }] }, true);
-  expect(screen.getByText(/Fair share: 140 MKD per seat/)).toBeTruthy();
+  expect(screen.getByText(/Fair share: MKD\s*140 per seat/)).toBeTruthy();
   expect(screen.getByText(/default approximation/)).toBeTruthy();
   expect(screen.getByText(/Possible duplicates:/)).toBeTruthy();
-  expect(screen.getByRole("link", { name: /150 MKD per seat/ }).getAttribute("href")).toBe("/rides/20000000-0000-4000-8000-000000000001");
+  expect(screen.getByRole("link", { name: /MKD\s*150 per seat/ }).getAttribute("href")).toBe("/rides/20000000-0000-4000-8000-000000000001");
   expect(screen.getByRole("link", { name: "Continue to editable ride form" })).toBeTruthy();
 });

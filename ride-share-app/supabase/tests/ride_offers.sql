@@ -15,7 +15,36 @@ declare
   retry_result jsonb;
   sibling jsonb;
   bad_value jsonb;
+  draft jsonb;
 begin
+  -- Publishing needs a phone number on the driver's profile; drafts do not.
+  begin
+    perform public.create_ride_offer(offer,vehicle,gen_random_uuid());
+    raise exception 'Published without a phone number';
+  exception when check_violation then
+    if sqlerrm not like 'Add a phone number%' then raise; end if;
+  end;
+  draft := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000007',false);
+  begin
+    update public.rides set status = 'published' where id = (draft->>'rideId')::uuid;
+    raise exception 'Draft published without a phone number';
+  exception when check_violation then
+    if sqlerrm not like 'Add a phone number%' then raise; end if;
+  end;
+  update public.profiles set phone = '+38970123456' where id = auth.uid();
+  update public.rides set status = 'published' where id = (draft->>'rideId')::uuid;
+  if (select status from public.rides where id = (draft->>'rideId')::uuid) <> 'published' then
+    raise exception 'Draft was not published once the phone was added';
+  end if;
+  -- Once set, the phone can change but not be removed, so published rides stay reachable.
+  begin
+    update public.profiles set phone = null where id = auth.uid();
+    raise exception 'Phone removed after publishing';
+  exception when check_violation then
+    if sqlerrm not like 'A phone number can be changed%' then raise; end if;
+  end;
+  update public.profiles set phone = '+38970654321' where id = auth.uid();
+
   first_result := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000001');
   retry_result := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000001');
   sibling := public.create_ride_offer(offer,vehicle,'94000000-0000-4000-8000-000000000002');

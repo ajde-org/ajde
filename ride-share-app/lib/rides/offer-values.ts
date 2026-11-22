@@ -5,7 +5,7 @@ import { zonedDateTimeToUtc } from "./skopje-time";
 const text = z.string().max(2000);
 export const offerValuesSchema = z.object({
   originCityId: text, destinationCityId: text, originPickupId: text, destinationPickupId: text,
-  departureLocal: text, distanceKm: text, seatsTotal: text, pricePerSeatMkd: text,
+  durationMinutes: text.default(""), departureLocal: text, distanceKm: text, seatsTotal: text, pricePerSeatMkd: text,
   carMode: z.enum(["existing", "catalog", "manual"]), catalogQuery: text, catalogModelId: text,
   consumption: text, existingCarId: text, manualFuelType: text, carMake: text, carModel: text,
   carSeatsTotal: text, carColor: text, plateLast3: text, notes: text,
@@ -35,7 +35,7 @@ export function valuesFromDraft(draft: RideDraft): OfferValues {
   return {
     originCityId: value(draft.origin.cityId), destinationCityId: value(draft.destination.cityId),
     originPickupId: value(draft.origin.pickupPointId), destinationPickupId: value(draft.destination.pickupPointId),
-    departureLocal: skopjeLocal(draft.departureAt), distanceKm: value(draft.distanceKm),
+    durationMinutes: "", departureLocal: skopjeLocal(draft.departureAt), distanceKm: value(draft.distanceKm),
     seatsTotal: value(draft.seatsTotal), pricePerSeatMkd: value(draft.pricePerSeatMkd),
     carMode: draft.carId ? "existing" : draft.car?.carModelId ? "catalog" : draft.car ? "manual" : "catalog",
     catalogQuery: "", catalogModelId: value(draft.car?.carModelId), consumption: value(draft.car?.consumptionL100Km),

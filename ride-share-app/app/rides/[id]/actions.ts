@@ -1,5 +1,6 @@
 "use server";
 
+import { bookingNoticeKey } from "@/lib/bookings/messages";
 import { requireCompleteProfile } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -9,7 +10,7 @@ import { canRequestSameGenderRide } from "@/lib/rides/gender-discovery";
 import { createClient } from "@/lib/supabase/server";
 
 function detailUrl(rideId: string, type: "success" | "error", message: string) {
-  return `/rides/${rideId}?${type}=${encodeURIComponent(message)}`;
+  return `/rides/${rideId}?${type}=${encodeURIComponent(bookingNoticeKey(message))}`;
 }
 
 export async function requestBooking(rideId: string, formData: FormData) {

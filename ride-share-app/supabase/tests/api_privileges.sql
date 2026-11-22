@@ -22,6 +22,10 @@ select pg_temp.denied($q$delete from public.bookings$q$, 'anon deletes bookings'
 select pg_temp.denied($q$update public.profiles set full_name = 'x'$q$, 'anon updates profiles');
 select pg_temp.denied($q$truncate public.rides cascade$q$, 'anon truncates rides');
 select pg_temp.denied($q$select 1 from public.reports$q$, 'anon reads reports');
+select pg_temp.denied($q$select full_name from public.profiles$q$, 'anon reads profiles');
+select pg_temp.denied($q$select public.profile_rating_summary('93000000-0000-4000-8000-000000000001')$q$, 'anon reads rating summaries');
+select pg_temp.denied($q$select public.try_ride_routing_request('93000000-0000-4000-8000-000000000001')$q$, 'anon takes a routing permit');
+select pg_temp.denied($q$select 1 from public.ride_routing_user_usage$q$, 'anon reads routing usage');
 reset role;
 
 -- Logged-in users: catalogs are read-only, unused tables are closed, verification is not self-service.
@@ -33,11 +37,16 @@ select pg_temp.denied($q$select 1 from public.ride_comments$q$, 'user reads ride
 select pg_temp.denied($q$insert into public.reports(reporter_id, target_user_id, reason) values (auth.uid(), null, 'x')$q$, 'user writes reports');
 select pg_temp.denied($q$truncate public.bookings$q$, 'user truncates bookings');
 select pg_temp.denied($q$update public.profiles set verified_at = now() where id = auth.uid()$q$, 'user verifies self');
+-- The routing permit is global; only the server (service role) may take one (AJDE-56).
+select pg_temp.denied($q$select public.try_ride_routing_request(auth.uid())$q$, 'user takes a routing permit');
+select pg_temp.denied($q$select 1 from public.ride_routing_user_usage$q$, 'user reads routing usage');
+select pg_temp.denied($q$update public.ride_routing_user_usage set lookups = 0$q$, 'user resets routing usage');
 update public.profiles set full_name = 'Renamed Student' where id = auth.uid();
 select pg_temp.assert_true((select full_name from public.profiles where id = auth.uid()) = 'Renamed Student', 'user edits own name');
 -- Same statement shape as a PostgREST upsert (onboarding).
 insert into public.profiles(id, full_name, photo_url, university)
-values (auth.uid(), 'Upserted Student', 'https://example.com/photo.png', 'UKIM')
+values (auth.uid(), 'Upserted Student',
+  'https://example.supabase.co/storage/v1/object/public/profile-photos/93000000-0000-4000-8000-000000000001/photo.png', 'UKIM')
 on conflict (id) do update set id = excluded.id, full_name = excluded.full_name,
   photo_url = excluded.photo_url, university = excluded.university;
 select pg_temp.assert_true((select full_name from public.profiles where id = auth.uid()) = 'Upserted Student', 'user upserts own profile');
@@ -70,7 +79,7 @@ create function pg_temp.unlisted_api_functions() returns text language sql as $$
   where p.pronamespace = 'public'::regnamespace
     and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
     and (p.oid::regprocedure::text, has_function_privilege('anon', p.oid, 'EXECUTE')) not in (
-      ('profile_rating_summary(uuid)', true),
+      ('profile_rating_summary(uuid)', false),
       ('valid_driver_details(jsonb)', true),
       ('can_rate_ride(uuid,uuid)', false),
       ('can_read_ride_room(uuid,timestamp with time zone)', false),
@@ -82,8 +91,7 @@ create function pg_temp.unlisted_api_functions() returns text language sql as $$
       ('is_ride_driver(uuid)', false),
       ('profile_contacts(uuid[])', false),
       ('ride_room_roster(uuid)', false),
-      ('try_chat_ai_request()', false),
-      ('try_ride_routing_request()', false)
+      ('try_chat_ai_request()', false)
     )
 $$;
 do $$ begin
@@ -91,6 +99,8 @@ do $$ begin
     raise exception 'FAIL: functions callable through the API that are not allowlisted: %', pg_temp.unlisted_api_functions();
   end if;
 end $$;
+-- Server-only functions stay callable by the service role.
+select pg_temp.assert_true(has_function_privilege('service_role', 'public.try_ride_routing_request(uuid)', 'EXECUTE'), 'service role takes routing permits');
 -- The check catches a new function that keeps the default PUBLIC execute.
 create function public.privileges_probe_fn() returns integer language sql as $$ select 1 $$;
 select pg_temp.assert_true(pg_temp.unlisted_api_functions() like 'privileges_probe_fn()%', 'unlisted callable function is reported');

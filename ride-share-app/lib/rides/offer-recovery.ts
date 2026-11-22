@@ -6,6 +6,7 @@ import { editOfferTab, type OfferTab } from "./offer-tabs";
 const tabSchema = z.object({
   id: z.uuid(), source: z.enum(["native", "imported"]), importId: z.uuid().nullable(), values: offerValuesSchema,
   warnings: z.array(rideDraftWarningSchema), revision: z.number().int().nonnegative(), distanceEpoch: z.number().int().nonnegative(),
+  estimatedDurationMinutes: z.number().int().min(1).max(1440).nullable().optional(),
   distanceMode: z.enum(["auto", "manual", "resolved", "error"]), distanceMessage: z.string(), publishedId: z.uuid().nullable(),
 });
 export const offerRecoverySchema = z.object({ version: z.literal(1), userId: z.string(), activeId: z.uuid(),

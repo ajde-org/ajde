@@ -1,30 +1,33 @@
+"use client";
 import type { RideCheckMetadata, CheckTraceEntry } from "@/lib/ai/ride-check-contract";
-import { SimilarRidesSummary } from "./similar-rides-summary";
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber } from "@/lib/i18n/format";
+import { SimilarRidesSummary, importCityName, type ImportCity } from "./similar-rides-summary";
 import { FairPriceSummary } from "./fair-price-summary";
 
-type City = { id: number; name_en: string };
+type City = ImportCity;
 
 function Evidence({ entry, cities }: { entry: CheckTraceEntry; cities: City[] }) {
+  const { locale, t } = useI18n();
   if (entry.tool === "find_similar_rides") return <SimilarRidesSummary entry={entry} cities={cities} />;
   if (entry.tool === "fair_price") return <FairPriceSummary entry={entry} />;
-  const label = entry.tool === "road_distance" ? "Road distance" : "Check";
-  if ("error" in entry.result) return <li>{label} unavailable: {entry.result.error.slice(0, 300)}</li>;
   if (entry.tool === "road_distance" && "distanceKm" in entry.result && entry.args && "originCityId" in entry.args) {
     const args = entry.args;
-    const origin = cities.find(city => city.id === args.originCityId)?.name_en ?? "Origin city";
-    const destination = cities.find(city => city.id === args.destinationCityId)?.name_en ?? "Destination city";
-    return <li>Road distance {origin} → {destination}: {entry.result.distanceKm} km (editable city-to-city estimate).</li>;
+    const origin = importCityName(cities, args.originCityId, locale) ?? t("check.origin");
+    const destination = importCityName(cities, args.destinationCityId, locale) ?? t("check.destination");
+    return <li>{t("check.distance", { origin, destination, distance: formatNumber(locale, entry.result.distanceKm) })}</li>;
   }
-  return <li>Check evidence unavailable.</li>;
+  return <li>{t(entry.tool === "road_distance" ? "check.roadUnavailable" : "check.unavailable")}</li>;
 }
 
 export function RideCheckSummary({ check, cities }: { check: RideCheckMetadata; cities: City[] }) {
-  return <section className="mt-4 rounded-xl bg-white p-4 text-sm text-slate-800" aria-label="Check evidence">
-    <h3 className="font-semibold">How we checked this</h3>
-    {check.status === "unavailable" ? <p className="mt-2">Automatic plausibility check was unavailable. Review every field.</p> : null}
+  const { t } = useI18n();
+  return <section className="mt-4 rounded-xl bg-white p-4 text-sm text-slate-800" aria-label={t("check.label")}>
+    <h3 className="font-semibold">{t("check.title")}</h3>
+    {check.status === "unavailable" ? <p className="mt-2">{t("check.failed")}</p> : null}
     {check.trace.length ? <ul className="mt-2 space-y-2 break-words">
       {check.trace.map((entry, index) => <Evidence key={`${entry.callId}-${index}`} entry={entry} cities={cities} />)}
-    </ul> : <p className="mt-2">No tool evidence was returned. Review every field.</p>}
-    <p className="mt-2 text-xs text-slate-500">Evidence supports this review; it does not guarantee that a ride offer is correct.</p>
+    </ul> : <p className="mt-2">{t("check.empty")}</p>}
+    <p className="mt-2 text-xs text-slate-500">{t("check.caveat")}</p>
   </section>;
 }

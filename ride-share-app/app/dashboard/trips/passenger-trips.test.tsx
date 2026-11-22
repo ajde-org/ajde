@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@/lib/i18n/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createClient } from "@/lib/supabase/server";
+import { formatMoney } from "@/lib/i18n/format";
 import { PassengerTrips } from "./passenger-trips";
 import { TripStatusFilterNav } from "./trip-status-filter-nav";
 import { parseTripStatusFilter, type TripStatusFilter } from "./trip-tabs";
 
+vi.mock("@/lib/i18n/server", async () => {
+  const { en } = await import("@/lib/i18n/messages/en");
+  const { createTranslator, createNoticeTranslator } = await import("@/lib/i18n/translate");
+  return { getI18n: async () => ({ locale: "en", t: createTranslator(en), notice: createNoticeTranslator(en) }) };
+});
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/ratings/queries", () => ({ getRatingControls: vi.fn(async () => new Map()) }));
@@ -37,6 +43,9 @@ const contactRequests = vi.fn();
 let contactsFail = false;
 
 beforeEach(() => {
+  // The fixture rides depart on 2026-09-22; view the dashboard the day before.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-21T12:00:00Z"));
   tables = {
     bookings, rides,
     cities: [{ id: 1, name_en: "Skopje" }, { id: 2, name_en: "Bitola" }],
@@ -63,7 +72,10 @@ beforeEach(() => {
     },
   } as unknown as Awaited<ReturnType<typeof createClient>>);
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 it.each<[TripStatusFilter, number, string[]]>([
   ["active", 2, ["Confirmed", "Awaiting approval"]],
@@ -89,13 +101,20 @@ it("separates the departure, seat price, total and contact on confirmed cards", 
   const confirmed = within(screen.getAllByRole("article")[0]);
   expect(confirmed.getByRole("heading", { name: "Skopje to Bitola" })).toBeTruthy();
   expect(confirmed.getByText("14:30")).toBeTruthy();
-  expect(confirmed.getByText("300 MKD")).toBeTruthy();
-  expect(confirmed.getByText("600 MKD total")).toBeTruthy();
+  expect(confirmed.getByText(formatMoney("en", 300).replace(/\s/g, " "))).toBeTruthy();
+  expect(confirmed.getByText(`${formatMoney("en", 600)} total`.replace(/\s/g, " "))).toBeTruthy();
   expect(confirmed.getByText("2 seats booked")).toBeTruthy();
   expect(confirmed.getByText("Test Driver")).toBeTruthy();
   expect(confirmed.getByRole("link", { name: /Open ride chat/ })).toBeTruthy();
   expect(confirmed.getByRole("button", { name: "Cancel booking", hidden: true })).toBeTruthy();
   expect(within(screen.getAllByRole("article")[1]).queryByText("Test Driver")).toBeNull();
+});
+
+it("does not offer cancellation once the ride has departed", async () => {
+  vi.setSystemTime(new Date("2026-09-22T13:00:00Z"));
+  render(await PassengerTrips({ userId: "passenger", filter: "active" }));
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.queryByRole("button", { name: "Cancel booking", hidden: true })).toBeNull();
 });
 
 it("does not offer cancellation for completed trips", async () => {
@@ -134,4 +153,12 @@ it("shows the driver's contact only through profile_contacts, and only for accep
 it("fails visibly instead of hiding the driver's contact when the lookup fails", async () => {
   contactsFail = true;
   await expect(PassengerTrips({ userId: "passenger", filter: "active" })).rejects.toThrow("Unable to load your trips.");
+});
+
+it("hides cancellation after departure while keeping the trip and chat available", async () => {
+  vi.setSystemTime(new Date("2026-09-22T13:00:00Z"));
+  render(await PassengerTrips({ userId: "passenger", filter: "active" }));
+  expect(screen.queryByRole("button", { name: "Cancel booking" })).toBeNull();
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.getByRole("link", { name: "Open ride chat for Skopje to Bitola" })).toBeTruthy();
 });

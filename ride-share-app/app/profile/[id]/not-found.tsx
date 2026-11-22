@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { StatusPanel } from '@/components/status-panel'
+import { getI18n } from '@/lib/i18n/server'
 
-export default function ProfileNotFound() {
-  return <StatusPanel eyebrow="Profile" title="Student not found" actions={<Link href="/rides" className="btn-primary">Browse rides</Link>}>
-    <p>This profile may not exist yet, or it may no longer be available.</p>
+export default async function ProfileNotFound() {
+  const { t } = await getI18n()
+  return <StatusPanel eyebrow={t('profile.label')} title={t('profile.notFound')} actions={<Link href="/rides" className="btn-primary">{t('detail.browse')}</Link>}>
+    <p>{t('profile.notFoundBody')}</p>
   </StatusPanel>
 }

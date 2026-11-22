@@ -242,7 +242,7 @@ async function verifyUX() {
   await page.getByLabel('Profile photo').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=', 'base64') });
   await page.getByRole('button', { name: 'Complete profile & find a ride' }).click();
   await page.waitForURL('**/rides?welcome=1');
-  await visible(page, 'Your profile is ready. Welcome aboard — find your first ride below.');
+  await visible(page, 'Your profile is ready. Welcome aboard! Find your first ride below.');
   const savedProfile = await checked(admin.from('profiles').select('full_name,university,bio,gender,photo_url').eq('id', signup.user.id).single());
   assert.equal(savedProfile.full_name, 'UX Verification Student');
   assert.equal(savedProfile.bio, 'UI regression test profile.');

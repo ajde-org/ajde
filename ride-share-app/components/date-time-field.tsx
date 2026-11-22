@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
 import { useCallback, useId, useRef, useState } from "react";
 import { ChipRow, describeDate, fromIsoDate, MonthCalendar, Popover, quickDatePicks } from "@/components/date-picker";
 import { departureInstant, skopjeLocal } from "@/lib/rides/offer-values";
@@ -22,6 +23,7 @@ export function DateTimeField({ value, onChange, invalid, disabled, describedBy,
   labelledBy?: string;
   className?: string;
 }) {
+  const { locale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const today = fromIsoDate(skopjeLocal(now.toISOString()).split("T")[0]);
@@ -50,27 +52,27 @@ export function DateTimeField({ value, onChange, invalid, disabled, describedBy,
     <button ref={trigger} type="button" disabled={disabled} aria-haspopup="dialog" aria-expanded={open && !disabled} aria-describedby={describedBy} aria-labelledby={labelledBy ? `${labelledBy} ${valueId}` : undefined}
       onClick={() => { setNow(new Date()); setOpen(!open); }} className={`${className} flex items-center gap-3 text-left ${invalid ? "!border-red-600" : ""}`}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="shrink-0 text-slate-500"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4m8-4v4M3 10h18" /></svg>
-      <span id={valueId} className={`flex-1 ${date ? "font-medium" : "text-slate-500"}`}>{date ? `${describeDate(date, today)} · ${hour ? `${hour}:${minute}` : "Choose time"}` : "Choose date and time"}</span>
+      <span id={valueId} className={`flex-1 ${date ? "font-medium" : "text-slate-500"}`}>{date ? t("date.summary", { date: describeDate(date, today, locale, t), time: hour ? `${hour}:${minute}` : t("date.chooseTime") }) : t("date.chooseDateTime")}</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true" className={`shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
     </button>
 
-    <Popover open={open && !disabled} onClose={close} trigger={trigger} panel={panel} label="Choose departure date and time">
-      <ChipRow options={quickDatePicks(today)} value={date} onChoose={(next) => update(next)} />
+    <Popover open={open && !disabled} onClose={close} trigger={trigger} panel={panel} label={t("date.departureDateTime")}>
+      <ChipRow options={quickDatePicks(today, t)} value={date} onChoose={(next) => update(next)} />
       <div className="mt-4"><MonthCalendar value={date} onChoose={(next) => update(next)} today={today} maxDate={fromIsoDate(maxLocal.split("T")[0])} /></div>
-      <p className="mt-2 text-[.75rem] text-slate-500">Choose a future time within 90 days, in Skopje time.</p>
+      <p className="mt-2 text-[.75rem] text-slate-500">{t("date.limit")}</p>
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#16201a]/8 pt-4">
-        <span className="text-sm font-semibold text-[#647063]">Time</span>
+        <span className="text-sm font-semibold text-[#647063]">{t("date.time")}</span>
         <div className="flex items-center gap-1.5">
-          <label><span className="sr-only">Hour</span>
-            <select value={hour} disabled={!date} onChange={(event) => update(date, event.target.value)} className={selectClass}><option value="">Hour</option>{hours.map((option) => <option key={option} disabled={`${date}T${option}:59` < minLocal || `${date}T${option}:00` > maxLocal}>{option}</option>)}</select>
+          <label><span className="sr-only">{t("date.hour")}</span>
+            <select value={hour} disabled={!date} onChange={(event) => update(date, event.target.value)} className={selectClass}><option value="">{t("date.hour")}</option>{hours.map((option) => <option key={option} disabled={`${date}T${option}:59` < minLocal || `${date}T${option}:00` > maxLocal}>{option}</option>)}</select>
           </label>
           <span className="font-display text-lg font-bold" aria-hidden="true">:</span>
-          <label><span className="sr-only">Minute</span>
+          <label><span className="sr-only">{t("date.minute")}</span>
             <select value={minute} disabled={!date || !hour} onChange={(event) => update(date, hour, event.target.value)} className={selectClass}>{minutes.map((option) => <option key={option} disabled={!inRange(`${date}T${hour}:${option}`)}>{option}</option>)}</select>
           </label>
         </div>
       </div>
-      <button type="button" disabled={!complete} onClick={close} className="mt-4 w-full min-h-0 rounded-xl bg-[#16201a] py-2.5 text-sm font-semibold text-white hover:bg-[#2a3a30] disabled:opacity-40">{complete ? "Done" : date ? "Choose a time" : "Pick a day first"}</button>
+      <button type="button" disabled={!complete} onClick={close} className="mt-4 w-full min-h-0 rounded-xl bg-[#16201a] py-2.5 text-sm font-semibold text-white hover:bg-[#2a3a30] disabled:opacity-40">{complete ? t("date.done") : date ? t("date.chooseATime") : t("date.dayFirst")}</button>
     </Popover>
   </div>;
 }

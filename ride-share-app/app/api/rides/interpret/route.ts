@@ -16,7 +16,8 @@ export async function POST(request: Request) {
   ]);
   if (cities.error || pickups.error || cars.error || models.error) return Response.json({ error: "Catalogs could not be loaded. Retry or enter details manually." }, { status: 503 });
   try {
-    return Response.json(await parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data }));
+    const result = await parseOfferDescription(input.data, { cities: cities.data, pickupPoints: pickups.data, cars: cars.data, carModels: models.data });
+    return Response.json(result);
   } catch (error) {
     return Response.json({ error: error instanceof OfferDescriptionError ? error.message : "Interpretation failed. Retry or enter details manually." }, { status: 422 });
   }

@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/lib/i18n/config";
 import { isChatAiEnabled } from "./ai-feature";
 import { aiModelSchema, aiRequestSchema, type AiErrorCode, type AiResult } from "./ai-contract";
 import { loadTranscript, TranscriptTooLarge } from "./transcript";
@@ -18,7 +19,7 @@ const errors: Record<AiErrorCode, string> = {
 };
 export function aiFailure(code: AiErrorCode): AiResult { return { ok: false, code, error: errors[code] }; }
 
-export async function assistRoom(input: unknown, signal?: AbortSignal): Promise<AiResult> {
+export async function assistRoom(input: unknown, signal?: AbortSignal, locale: Locale = "en"): Promise<AiResult> {
   if (!isChatAiEnabled()) return aiFailure("disabled");
   const parsed = aiRequestSchema.safeParse(input);
   if (!parsed.success) return aiFailure("invalid");
@@ -35,7 +36,7 @@ export async function assistRoom(input: unknown, signal?: AbortSignal): Promise<
     const permit = await before.supabase.rpc("try_chat_ai_request");
     if (permit.error) return aiFailure("database");
     if (!permit.data) return aiFailure("rate_limit");
-    const output = await runChatAssistant(request, transcript.messages, signal);
+    const output = await runChatAssistant(request, transcript.messages, signal, locale);
     const after = await roomAccess(request.rideId);
     if (!after.ok) return aiFailure(after.code);
     if (after.user.id !== access.user.id) return aiFailure("unavailable");

@@ -26,7 +26,7 @@ describe("private AI service", () => {
     expect(result).toMatchObject({ ok: true, value: { mode, messageCount: 1, items: [{ sources: [msg] }] } });
     expect(mocks.access).toHaveBeenCalledTimes(3);
     expect(mocks.permit).toHaveBeenCalledWith("try_chat_ai_request");
-    expect(mocks.model).toHaveBeenCalledWith(mode === "summary" ? request : { ...request, question: "When?" }, [msg], undefined);
+    expect(mocks.model).toHaveBeenCalledWith(mode === "summary" ? request : { ...request, question: "When?" }, [msg], undefined, "en");
   });
   it.each([{ messages: [msg] }, { userId: "forged" }, { mode: "question", question: " " }, { mode: "question", question: "a".repeat(1001) }, { rideId: "bad" }])("rejects invalid/forged input", async extra => {
     expect(await assistRoom({ rideId, mode: "summary", ...extra })).toMatchObject({ ok: false, code: "invalid" });

@@ -37,6 +37,12 @@ it("does not invoke the provider without configuration", async () => {
   await expect(runChatAssistant(request, [message])).rejects.toMatchObject({ code: "missing_key" });
   expect(mocks.parse).not.toHaveBeenCalled();
 });
+it.each(["en", "mk"] as const)("uses the selected %s language without rewriting source messages", async locale => {
+  await runChatAssistant(request, [message], undefined, locale);
+  const call = mocks.parse.mock.calls[0][0];
+  expect(call.instructions).toContain(`Write all generated item text in ${locale === "mk" ? "Macedonian using Cyrillic" : "English"}`);
+  expect(JSON.parse(call.input).messages).toEqual([message]);
+});
 it("falls back to the existing configured model", async () => {
   vi.stubEnv("OPENAI_CHAT_MODEL", ""); vi.stubEnv("OPENAI_MODEL", "existing-model");
   await runChatAssistant(request, [message]);

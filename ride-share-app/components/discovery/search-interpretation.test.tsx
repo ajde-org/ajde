@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@/lib/i18n/testing";
 import { afterEach, expect, it } from "vitest";
 import { SearchInterpretation } from "./search-interpretation";
 import type { SearchQueryResult } from "@/lib/ai/search-query-schema";
+import { mk } from "@/lib/i18n/messages/mk";
 
 afterEach(cleanup);
 const result: SearchQueryResult = { originId: null, destinationId: 8, departureAfter: null,
@@ -14,10 +15,19 @@ it("shows time-only searches without asking for a date", () => {
 });
 it("shows the inclusive calendar range separately from a recurring window", () => {
   render(<SearchInterpretation result={{ ...result, dateFrom: "2026-09-22", dateTo: "2026-09-24" }} cityNames={new Map([[8, "Ohrid"]])} manualOverride={false} />);
-  expect(screen.getByText(/2026-09-22 – 2026-09-24.*16:00–18:00 each day/)).toBeTruthy();
+  expect(screen.getByText(/22 Sept 2026 – 24 Sept 2026.*16:00–18:00 each day/)).toBeTruthy();
 });
 it("labels overnight windows and manual overrides", () => {
   render(<SearchInterpretation result={{ ...result, timeAfter: "22:00", timeBefore: "02:00" }} cityNames={new Map()} manualOverride />);
   expect(screen.getByText(/22:00–02:00 \(overnight\)/)).toBeTruthy();
   expect(screen.getByText(/manual filter changes take precedence/)).toBeTruthy();
+});
+
+it("formats Macedonian dates and translates warnings from saved interpretations", () => {
+  render(<SearchInterpretation result={{ ...result, dateFrom: "2026-09-22", warnings: [{ field: "origin", code: "needs_review", message: "Old English generated warning" }] }} cityNames={new Map([[8, "Охрид"]])} manualOverride />, { locale: "mk" });
+  const date = "22.9.2026 г.";
+  expect(screen.getByText(content => content.includes(`До Охрид · ${date} · 16:00–18:00 секој ден`))).toBeTruthy();
+  expect(screen.getByText(mk["search.manual"])).toBeTruthy();
+  expect(screen.getByText(`• ${mk["search.warning.needs_review"]}`)).toBeTruthy();
+  expect(screen.queryByText("Old English generated warning")).toBeNull();
 });

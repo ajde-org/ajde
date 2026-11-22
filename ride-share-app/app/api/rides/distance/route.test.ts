@@ -1,24 +1,29 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const db = vi.hoisted(() => ({ userId: "driver" as string | null, grant: true, rpc: vi.fn(), error: false }));
+const db = vi.hoisted(() => ({ userId: "driver" as string | null, grant: true, rpc: vi.fn(), userRpc: vi.fn(), error: false }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: db.userId ? { id: db.userId, email: "test@students.finki.ukim.mk" } : null } }) },
   from: (table: string) => table === "profiles" ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { full_name: "Test", photo_url: "photo", university: "UKIM" }, error: null }) }) }) } : ({ select: async () => ({ data: [
     { id: 1, name_en: "Skopje", name_mk: "Скопје", lat: 41.99646, lng: 21.43141 },
     { id: 3, name_en: "Bitola", name_mk: "Битола", lat: 41.03226, lng: 21.33553 },
   ], error: db.error ? { message: "offline" } : null }) }),
-  rpc: db.rpc,
+  rpc: db.userRpc,
 }) }));
+// The routing permit is server-only (AJDE-56): db.rpc is the service-role client's RPC.
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => ({
+  select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+  upsert: async () => ({ error: null }),
+}), rpc: db.rpc }) }));
 import { POST } from "./route";
 const request = (body: unknown = { originCity: "Skopje", destinationCity: "Bitola" }) => new Request("http://localhost/api/rides/distance", { method: "POST", body: JSON.stringify(body) });
-beforeEach(() => { db.userId = "driver"; db.grant = true; db.error = false; db.rpc.mockReset().mockImplementation(async () => ({ data: db.grant, error: null })); vi.unstubAllGlobals(); });
+beforeEach(() => { db.userId = "driver"; db.grant = true; db.error = false; db.userRpc.mockReset(); db.rpc.mockReset().mockImplementation(async () => ({ data: { status: db.grant ? "granted" : "busy" }, error: null })); vi.unstubAllGlobals(); });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 it("accepts two city-name strings, resolves catalog coordinates and returns road kilometres", async () => {
-  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6 }] }));
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6, duration: 9000 }] }));
   vi.stubGlobal("fetch", transport);
   const response = await POST(request());
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ distanceKm: 174.3 });
+  expect(await response.json()).toEqual({ distanceKm: 174.3, durationMinutes: 150 });
   expect(transport.mock.calls[0][0]).toContain("21.43141,41.99646;21.33553,41.03226");
 });
 
@@ -32,6 +37,7 @@ it("requires authentication and an application-wide routing permit", async () =>
   const transport = vi.fn(); vi.stubGlobal("fetch", transport);
   db.userId = null;
   expect((await POST(request())).status).toBe(401);
+  expect(db.rpc).not.toHaveBeenCalled();
   db.userId = "driver"; db.grant = false;
   expect((await POST(request())).status).toBe(429);
   expect(transport).not.toHaveBeenCalled();
@@ -51,12 +57,13 @@ it("handles timeouts without returning a guessed distance", async () => {
 
 it.each([undefined, "false", "invalid", "true"])("keeps existing road estimates available with pipeline flag %s", async flag => {
   vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", flag);
-  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6 }] }));
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6, duration: 9000 }] }));
   vi.stubGlobal("fetch", transport);
   const response = await POST(request({ originCity: "  SKOPJE ", destinationCity: "Битола" }));
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ distanceKm: 174.3 });
-  expect(db.rpc).toHaveBeenCalledWith("try_ride_routing_request");
+  expect(await response.json()).toEqual({ distanceKm: 174.3, durationMinutes: 150 });
+  expect(db.rpc).toHaveBeenCalledWith("try_ride_routing_request", { p_user_id: "driver" });
+  expect(db.userRpc).not.toHaveBeenCalled();
   expect(transport.mock.calls[0][1]).toMatchObject({
     headers: { "User-Agent": "StudentRideShare/1.0 (non-commercial ride offer demo)" }, cache: "no-store",
   });
@@ -119,4 +126,21 @@ it("aborts routing after the existing eight-second request limit", async () => {
   const response = await pending;
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: "Road distance is unavailable. Enter km manually." });
+});
+
+it("tells the client to stop retrying once the user is over the per-user lookup limit", async () => {
+  const transport = vi.fn(); vi.stubGlobal("fetch", transport);
+  db.rpc.mockResolvedValue({ data: { status: "user_limit", retry_after_ms: 90_000 }, error: null });
+  const response = await POST(request());
+  expect(response.status).toBe(429);
+  expect(response.headers.get("Retry-After")).toBe("90");
+  expect(await response.json()).toEqual({ error: "Too many distance lookups. Enter km manually or try again later.", code: "user_limit", retryAfterMs: 90_000 });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it("returns a busy 429 without the user-limit code while the global slot is taken", async () => {
+  db.grant = false;
+  const response = await POST(request());
+  expect(response.status).toBe(429);
+  expect(await response.json()).not.toHaveProperty("code");
 });

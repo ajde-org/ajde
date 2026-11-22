@@ -1,3 +1,4 @@
+import { getI18n } from "@/lib/i18n/server";
 import { randomUUID } from "node:crypto";
 
 import { redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { OfferRideHeading } from "./offer-heading";
 import { parsedRidePostSchema } from "@/lib/ai/parsed-ride-post";
 import type { RideDraft } from "@/lib/rides/ride-draft";
 import { fuelPriceConfig } from "@/lib/rides/fuel-price-config";
+import { getProfileCompletion } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 import { OfferWorkspace } from "./offer-workspace";
@@ -66,6 +68,11 @@ function developmentImportFixture(): RideDraft {
   };
 }
 
+export async function generateMetadata() {
+  const { t } = await getI18n();
+  return { title: t("offer.title") };
+}
+
 export default async function NewRidePage({ searchParams }: NewRidePageProps) {
   const supabase = await createClient();
   const {
@@ -73,6 +80,7 @@ export default async function NewRidePage({ searchParams }: NewRidePageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login?next=/rides/new");
+  if (!(await getProfileCompletion(user.id)).complete) redirect("/onboarding");
 
   const [
     { data: cities, error: citiesError },

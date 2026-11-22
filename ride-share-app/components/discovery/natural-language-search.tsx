@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/provider";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
@@ -13,21 +14,22 @@ export function NaturalLanguageSearch({
   currentParams: string;
   initialQuery: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<"discovery.shortQuery" | "discovery.unavailable" | "discovery.invalidResult" | "discovery.offline" | null>(null);
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalized = query.trim();
     if (normalized.length < 2) {
-      setError("Describe the ride you need in at least two characters.");
+      setError("discovery.shortQuery");
       return;
     }
 
     setPending(true);
-    setError("");
+    setError(null);
     try {
       const response = await fetch("/api/search", {
         method: "POST",
@@ -36,7 +38,7 @@ export function NaturalLanguageSearch({
       });
       const payload: unknown = await response.json();
       if (!response.ok) {
-        setError(readError(payload) ?? "AI search is unavailable. Use the manual filters below.");
+        setError("discovery.unavailable");
         return;
       }
 
@@ -46,14 +48,14 @@ export function NaturalLanguageSearch({
           : null,
       );
       if (!result.success) {
-        setError("The search interpretation was invalid. Use the manual filters below.");
+        setError("discovery.invalidResult");
         return;
       }
 
       const params = searchResultParams(new URLSearchParams(currentParams), normalized, result.data);
       router.push(`/rides?${params.toString()}`);
     } catch {
-      setError("AI search could not be reached. Use the manual filters below.");
+      setError("discovery.offline");
     } finally {
       setPending(false);
     }
@@ -61,21 +63,21 @@ export function NaturalLanguageSearch({
 
   function clearSearch() {
     setQuery("");
-    setError("");
+    setError(null);
     const params = clearSearchParams(new URLSearchParams(currentParams));
     router.push(params.size ? `/rides?${params.toString()}` : "/rides");
   }
 
   return (
     <section className="mt-10">
-      <label className="block text-sm font-semibold text-slate-600" htmlFor="natural-search">Describe the ride you need</label>
+      <label className="block text-sm font-semibold text-slate-600" htmlFor="natural-search">{t("discovery.describe")}</label>
       <form className="mt-4 flex flex-col gap-4 sm:flex-row" onSubmit={submit}>
         <input
           id="natural-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           maxLength={300}
-          placeholder="Try “Skopje to Bitola tomorrow”"
+          placeholder={t("discovery.placeholder")}
           className="min-h-[52px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
         />
         <button
@@ -83,7 +85,7 @@ export function NaturalLanguageSearch({
           disabled={pending}
           className="btn-primary px-5 py-3 disabled:opacity-50"
         >
-          {pending ? "Interpreting…" : "Search"}
+          {pending ? t("discovery.interpreting") : t("discovery.search")}
         </button>
         {initialQuery ? (
           <button
@@ -91,20 +93,11 @@ export function NaturalLanguageSearch({
             onClick={clearSearch}
             className="rounded-xl border border-slate-200 px-4 py-3 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950"
           >
-            Clear search
+            {t("discovery.clear")}
           </button>
         ) : null}
       </form>
-      {error ? <p role="alert" className="mt-3 rounded-xl bg-white px-4 py-3 text-sm text-brand-700">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 rounded-xl bg-white px-4 py-3 text-sm text-brand-700">{t(error)}</p> : null}
     </section>
   );
-}
-
-function readError(payload: unknown) {
-  return typeof payload === "object" &&
-    payload !== null &&
-    "error" in payload &&
-    typeof payload.error === "string"
-    ? payload.error
-    : null;
 }
