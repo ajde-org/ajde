@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () =>
 }), rpc: db.rpc }) }));
 import { POST } from "./route";
 const request = (body: unknown = { originCity: "Skopje", destinationCity: "Bitola" }) => new Request("http://localhost/api/rides/distance", { method: "POST", body: JSON.stringify(body) });
-beforeEach(() => { db.userId = "driver"; db.grant = true; db.error = false; db.userRpc.mockReset(); db.rpc.mockReset().mockImplementation(async () => ({ data: db.grant, error: null })); vi.unstubAllGlobals(); });
+beforeEach(() => { db.userId = "driver"; db.grant = true; db.error = false; db.userRpc.mockReset(); db.rpc.mockReset().mockImplementation(async () => ({ data: { status: db.grant ? "granted" : "busy" }, error: null })); vi.unstubAllGlobals(); });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 it("accepts two city-name strings, resolves catalog coordinates and returns road kilometres", async () => {
   const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ code: "Ok", routes: [{ distance: 174255.6, duration: 9000 }] }));
@@ -62,7 +62,7 @@ it.each([undefined, "false", "invalid", "true"])("keeps existing road estimates 
   const response = await POST(request({ originCity: "  SKOPJE ", destinationCity: "Битола" }));
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ distanceKm: 174.3, durationMinutes: 150 });
-  expect(db.rpc).toHaveBeenCalledWith("try_ride_routing_request");
+  expect(db.rpc).toHaveBeenCalledWith("try_ride_routing_request", { p_user_id: "driver" });
   expect(db.userRpc).not.toHaveBeenCalled();
   expect(transport.mock.calls[0][1]).toMatchObject({
     headers: { "User-Agent": "StudentRideShare/1.0 (non-commercial ride offer demo)" }, cache: "no-store",
@@ -126,4 +126,21 @@ it("aborts routing after the existing eight-second request limit", async () => {
   const response = await pending;
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: "Road distance is unavailable. Enter km manually." });
+});
+
+it("tells the client to stop retrying once the user is over the per-user lookup limit", async () => {
+  const transport = vi.fn(); vi.stubGlobal("fetch", transport);
+  db.rpc.mockResolvedValue({ data: { status: "user_limit", retry_after_ms: 90_000 }, error: null });
+  const response = await POST(request());
+  expect(response.status).toBe(429);
+  expect(response.headers.get("Retry-After")).toBe("90");
+  expect(await response.json()).toEqual({ error: "Too many distance lookups. Enter km manually or try again later.", code: "user_limit", retryAfterMs: 90_000 });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it("returns a busy 429 without the user-limit code while the global slot is taken", async () => {
+  db.grant = false;
+  const response = await POST(request());
+  expect(response.status).toBe(429);
+  expect(await response.json()).not.toHaveProperty("code");
 });

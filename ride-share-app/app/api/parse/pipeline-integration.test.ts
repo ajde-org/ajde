@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("OPENAI_API_KEY", "test-key-not-a-credential");
   vi.stubEnv("AI_IMPORT_PIPELINE_ENABLED", "true");
-  service.rpc.mockResolvedValue({ data: true, error: null });
+  service.rpc.mockResolvedValue({ data: { status: "granted" }, error: null });
   service.insert.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: "10000000-0000-4000-8000-000000000001" }, error: null }) }) });
   const query = {
     select: () => query, eq: () => query, in: () => query, gte: () => query, lte: () => query,
@@ -55,7 +55,7 @@ it("carries a real parser result through guards, model-selected routing, persist
   expect(body.parsed.draft).toMatchObject({ distanceKm: 52.1, pricePerSeatMkd: 200, confidence: 0.8 });
   expect(body.parsed.draft.warnings).toContainEqual({ field: "departureAt", code: "needs_review", message: "Confirm departure.", translationMk: { source: "Confirm departure.", text: "Потврди го поаѓањето." } });
   expect(service.model).toHaveBeenCalledTimes(3); // Parser and two checker rounds; no translation round.
-  expect(service.rpc).toHaveBeenCalledWith("try_ride_routing_request");
+  expect(service.rpc).toHaveBeenCalledWith("try_ride_routing_request", { p_user_id: "driver" });
   expect(service.userRpc).not.toHaveBeenCalled();
   expect(transport.mock.calls[0][0]).toContain("21.43141,41.99646;21.77556,41.71556");
   const checkerInput = JSON.stringify(service.model.mock.calls[1][0].input);

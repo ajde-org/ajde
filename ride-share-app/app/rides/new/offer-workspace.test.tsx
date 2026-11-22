@@ -329,3 +329,14 @@ it("keeps a failed publication editable and redirects only after a successful re
   fireEvent.submit(screen.getByRole("button", { name: "Publish ride" }).closest("form")!);
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/dashboard/trips?view=driver"));
 });
+
+it("stops retrying the distance and leaves km editable once the driver is over the lookup limit", async () => {
+  const fetcher = vi.fn(async () => Response.json({ error: "Too many distance lookups.", code: "user_limit", retryAfterMs: 90_000 }, { status: 429 }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<OfferWorkspace {...props} initialDraft={trip.draft} />, { locale: "mk" });
+  await screen.findByText(mk["offer.distanceLimited"]);
+  expect(screen.getByRole("button", { name: mk["offer.retryDistance"] })).toBeTruthy();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByLabelText(mk["estimate.distance"]), { target: { value: "180" } });
+  expect(screen.getByLabelText(mk["estimate.distance"])).toHaveProperty("value", "180");
+});

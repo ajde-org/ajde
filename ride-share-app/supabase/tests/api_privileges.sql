@@ -24,7 +24,8 @@ select pg_temp.denied($q$truncate public.rides cascade$q$, 'anon truncates rides
 select pg_temp.denied($q$select 1 from public.reports$q$, 'anon reads reports');
 select pg_temp.denied($q$select full_name from public.profiles$q$, 'anon reads profiles');
 select pg_temp.denied($q$select public.profile_rating_summary('93000000-0000-4000-8000-000000000001')$q$, 'anon reads rating summaries');
-select pg_temp.denied($q$select public.try_ride_routing_request()$q$, 'anon takes a routing permit');
+select pg_temp.denied($q$select public.try_ride_routing_request('93000000-0000-4000-8000-000000000001')$q$, 'anon takes a routing permit');
+select pg_temp.denied($q$select 1 from public.ride_routing_user_usage$q$, 'anon reads routing usage');
 reset role;
 
 -- Logged-in users: catalogs are read-only, unused tables are closed, verification is not self-service.
@@ -37,7 +38,9 @@ select pg_temp.denied($q$insert into public.reports(reporter_id, target_user_id,
 select pg_temp.denied($q$truncate public.bookings$q$, 'user truncates bookings');
 select pg_temp.denied($q$update public.profiles set verified_at = now() where id = auth.uid()$q$, 'user verifies self');
 -- The routing permit is global; only the server (service role) may take one (AJDE-56).
-select pg_temp.denied($q$select public.try_ride_routing_request()$q$, 'user takes a routing permit');
+select pg_temp.denied($q$select public.try_ride_routing_request(auth.uid())$q$, 'user takes a routing permit');
+select pg_temp.denied($q$select 1 from public.ride_routing_user_usage$q$, 'user reads routing usage');
+select pg_temp.denied($q$update public.ride_routing_user_usage set lookups = 0$q$, 'user resets routing usage');
 update public.profiles set full_name = 'Renamed Student' where id = auth.uid();
 select pg_temp.assert_true((select full_name from public.profiles where id = auth.uid()) = 'Renamed Student', 'user edits own name');
 -- Same statement shape as a PostgREST upsert (onboarding).
@@ -97,7 +100,7 @@ do $$ begin
   end if;
 end $$;
 -- Server-only functions stay callable by the service role.
-select pg_temp.assert_true(has_function_privilege('service_role', 'public.try_ride_routing_request()', 'EXECUTE'), 'service role takes routing permits');
+select pg_temp.assert_true(has_function_privilege('service_role', 'public.try_ride_routing_request(uuid)', 'EXECUTE'), 'service role takes routing permits');
 -- The check catches a new function that keeps the default PUBLIC execute.
 create function public.privileges_probe_fn() returns integer language sql as $$ select 1 $$;
 select pg_temp.assert_true(pg_temp.unlisted_api_functions() like 'privileges_probe_fn()%', 'unlisted callable function is reported');
