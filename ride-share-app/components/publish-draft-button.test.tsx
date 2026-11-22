@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@/lib/i18n/testing";
+import { cleanup, fireEvent, render, screen, waitFor } from "@/lib/i18n/testing";
 import { afterEach, expect, it, vi } from "vitest";
 import { PublishDraftButton } from "./publish-draft-button";
 import { en } from "@/lib/i18n/messages/en";
@@ -30,5 +30,6 @@ it("shows failure and allows retry", async () => {
   render(<PublishDraftButton rideId="saved-ride" />, { locale: "mk" });
   fireEvent.click(screen.getByRole("button"));
   expect((await screen.findByRole("alert")).textContent).toBe(mk["draftPublish.failed"]);
-  expect(screen.getByRole("button")).toHaveProperty("disabled", false);
+  // The transition's pending flag clears just after the error renders, so wait for the retry button.
+  await waitFor(() => expect(screen.getByRole("button")).toHaveProperty("disabled", false));
 });
