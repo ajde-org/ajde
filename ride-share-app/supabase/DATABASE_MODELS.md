@@ -35,7 +35,7 @@ token).
 | `imports` | creator | creator inserts |
 | `trip_shares` | the booking's passenger | the booking's passenger creates and deletes |
 | `messages`, `ratings` | ride room members / rater and ratee | see their sections |
-| `ride_comments`, `reports`, `chat_ai_budgets`, `ride_routing_gate` | nobody | nobody (definer functions only) |
+| `ride_comments`, `reports`, `chat_ai_budgets`, `ride_routing_gate`, `ride_routing_user_usage` | nobody | nobody (definer functions only) |
 
 - Contact columns (`phone`, `instagram`, `facebook`, `social_url`) are withheld by column grants
   and read only through `profile_contacts(uuid[])`: a profile's own contacts, passengers with a
@@ -307,10 +307,19 @@ bookings 1--* trip_shares
   Different submission IDs remain distinct rides. Both anonymous and PUBLIC execution are revoked.
 - `route_estimates` caches ordered city-pair OSRM driving distance and duration snapshots with coordinate and freshness fields. RLS is enabled and all access is revoked from public, anonymous, and authenticated roles; only the server service role may read/write estimates. `guard_ride_timing()` overwrites client-supplied baseline values from a fresh coordinate-matched cache entry on ride insert or route change, and preserves the baseline on other updates. A driver may extend `duration_minutes` up to 1440 minutes; database constraints reject shorter values and fabricated baselines.
 - `ride_routing_gate` is a private singleton table with a timestamp and no client table grants.
-  `try_ride_routing_request()` grants at most one authenticated routing permit per 1.2 seconds,
-  using a row lock across app instances. It has a fixed empty search path and no anonymous grant.
-  This gate supports the low-volume public OSRM demo; denied permits are retried by the UI,
-  while unavailable routing leaves optional kilometres manually editable.
+  `ride_routing_user_usage` is private too: one row per user (`user_id` references `auth.users`,
+  deleted with the user) holding the start of the current 5-minute window and the permits taken in it.
+  `try_ride_routing_request(p_user_id uuid)` returns `{"status": "granted" | "busy" | "user_limit"}`.
+  It first checks the user's window (at most 10 granted permits per 5 minutes; over that it returns
+  `user_limit` with `retry_after_ms`, without touching the global slot), then grants at most one
+  routing permit per 1.2 seconds app-wide (`busy` otherwise). Only granted permits count towards the
+  user's window. Row locks (user row, then gate row) serialize it across app instances. It has a fixed
+  empty search path and is server-only: execute is revoked from public, anonymous and authenticated
+  roles and granted to `service_role`, so users can't drain the shared permit through the API. Server
+  code takes the permit with the admin client for the user in the caller's session
+  (`lib/rides/road-distance.ts`). Route-estimate cache hits never take a permit.
+  This gate supports the low-volume public OSRM demo; `busy` permits are retried by the UI,
+  `user_limit` stops the retries, and unavailable routing leaves optional kilometres manually editable.
 
 - `set_updated_at()` refreshes `updated_at` on updates to `profiles`, `cars`, `rides`, `bookings`,
   and `ride_comments`.

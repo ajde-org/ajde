@@ -158,4 +158,15 @@ select pg_temp.assert_true(pg_temp.affected($q$update public.profiles set phone 
 select pg_temp.assert_true((select phone from public.profile_contacts(array[auth.uid()])) = '+38970999888', 'owner reads updated phone');
 reset role;
 
+-- Per-user routing usage (AJDE-56) is private: no user reads or changes anyone's row, even their own.
+insert into public.ride_routing_user_usage(user_id, window_started_at, lookups)
+values ('96000000-0000-4000-8000-000000000001', now(), 10);
+set local role authenticated;
+select pg_temp.as_user(1);
+select pg_temp.denied($q$select lookups from public.ride_routing_user_usage where user_id = auth.uid()$q$, 'user reads own routing usage');
+select pg_temp.denied($q$update public.ride_routing_user_usage set lookups = 0 where user_id = auth.uid()$q$, 'user resets own routing usage');
+select pg_temp.denied($q$delete from public.ride_routing_user_usage where user_id = auth.uid()$q$, 'user deletes own routing usage');
+select pg_temp.denied($q$insert into public.ride_routing_user_usage(user_id) values ('96000000-0000-4000-8000-000000000005')$q$, 'user inserts routing usage');
+reset role;
+
 rollback;

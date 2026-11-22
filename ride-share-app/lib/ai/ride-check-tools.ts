@@ -7,7 +7,7 @@ import { findSimilarRides } from "./similar-rides-tool";
 import { fuelPriceConfig } from "@/lib/rides/fuel-price-config";
 import { calculateFairPrice } from "./fair-price-tool";
 
-/** Reuse the signed-in caller's database access and the shared routing permit. */
+/** Reuse the signed-in caller's database access; road_distance takes the server-only routing permit. */
 export function createRideCheckTools(supabase: Awaited<ReturnType<typeof createClient>>): ToolExecutors {
   return {
     find_similar_rides: args => findSimilarRides(supabase, args),
