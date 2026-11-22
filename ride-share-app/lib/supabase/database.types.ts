@@ -9,6 +9,272 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_admission_buckets: {
+        Row: {
+          permits: number
+          policy_group: string
+          refilled_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          permits: number
+          policy_group: string
+          refilled_at: string
+          user_id: string
+        }
+        Update: {
+          permits?: number
+          policy_group?: string
+          refilled_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_admission_buckets_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
+      ai_admission_features: {
+        Row: {
+          feature: string
+          policy_group: string
+          weight: number | null
+        }
+        ComputedFields: never
+        Insert: {
+          feature: string
+          policy_group: string
+          weight?: number | null
+        }
+        Update: {
+          feature?: string
+          policy_group?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_admission_features_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
+      ai_admission_policies: {
+        Row: {
+          burst_capacity: number | null
+          burst_refill_seconds: number | null
+          effective_at: string
+          operation_timeout_seconds: number
+          policy_group: string
+        }
+        ComputedFields: never
+        Insert: {
+          burst_capacity?: number | null
+          burst_refill_seconds?: number | null
+          effective_at?: string
+          operation_timeout_seconds: number
+          policy_group: string
+        }
+        Update: {
+          burst_capacity?: number | null
+          burst_refill_seconds?: number | null
+          effective_at?: string
+          operation_timeout_seconds?: number
+          policy_group?: string
+        }
+        Relationships: []
+      }
+      ai_operations: {
+        Row: {
+          admitted_at: string
+          deadline_at: string
+          draft_included: boolean
+          feature: string
+          id: string
+          policy_group: string
+          request_id: string | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          admitted_at: string
+          deadline_at: string
+          draft_included?: boolean
+          feature: string
+          id?: string
+          policy_group: string
+          request_id?: string | null
+          user_id: string
+        }
+        Update: {
+          admitted_at?: string
+          deadline_at?: string
+          draft_included?: boolean
+          feature?: string
+          id?: string
+          policy_group?: string
+          request_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_operations_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_operations_policy_group_fkey"
+            columns: ["policy_group"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_policies"
+            referencedColumns: ["policy_group"]
+          },
+        ]
+      }
+      ai_policy_versions: {
+        Row: {
+          configuration: NonNullable<Json>
+          effective_at: string
+          policy_group: string
+        }
+        ComputedFields: never
+        Insert: {
+          configuration: NonNullable<Json>
+          effective_at: string
+          policy_group: string
+        }
+        Update: {
+          configuration?: NonNullable<Json>
+          effective_at?: string
+          policy_group?: string
+        }
+        Relationships: []
+      }
+      ai_provider_usage: {
+        Row: {
+          actual_model: string | null
+          cached_input_tokens: number | null
+          duration_ms: number
+          estimated_cost_usd: number | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          operation_id: string
+          outcome: string
+          output_tokens: number | null
+          price_version: string
+          recorded_at: string
+          requested_model: string | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          actual_model?: string | null
+          cached_input_tokens?: number | null
+          duration_ms: number
+          estimated_cost_usd?: number | null
+          feature: string
+          id: string
+          input_tokens?: number | null
+          operation_id: string
+          outcome: string
+          output_tokens?: number | null
+          price_version: string
+          recorded_at?: string
+          requested_model?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_model?: string | null
+          cached_input_tokens?: number | null
+          duration_ms?: number
+          estimated_cost_usd?: number | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          operation_id?: string
+          outcome?: string
+          output_tokens?: number | null
+          price_version?: string
+          recorded_at?: string
+          requested_model?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_usage_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_provider_usage_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_request_events: {
+        Row: {
+          duration_ms: number | null
+          feature: string
+          id: string
+          operation_id: string | null
+          outcome: string
+          reason: string | null
+          recorded_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          duration_ms?: number | null
+          feature: string
+          id?: string
+          operation_id?: string | null
+          outcome: string
+          reason?: string | null
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          duration_ms?: number | null
+          feature?: string
+          id?: string
+          operation_id?: string | null
+          outcome?: string
+          reason?: string | null
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_request_events_feature_fkey"
+            columns: ["feature"]
+            isOneToOne: false
+            referencedRelation: "ai_admission_features"
+            referencedColumns: ["feature"]
+          },
+          {
+            foreignKeyName: "ai_request_events_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
@@ -21,6 +287,7 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           decided_at?: string | null
@@ -72,6 +339,7 @@ export type Database = {
           model: string
           release_year: number | null
         }
+        ComputedFields: never
         Insert: {
           co2_emissions_g_km?: number | null
           consumption_l_100km: number
@@ -111,6 +379,7 @@ export type Database = {
           seats_total: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           car_model_id?: number | null
           color?: string | null
@@ -161,6 +430,7 @@ export type Database = {
           admitted_at: string[]
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           admitted_at?: string[]
           user_id: string
@@ -181,6 +451,7 @@ export type Database = {
           name_en: string
           name_mk: string
         }
+        ComputedFields: never
         Insert: {
           aliases?: string[]
           created_at?: string
@@ -212,6 +483,7 @@ export type Database = {
           source_hint: string | null
           spam_flags: string[]
         }
+        ComputedFields: never
         Insert: {
           confidence?: number | null
           created_at?: string
@@ -252,6 +524,7 @@ export type Database = {
           ride_id: string
           sender_id: string
         }
+        ComputedFields: never
         Insert: {
           body: string
           created_at?: string
@@ -305,6 +578,7 @@ export type Database = {
           name_en: string
           name_mk: string
         }
+        ComputedFields: never
         Insert: {
           aliases?: string[]
           city_id: number
@@ -339,7 +613,7 @@ export type Database = {
         Row: {
           bio: string | null
           created_at: string
-          driver_details: Json
+          driver_details: NonNullable<Json>
           facebook: string | null
           full_name: string
           gender: Database["public"]["Enums"]["profile_gender"] | null
@@ -352,10 +626,11 @@ export type Database = {
           updated_at: string
           verified_at: string | null
         }
+        ComputedFields: never
         Insert: {
           bio?: string | null
           created_at?: string
-          driver_details?: Json
+          driver_details?: NonNullable<Json>
           facebook?: string | null
           full_name: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -371,7 +646,7 @@ export type Database = {
         Update: {
           bio?: string | null
           created_at?: string
-          driver_details?: Json
+          driver_details?: NonNullable<Json>
           facebook?: string | null
           full_name?: string
           gender?: Database["public"]["Enums"]["profile_gender"] | null
@@ -396,6 +671,7 @@ export type Database = {
           ride_id: string
           score: number
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -448,6 +724,7 @@ export type Database = {
           ride_id: string | null
           target_user_id: string | null
         }
+        ComputedFields: never
         Insert: {
           body?: string | null
           created_at?: string
@@ -499,6 +776,7 @@ export type Database = {
           ride_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           author_id: string
           body: string
@@ -537,6 +815,7 @@ export type Database = {
           id: boolean
           last_request_at: string
         }
+        ComputedFields: never
         Insert: {
           id?: boolean
           last_request_at?: string
@@ -570,14 +849,14 @@ export type Database = {
           car_id: string | null
           claimed_by: string | null
           created_at: string
-          duration_minutes: number | null
-          estimated_duration_minutes: number | null
-          duration_estimated_at: string | null
           departure_at: string
           dest_city_id: number
           dest_pickup_id: number | null
           details: NonNullable<Json>
           driver_id: string | null
+          duration_estimated_at: string | null
+          duration_minutes: number | null
+          estimated_duration_minutes: number | null
           gender_preference: Database["public"]["Enums"]["ride_gender_preference"]
           id: string
           import_id: string | null
@@ -592,10 +871,8 @@ export type Database = {
           tags: string[]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
-          duration_minutes?: number | null
-          estimated_duration_minutes?: number | null
-          duration_estimated_at?: string | null
           car_id?: string | null
           claimed_by?: string | null
           created_at?: string
@@ -604,6 +881,9 @@ export type Database = {
           dest_pickup_id?: number | null
           details?: NonNullable<Json>
           driver_id?: string | null
+          duration_estimated_at?: string | null
+          duration_minutes?: number | null
+          estimated_duration_minutes?: number | null
           gender_preference?: Database["public"]["Enums"]["ride_gender_preference"]
           id?: string
           import_id?: string | null
@@ -619,9 +899,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          duration_minutes?: number | null
-          estimated_duration_minutes?: number | null
-          duration_estimated_at?: string | null
           car_id?: string | null
           claimed_by?: string | null
           created_at?: string
@@ -630,6 +907,9 @@ export type Database = {
           dest_pickup_id?: number | null
           details?: NonNullable<Json>
           driver_id?: string | null
+          duration_estimated_at?: string | null
+          duration_minutes?: number | null
+          estimated_duration_minutes?: number | null
           gender_preference?: Database["public"]["Enums"]["ride_gender_preference"]
           id?: string
           import_id?: string | null
@@ -703,31 +983,61 @@ export type Database = {
           },
         ]
       }
-      "route_estimates": {
-                  Row: {
-                    "dest_city_id": number,"dest_lat": number,"dest_lng": number,"distance_km": number,"duration_minutes": number,"estimated_at": string,"origin_city_id": number,"origin_lat": number,"origin_lng": number,"profile": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "dest_city_id": number,"dest_lat": number,"dest_lng": number,"distance_km": number,"duration_minutes": number,"estimated_at"?: string,"origin_city_id": number,"origin_lat": number,"origin_lng": number,"profile"?: string
-                  }
-                  Update: {
-                    "dest_city_id"?: number,"dest_lat"?: number,"dest_lng"?: number,"distance_km"?: number,"duration_minutes"?: number,"estimated_at"?: string,"origin_city_id"?: number,"origin_lat"?: number,"origin_lng"?: number,"profile"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "route_estimates_dest_city_id_fkey"
-      columns: ["dest_city_id"]
-      referencedRelation: "cities"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "route_estimates_origin_city_id_fkey"
-      columns: ["origin_city_id"]
-      referencedRelation: "cities"
-      referencedColumns: ["id"]
-    }
-                  ]
-                }
+      route_estimates: {
+        Row: {
+          dest_city_id: number
+          dest_lat: number
+          dest_lng: number
+          distance_km: number
+          duration_minutes: number
+          estimated_at: string
+          origin_city_id: number
+          origin_lat: number
+          origin_lng: number
+          profile: string
+        }
+        ComputedFields: never
+        Insert: {
+          dest_city_id: number
+          dest_lat: number
+          dest_lng: number
+          distance_km: number
+          duration_minutes: number
+          estimated_at?: string
+          origin_city_id: number
+          origin_lat: number
+          origin_lng: number
+          profile?: string
+        }
+        Update: {
+          dest_city_id?: number
+          dest_lat?: number
+          dest_lng?: number
+          distance_km?: number
+          duration_minutes?: number
+          estimated_at?: string
+          origin_city_id?: number
+          origin_lat?: number
+          origin_lng?: number
+          profile?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_estimates_dest_city_id_fkey"
+            columns: ["dest_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_estimates_origin_city_id_fkey"
+            columns: ["origin_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_shares: {
         Row: {
           booking_id: string
@@ -736,6 +1046,7 @@ export type Database = {
           id: string
           token: string
         }
+        ComputedFields: never
         Insert: {
           booking_id: string
           created_at?: string
@@ -765,6 +1076,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admit_ai_operation: {
+        Args: {
+          p_feature: string
+          p_request_id?: string
+          p_screenshot_request_id?: string
+        }
+        Returns: Json
+      }
       can_rate_ride: {
         Args: { target_profile_id: string; target_ride_id: string }
         Returns: boolean
@@ -778,6 +1097,10 @@ export type Database = {
         Returns: boolean
       }
       can_send_ride_room: { Args: { target_ride_id: string }; Returns: boolean }
+      cleanup_ai_operations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_ride_offer: {
         Args: {
           p_offer: Json
@@ -799,11 +1122,11 @@ export type Database = {
       profile_contacts: {
         Args: { profile_ids: string[] }
         Returns: {
-          facebook: string | null
+          facebook: string
           id: string
-          instagram: string | null
-          phone: string | null
-          social_url: string | null
+          instagram: string
+          phone: string
+          social_url: string
         }[]
       }
       profile_rating_summary: {
@@ -819,7 +1142,10 @@ export type Database = {
       }
       ride_room_roster: {
         Args: { target_ride_id: string }
-        Returns: { decided_at: string; passenger_id: string }[]
+        Returns: {
+          decided_at: string
+          passenger_id: string
+        }[]
       }
       try_chat_ai_request: {
         Args: Record<PropertyKey, never>
@@ -829,10 +1155,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
-      valid_driver_details: {
-        Args: { details: Json }
-        Returns: boolean
-      }
+      valid_driver_details: { Args: { details: Json }; Returns: boolean }
     }
     Enums: {
       booking_status: "requested" | "accepted" | "declined" | "cancelled"
@@ -883,8 +1206,7 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -908,8 +1230,7 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -933,8 +1254,7 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }

@@ -52,16 +52,13 @@ not consume API credits.
   independent recurring clock window. Bookings are always one seat. More complex requests
   are reduced to supported filters and accompanied by review warnings.
 - Match explanations are evaluated separately because feed rendering must not depend on them.
-- Match explanations are capped at 24 visible cards per batch. Missing-key, timeout, malformed, or
-  unsupported provider output falls back to a short explanation assembled from server-reloaded
-  route, departure, seat, and price facts.
+- The application formats up to 24 visible cards per batch using server-reloaded route, departure, seat and price facts.
 
 ## Integration handoff
 
-- Optional server-only model overrides: `OPENAI_SEARCH_MODEL` and `OPENAI_EXPLAIN_MODEL`; both fall
-  back to `OPENAI_MODEL` and then `gpt-5.4-mini`.
+- Search uses `OPENAI_SEARCH_MODEL`, falling back to `OPENAI_MODEL` and then `gpt-5.4-mini`. The explanation model override applies only to the standalone model evaluation.
 - Natural search is `POST /api/search`; batched explanations are `POST /api/explain`.
-- Manual feed filters remain functional when either provider call fails.
+- Manual feed filters remain functional when AI search is unavailable.
 - The same-gender discovery toggle is independent from AI search and is never included in prompts,
   search responses, explanation facts, or ride-card labels.
 - No migration or generated database-type change is required for this track.

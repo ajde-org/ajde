@@ -1,18 +1,21 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, type useAiRecovery } from "@/components/ai-recovery";
 import { formatNumber, plural } from "@/lib/i18n/format";
 import { useRef, useState } from "react";
 import { isSupportedScreenshot, screenshotResponseSchema, type ScreenshotPost } from "@/lib/ai/screenshot-contract";
 
 type Props = {
+  recovery: ReturnType<typeof useAiRecovery>;
   disabled: boolean;
+  onRead: (requestId: string | null) => void;
   onBusyChange: (busy: boolean) => void;
   onSelect: (post: ScreenshotPost) => void;
   onClearSelection: () => void;
 };
 
-export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSelection }: Props) {
+export function ScreenshotImport({ recovery, disabled, onRead, onBusyChange, onSelect, onClearSelection }: Props) {
   const { locale, t, notice } = useI18n();
   const [posts, setPosts] = useState<ScreenshotPost[]>([]);
   const [pending, setPending] = useState(false);
@@ -28,7 +31,10 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
       setError("screenshot.fileInvalid");
       return;
     }
+    if (recovery.blocked) return;
     busy.current = true;
+    const requestId = recovery.start();
+    if (!requestId) { busy.current = false; return; }
     setFile(image);
     setPosts([]);
     setSelected(null);
@@ -39,9 +45,11 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
     try {
       const form = new FormData();
       form.append("image", image);
-      const response = await fetch("/api/parse/screenshot", { method: "POST", body: form });
+      const response = await fetch("/api/parse/screenshot", { method: "POST", body: form, headers: { "Idempotency-Key": requestId } });
+      recovery.observe(response);
       const payload: unknown = await response.json();
       if (!response.ok) {
+        if (recovery.accept(payload)) return;
         setError("screenshot.unreadable");
         return;
       }
@@ -50,10 +58,12 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
         setError("screenshot.unreadable");
         return;
       }
+      onRead(response.headers?.get("X-AI-Screenshot-Request") ?? null);
       setPosts(result.data.posts);
     } catch {
       setError("screenshot.offline");
     } finally {
+      recovery.finish();
       busy.current = false;
       setPending(false);
       onBusyChange(false);
@@ -62,21 +72,21 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
 
   return <section className="min-w-0 space-y-4" aria-label={t("screenshot.read")} aria-busy={pending}>
     <section aria-label={t("screenshot.upload")}
-      onDragOver={event => { event.preventDefault(); if (!disabled && !pending) setDragging(true); }}
+      onDragOver={event => { event.preventDefault(); if (!disabled && !pending && !recovery.blocked) setDragging(true); }}
       onDragLeave={event => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
       onDrop={event => {
         event.preventDefault(); setDragging(false);
-        if (disabled || pending) return;
+        if (disabled || pending || recovery.blocked) return;
         if (event.dataTransfer.files.length !== 1) { setError("screenshot.oneFile"); return; }
         void read(event.dataTransfer.files[0]);
       }}
-      className={`relative rounded-xl border-2 border-dashed px-5 py-8 text-center transition focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 ${dragging ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-slate-50/70 hover:border-brand-500"} ${disabled || pending ? "opacity-60" : ""}`}>
+      className={`relative rounded-xl border-2 border-dashed px-5 py-8 text-center transition focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 ${dragging ? "border-brand-500 bg-brand-50" : recovery.blocked ? "cursor-not-allowed border-slate-200 bg-slate-50/70" : "border-slate-200 bg-slate-50/70 hover:border-brand-500"} ${disabled || pending ? "opacity-60" : ""}`}>
       <svg className="mx-auto mb-3 text-brand-600" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8" cy="8" r="1.5" /><path d="m4 17 5-5 4 4 3-3 5 5" /></svg>
       <p className="text-sm font-semibold text-slate-800">{file ? t("screenshot.chooseAnother") : t("screenshot.choose")}</p>
       <p className="mt-1 text-xs text-slate-500">{t("screenshot.drop")}</p>
       <p className="mt-3 text-xs text-slate-500">{t("screenshot.formats")}</p>
-      <input className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-wait"
-        aria-label={t("screenshot.orUpload")} type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled || pending}
+      <input className={`absolute inset-0 h-full w-full cursor-pointer opacity-0 ${recovery.blocked ? "disabled:cursor-not-allowed" : "disabled:cursor-wait"}`}
+        aria-label={t("screenshot.orUpload")} type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled || pending || recovery.blocked}
         onChange={event => { const image = event.target.files?.[0]; event.target.value = ""; if (image) void read(image); }} />
     </section>
     {file ? <div className="flex min-w-0 items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-xs">
@@ -86,8 +96,10 @@ export function ScreenshotImport({ disabled, onBusyChange, onSelect, onClearSele
         aria-label={t("screenshot.removeLabel")} disabled={disabled || pending} onClick={() => { setFile(null); setPosts([]); setSelected(null); setError(""); onClearSelection(); }}>{t("screenshot.remove")}</button>
     </div> : null}
     {pending ? <p role="status" className="flex items-center gap-2 text-sm text-brand-700"><span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600 motion-reduce:animate-none" />{t("screenshot.reading")}</p> : null}
+    <AiRetryNotice action="screenshot" recovery={recovery} />
+    {recovery.retryAt && file && !posts.length && !error ? <button className="text-sm font-semibold underline disabled:opacity-50" type="button" disabled={disabled || pending || recovery.blocked} onClick={() => { void read(file); }}>{t("screenshot.retry")}</button> : null}
     {error ? <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950"><p role="alert">{notice(error, "screenshot.unreadable")}</p>
-      {file ? <button className="mt-2 font-semibold underline disabled:opacity-50" type="button" disabled={disabled || pending} onClick={() => { void read(file); }}>{t("screenshot.retry")}</button> : null}
+      {file ? <button className="mt-2 font-semibold underline disabled:opacity-50" type="button" disabled={disabled || pending || recovery.blocked} onClick={() => { void read(file); }}>{t("screenshot.retry")}</button> : null}
     </div> : null}
     {posts.length ? <div className="space-y-3" aria-label={t("screenshot.detected")}>
       <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-900">{t("screenshot.choosePost")}</h3><span className="text-xs text-slate-500">{t(`screenshot.found.${plural(locale, posts.length)}`, { count: formatNumber(locale, posts.length) })}</span></div>

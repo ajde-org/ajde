@@ -16,6 +16,26 @@ import { sharingEn } from "./sharing-en";
 import { explanationsEn } from "./explanations-en";
 
 export const en = {
+  "ai.retryTimeToday": "{time}",
+  "ai.retryTimeTomorrow": "tomorrow at {time}",
+  "ai.timeToday": "at {time}",
+  "ai.timeTomorrow": "tomorrow at {time}",
+  "ai.allowanceLow":
+    "Your AI allowance is running low. If you pause now, it will be full again {time}.",
+  "ai.screenshotLow": "Warning: You have almost used all the available AI image-parsing requests",
+  "ai.screenshotRetryAt": "You’ve used all your AI image-parsing requests. Please retry at: {time}",
+  "ai.chatLow": "Warning: You have almost used all the available AI chat requests",
+  "ai.chatRetryAt": "You’ve used all your AI chat requests. Please retry at: {time}",
+  "ai.searchLow": "Warning: You have almost used all the available AI search requests",
+  "ai.searchRetryAt": "You’ve used all your AI search requests. Please retry at: {time}",
+  "ai.screenshotReady": "You can read another screenshot now.",
+  "ai.formFillLow": "Warning: You have almost used all the available AI form-filling requests",
+  "ai.formFillRetryAt": "You’ve used all your AI form-filling requests. Please retry at: {time}",
+  "ai.draftLow": "Warning: You have almost used all the available AI requests for creating drafts from text",
+  "ai.draftRetryAt": "You’ve used all your AI requests for creating drafts from text. Please retry at: {time}",
+  "ai.draftReady": "You can create another review draft now.",
+  "ai.retryReady": "You can try this AI action again now.",
+  "ai.retryAt": "You have used the available AI requests. Try again {time}",
   ...timingEn,
   ...carColorsEn,
   ...errorsEn,
@@ -33,7 +53,8 @@ export const en = {
   ...aboutEn,
   ...authEn,
   "app.title": "Student Ride Share",
-  "app.description": "Share rides and real travel costs with students across North Macedonia.",
+  "app.description":
+    "Share rides and real travel costs with students across North Macedonia.",
   "nav.home": "ajde home",
   "nav.skip": "Skip to content",
   "nav.main": "Main navigation",
@@ -75,7 +96,8 @@ export const en = {
   "landing.quickerCheaper": "Quicker. Cheaper.",
   "landing.greener": "Greener.",
   "landing.rideHome": "Your ride home.",
-  "landing.intro": "Fill the empty seats on your way home. Split the fuel, meet other students, and leave a smaller footprint on every trip.",
+  "landing.intro":
+    "Fill the empty seats on your way home. Split the fuel, meet other students, and leave a smaller footprint on every trip.",
   "landing.where": "Where to?",
   "landing.from": "From",
   "landing.to": "To",
@@ -85,7 +107,8 @@ export const en = {
   "landing.swap": "Swap departure and destination",
   "landing.sharedSaving": "A shared trip saves about 21 kg of CO₂.",
   "landing.statistics": "Community trip statistics",
-  "landing.statisticsUnavailable": "Trip statistics are temporarily unavailable.",
+  "landing.statisticsUnavailable":
+    "Trip statistics are temporarily unavailable.",
   "landing.statisticsLoading": "Loading trip statistics…",
   "landing.co2": "Est. CO₂ saved",
   "landing.fuel": "Est. fuel saved",
@@ -108,22 +131,36 @@ export const en = {
   "loading.itinerary": "Loading shared itinerary…",
   "loading.offer": "Loading ride form…",
   "loading.login": "Loading sign in…",
-  "landing.excluded.one": "{count} completed shared trip excluded from savings estimates because vehicle or distance data is missing or unsupported.",
-  "landing.excluded.other": "{count} completed shared trips excluded from savings estimates because vehicle or distance data is missing or unsupported.",
-  "warning.postMissingTime": "The post did not include a departure time; choose it manually.",
-  "warning.parserConfidence": "The parser has low confidence in this result; review every field carefully.",
-  "warning.stubRoute": "The stub could not identify both cities; confirm the route manually.",
-  "warning.stubDate": "Relative dates require the live parser; choose the exact departure time.",
-  "warning.negotiablePrice": "The post says the price is negotiable; enter a per-seat amount.",
-  "warning.wholeCarPrice": "The post gives a whole-car price; enter the intended per-seat amount.",
-  "warning.canonicalCity": "The {field} did not match a canonical city; choose it manually.",
-  "warning.pickupCity": "The {field} pickup did not belong to its city; choose it manually.",
-  "warning.unresolvedPlace": "The {field} place could not be resolved; choose it manually.",
-  "warning.unlinkedPickup": "The {field} pickup could not be linked to a city; choose it manually.",
+  "landing.excluded.one":
+    "{count} completed shared trip excluded from savings estimates because vehicle or distance data is missing or unsupported.",
+  "landing.excluded.other":
+    "{count} completed shared trips excluded from savings estimates because vehicle or distance data is missing or unsupported.",
+  "warning.postMissingTime":
+    "The post did not include a departure time; choose it manually.",
+  "warning.parserConfidence":
+    "The parser has low confidence in this result; review every field carefully.",
+  "warning.stubRoute":
+    "The stub could not identify both cities; confirm the route manually.",
+  "warning.stubDate":
+    "Relative dates require the live parser; choose the exact departure time.",
+  "warning.negotiablePrice":
+    "The post says the price is negotiable; enter a per-seat amount.",
+  "warning.wholeCarPrice":
+    "The post gives a whole-car price; enter the intended per-seat amount.",
+  "warning.canonicalCity":
+    "The {field} did not match a canonical city; choose it manually.",
+  "warning.pickupCity":
+    "The {field} pickup did not belong to its city; choose it manually.",
+  "warning.unresolvedPlace":
+    "The {field} place could not be resolved; choose it manually.",
+  "warning.unlinkedPickup":
+    "The {field} pickup could not be linked to a city; choose it manually.",
   "warning.origin": "origin",
   "warning.destination": "destination",
-  "warning.duplicates": "Found {count} ride offers on the same route within three hours. These are possible duplicates; review the matches before publishing.",
-  "warning.fairPrice": "Per-seat price {price} MKD is {level} versus calculated {estimate} MKD. Basis: {distance} km, {seats} available seats, {fuel}{fuelDefault}, {consumption} L/100 km{consumptionDefault}, {fuelPrice} MKD/L; tolls excluded. Review your price.",
+  "warning.duplicates":
+    "Found {count} ride offers on the same route within three hours. These are possible duplicates; review the matches before publishing.",
+  "warning.fairPrice":
+    "Per-seat price {price} MKD is {level} versus calculated {estimate} MKD. Basis: {distance} km, {seats} available seats, {fuel}{fuelDefault}, {consumption} L/100 km{consumptionDefault}, {fuelPrice} MKD/L; tolls excluded. Review your price.",
   "warning.priceHigh": "high",
   "warning.petrol": "petrol",
   "warning.diesel": "diesel",

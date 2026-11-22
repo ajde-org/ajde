@@ -268,6 +268,10 @@ rollback;
 
 \ir chat_ai.sql
 
+\ir ai_admission.sql
+
+\ir ai_accounting.sql
+
 \ir ride_timing.sql
 
 \ir ride_routing.sql

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withAiAllowance, runAiOperation, aiOperationFailure, aiRequestIdentity } from "@/lib/ai/operation";
 
 import { createOpenAILocationFallback } from "@/lib/ai/openai-location-fallback";
 import {
@@ -11,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({ query: z.string().trim().min(2).max(300) });
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -71,14 +72,16 @@ export async function POST(request: Request) {
   ];
 
   try {
-    const result = await parseSearchQuery(input.data.query, {
+    const result = await runAiOperation({ supabase, userId: user.id, feature: "search", signal: request.signal, ...aiRequestIdentity(request) }, () => parseSearchQuery(input.data.query, {
       candidates,
       now: new Date(),
       timeZone: "Europe/Skopje",
       locationFallback: createOpenAILocationFallback(),
-    });
+    }));
     return Response.json({ result });
   } catch (error) {
+    const failure = aiOperationFailure(error);
+    if (failure) return failure;
     if (!(error instanceof SearchParserError)) {
       return Response.json({ error: "Search failed unexpectedly." }, { status: 500 });
     }
@@ -100,3 +103,5 @@ export async function POST(request: Request) {
     return Response.json({ error: messages[error.code], code: error.code }, { status });
   }
 }
+
+export const POST = withAiAllowance(handlePost);

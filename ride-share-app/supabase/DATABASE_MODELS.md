@@ -23,7 +23,7 @@ The executable source of truth remains `supabase/migrations/`; generated applica
 The API roles are `anon` (logged out) and `authenticated`. The service role bypasses RLS and is used
 only by server-only code: sign-in links (`app/login`), platform impact totals
 (`lib/impact/queries.ts`, aggregates only) and share links (`lib/sharing/queries.ts`, looked up by
-token).
+token), plus AI operation lease release and metadata cleanup (`docs/AI_RATE_LIMITING.md`).
 
 | Table | Read | Write |
 | --- | --- | --- |
@@ -36,6 +36,8 @@ token).
 | `trip_shares` | the booking's passenger | the booking's passenger creates and deletes |
 | `messages`, `ratings` | ride room members / rater and ratee | see their sections |
 | `ride_comments`, `reports`, `chat_ai_budgets`, `ride_routing_gate`, `ride_routing_user_usage` | nobody | nobody (definer functions only) |
+| `ai_admission_policies`, `ai_admission_features`, `ai_admission_buckets`, `ai_operations` | nobody | nobody (admission RPC; server-only cleanup) |
+| `ai_provider_usage`, `ai_request_events`, `ai_policy_versions` | server only | usage/events: server inserts; policy history: migration trigger |
 
 - Contact columns (`phone`, `instagram`, `facebook`, `social_url`) are withheld by column grants
   and read only through `profile_contacts(uuid[])`: a profile's own contacts, passengers with a
@@ -290,6 +292,24 @@ bookings 1--* trip_shares
 ```
 
 ## Database behavior
+
+- `ai_provider_usage` records one unique provider-attempt UUID, originating operation, user and
+  feature, requested/actual model, nullable input/cached-input/output tokens, duration, outcome,
+  price version, nullable estimated USD cost, and database recording time. Unknown/missing usage,
+  unknown models, and unpriced service tiers keep unknown costs null. Output already includes
+  reasoning tokens. A duplicate attempt UUID cannot create a second row. Successful HTTP usage is
+  captured before SDK parsing; later pipeline failure does not erase cost. `ai_request_events`
+  records quota denials, limiter-store failures, completed/failed/timed-out/cancelled operations,
+  and service stops using only identifiers, stable reasons, durations, and timestamps.
+  Both enable RLS with no client privileges and grant only service-role reads/inserts. They retain
+  35 days of metadata, cascade on Auth deletion, and contain no prompts, images, transcripts, or
+  generated content. Accounting failure is logged without raw error content and never reruns AI.
+- `ai_policy_versions` preserves database-owned effective timestamps and full validated policy
+  snapshots. Initial values are copied at migration time; `record_ai_policy_version()` records
+  reviewed updates and stamps their effective time. No API role can read/write policy history.
+  It is server-readable configuration history, retained independently of user measurements.
+
+- `ai_admission_features.weight` and the explicit row of `ai_admission_policies` define the continuously refilling allowance. `admit_ai_operation(text,uuid,uuid)` derives the caller from Auth and serializes duplicate detection, refill, debit and operation insertion per user. `ai_admission_buckets` stores fractional points. `ai_operations` retains the deadline and optional request UUID, unique per user. A screenshot operation reserves one draft upfront. Passing its request UUID to a parse atomically consumes its draft_included flag for the same user and skips a second debit. Admission returns the next eligible time if the balance cannot cover another action of the same weight, or the projected full-refill time when that action is still available and the balance is low. The service-only cleanup removes old admissions, usage, events and inactive buckets after 35 days. See [AI rate limiting](../../docs/AI_RATE_LIMITING.md).
 
 - `chat_ai_budgets` stores an Auth user UUID and at most five recent admission timestamps, with
   cascading account deletion, RLS and no public/anonymous/authenticated table privileges.

@@ -33,6 +33,7 @@ export function buildLocationResponseRequest(
 
   return {
     model,
+    max_output_tokens: 1500,
     store: false,
     instructions:
       'Resolve the supplied Macedonian location text to the single best candidate. ' +

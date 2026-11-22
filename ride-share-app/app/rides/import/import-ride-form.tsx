@@ -2,6 +2,7 @@
 
 import { translateDraftWarning } from "@/lib/i18n/draft-warning";
 import { useI18n } from "@/lib/i18n/provider";
+import { AiRetryNotice, useAiRecovery } from "@/components/ai-recovery";
 import { formatMoney, formatNumber } from "@/lib/i18n/format";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -26,17 +27,24 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
   const { t, notice } = useI18n();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"facebook" | "viber">("viber");
+  const [screenshotRequestId, setScreenshotRequestId] = useState<string | null>(null);
   const [screenshotText, setScreenshotText] = useState("");
   const [result, setResult] = useState<ParseResponse | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [readingScreenshot, setReadingScreenshot] = useState(false);
+  const importRecovery = useAiRecovery();
+  const includedRecovery = useAiRecovery();
   const screenshotMode = pipelineEnabled && mode === "facebook";
+  const includedDraft = screenshotMode ? screenshotRequestId : null;
+  const recovery = includedDraft ? includedRecovery : importRecovery;
   const postText = screenshotMode ? screenshotText : text;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || readingScreenshot || postText.trim().length < 10) return;
+    const requestId = recovery.start();
+    if (!requestId) return;
     setPending(true);
     setError("");
     setResult(null);
@@ -44,12 +52,15 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
     try {
       const response = await fetch("/api/parse", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: postText, sourceHint: screenshotMode ? "facebook" : "viber" }),
+        headers: { "content-type": "application/json", "Idempotency-Key": requestId },
+        body: JSON.stringify({ ...(includedDraft && { screenshotRequestId: includedDraft }), text: postText, sourceHint: screenshotMode ? "facebook" : "viber" }),
       });
+      if (includedDraft && (response.headers?.get("X-AI-Draft-Redeemed") === "1" || response.ok || response.status === 409)) setScreenshotRequestId(null);
+      recovery.observe(response);
       const payload: unknown = await response.json();
 
       if (!response.ok) {
+        if (recovery.accept(payload)) return;
         setError("import.parseFailed");
         return;
       }
@@ -79,6 +90,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
     } catch {
       setError("import.offline");
     } finally {
+      recovery.finish();
       setPending(false);
     }
   }
@@ -95,8 +107,8 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           </button>)}
         </div> : null}
         {pipelineEnabled ? <div hidden={!screenshotMode}>
-          <ScreenshotImport disabled={pending} onBusyChange={setReadingScreenshot}
-            onClearSelection={() => { setScreenshotText(""); setResult(null); setError(""); }}
+          <ScreenshotImport recovery={importRecovery} onRead={setScreenshotRequestId} disabled={pending} onBusyChange={setReadingScreenshot}
+            onClearSelection={() => { setScreenshotRequestId(null); setScreenshotText(""); setResult(null); setError(""); }}
             onSelect={post => { setScreenshotText(post.text); setResult(null); setError(""); }} />
         </div> : null}
         {!screenshotMode ? <label className="block text-sm font-medium text-slate-700">
@@ -119,7 +131,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
           </p>
           <button
             className="btn-primary disabled:opacity-50"
-            disabled={pending || readingScreenshot || postText.trim().length < 10}
+            disabled={pending || readingScreenshot || recovery.blocked || postText.trim().length < 10}
             type="submit"
           >
             {pending ? t("import.parsing") : t("import.reviewDraft")}
@@ -127,6 +139,7 @@ export function ImportRideForm({ cities, pipelineEnabled = false }: { cities: { 
         </div>
       </form>
 
+      {!screenshotMode || includedDraft ? <AiRetryNotice action="draft" recovery={recovery} /> : null}
       {error ? (
         <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
           {notice(error, "import.parseFailed")}
