@@ -1,0 +1,24 @@
+# Dependencies, build output and local test artifacts
+node_modules
+.next
+out
+build
+coverage
+.test-dist
+.vercel
+
+# Generated files
+next-env.d.ts
+lib/supabase/database.types.ts
+*.tsbuildinfo
+
+# Lockfiles
+package-lock.json
+
+# Database: migrations and SQL are applied as written
+supabase/migrations/**
+**/*.sql
+supabase/.temp
+
+# Test and evaluation datasets
+fixtures/**/*.json

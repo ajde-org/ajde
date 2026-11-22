@@ -1,0 +1,4 @@
+# Git runs hooks from the repo root; the app and its tooling live in ride-share-app/.
+# Skip quickly when nothing under ride-share-app/ is staged.
+git diff --cached --quiet -- ride-share-app && exit 0
+cd ride-share-app && npx --no -- lint-staged
