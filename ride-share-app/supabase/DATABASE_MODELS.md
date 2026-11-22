@@ -307,8 +307,11 @@ bookings 1--* trip_shares
   Different submission IDs remain distinct rides. Both anonymous and PUBLIC execution are revoked.
 - `route_estimates` caches ordered city-pair OSRM driving distance and duration snapshots with coordinate and freshness fields. RLS is enabled and all access is revoked from public, anonymous, and authenticated roles; only the server service role may read/write estimates. `guard_ride_timing()` overwrites client-supplied baseline values from a fresh coordinate-matched cache entry on ride insert or route change, and preserves the baseline on other updates. A driver may extend `duration_minutes` up to 1440 minutes; database constraints reject shorter values and fabricated baselines.
 - `ride_routing_gate` is a private singleton table with a timestamp and no client table grants.
-  `try_ride_routing_request()` grants at most one authenticated routing permit per 1.2 seconds,
-  using a row lock across app instances. It has a fixed empty search path and no anonymous grant.
+  `try_ride_routing_request()` grants at most one routing permit per 1.2 seconds app-wide,
+  using a row lock across app instances. It has a fixed empty search path and is server-only:
+  execute is revoked from public, anonymous and authenticated roles and granted to `service_role`,
+  so users can't drain the shared permit through the API. Server code checks the user's session,
+  then takes the permit with the admin client (`lib/rides/road-distance.ts`).
   This gate supports the low-volume public OSRM demo; denied permits are retried by the UI,
   while unavailable routing leaves optional kilometres manually editable.
 

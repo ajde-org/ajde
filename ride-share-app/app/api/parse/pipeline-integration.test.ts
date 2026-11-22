@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const service = vi.hoisted(() => ({ model: vi.fn(), insert: vi.fn(), rpc: vi.fn(), rides: vi.fn() }));
+const service = vi.hoisted(() => ({ model: vi.fn(), insert: vi.fn(), rpc: vi.fn(), userRpc: vi.fn(), rides: vi.fn() }));
 vi.mock("openai", () => ({ default: class { responses = { parse: service.model }; } }));
+// The routing permit is server-only: it is taken with the service-role client, never the user's.
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: service.rpc }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: { id: "driver" } } }) },
-  rpc: service.rpc,
+  rpc: service.userRpc,
   from: (table: string) => table === "imports" ? { insert: service.insert } : table === "rides" ? service.rides() : {
     select: async () => ({ data: table === "cities" ? [
       { id: 1, name_en: "Skopje", name_mk: "Скопје", aliases: [], lat: 41.99646, lng: 21.43141 },
@@ -54,6 +56,7 @@ it("carries a real parser result through guards, model-selected routing, persist
   expect(body.parsed.draft.warnings).toContainEqual({ field: "departureAt", code: "needs_review", message: "Confirm departure.", translationMk: { source: "Confirm departure.", text: "Потврди го поаѓањето." } });
   expect(service.model).toHaveBeenCalledTimes(3); // Parser and two checker rounds; no translation round.
   expect(service.rpc).toHaveBeenCalledWith("try_ride_routing_request");
+  expect(service.userRpc).not.toHaveBeenCalled();
   expect(transport.mock.calls[0][0]).toContain("21.43141,41.99646;21.77556,41.71556");
   const checkerInput = JSON.stringify(service.model.mock.calls[1][0].input);
   expect(checkerInput).not.toContain("private notes");

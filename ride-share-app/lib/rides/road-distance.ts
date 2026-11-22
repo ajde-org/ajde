@@ -1,14 +1,14 @@
 import "server-only";
 import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type CityCoordinates = { id: number; lat: number; lng: number };
 
-/** Uses the caller's authenticated client and the application-wide permit RPC. */
+/** The caller's client, so the city lookup runs under the user's RLS. */
 export type RoadDistanceClient = {
   from(table: "cities"): {
     select(columns: "id, lat, lng"): PromiseLike<{ data: CityCoordinates[] | null; error: unknown }>;
   };
-  rpc(name: "try_ride_routing_request"): PromiseLike<{ data: boolean | null; error: unknown }>;
 };
 
 export type RoadDistanceResult =
@@ -17,6 +17,18 @@ export type RoadDistanceResult =
 
 const routeSchema = z.object({ code: z.literal("Ok"), routes: z.array(z.object({ distance: z.number().positive().finite(), duration: z.number().positive().finite().max(86400) })).min(1) });
 
+/**
+ * The application-wide routing permit is server-only (AJDE-56): users can't call it through the API,
+ * so it's taken with the service-role client. Callers must check the user's session first.
+ */
+async function takeRoutingPermit() {
+  try {
+    return await createAdminClient().rpc("try_ride_routing_request");
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
 /** Canonical city reference coordinates define the estimate, never pickup points. */
 export async function roadDistanceKm(client: RoadDistanceClient, originCityId: number, destinationCityId: number): Promise<RoadDistanceResult> {
   const { data: cities, error } = await client.from("cities").select("id, lat, lng");
@@ -24,7 +36,7 @@ export async function roadDistanceKm(client: RoadDistanceClient, originCityId: n
   const origin = cities.find(city => city.id === originCityId);
   const destination = cities.find(city => city.id === destinationCityId);
   if (!origin || !destination || origin.id === destination.id) return { ok: false, error: "Choose two different supported cities.", status: 400 };
-  const permit = await client.rpc("try_ride_routing_request");
+  const permit = await takeRoutingPermit();
   if (permit.error) return { ok: false, error: "Routing is unavailable. Enter km manually.", status: 503 };
   if (!permit.data) return { ok: false, error: "Waiting for the routing service.", status: 429, retryAfterMs: 1300, retryAfterSeconds: 2 };
   try {

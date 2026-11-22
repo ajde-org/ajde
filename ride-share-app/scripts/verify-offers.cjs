@@ -28,9 +28,11 @@ async function main() {
   assert.equal((await checked(admin.from('cars').select('id').eq('owner_id', actor))).length, 1);
   const other = await save(randomUUID(), { ...vehicle, model: 'Different vehicle' });
   assert.notEqual(other.carId, a.carId);
-  const permits = await Promise.all(Array.from({ length: 6 }, () => checked(client.rpc('try_ride_routing_request'))));
+  // The routing permit is server-only (AJDE-56): signed-in users are denied, the service role gets one.
+  assert.ok((await client.rpc('try_ride_routing_request')).error, 'users cannot take routing permits');
+  const permits = await Promise.all(Array.from({ length: 6 }, () => checked(admin.rpc('try_ride_routing_request'))));
   assert.equal(permits.filter(Boolean).length, 1);
-  console.log('PASS concurrent duplicate publication, distinct drafts, shared/different vehicles and global routing permits');
+  console.log('PASS concurrent duplicate publication, distinct drafts, shared/different vehicles and server-only global routing permits');
   if (process.argv.includes('--database-only')) return;
 
   browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined });
