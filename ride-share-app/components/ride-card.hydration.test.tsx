@@ -49,7 +49,7 @@ it.each([250, 1250.5, 0])("hydrates unfiltered ride cards priced %s without brow
     await act(async () => { root = hydrateRoot(container, view, { onRecoverableError: recoverable }); });
     expect(recoverable).not.toHaveBeenCalled();
     expect(container.innerHTML).toBe(serverMarkup);
-    expect(container.querySelector("time[aria-label]")?.getAttribute("aria-label")).toContain("29.10.2026 г., во 08:00");
+    expect(container.querySelector("time[aria-label]")?.getAttribute("aria-label")).toContain("29.10.2026, 08:00");
     expect(container.textContent).toContain("чет., 29 окт.");
     expect(container.textContent).toContain("син Fiat Grande Punto");
     expect(container.textContent).toContain(price === 250 ? "250\u00a0ден." : price ? "1.251\u00a0ден." : mk["ride.free"]);

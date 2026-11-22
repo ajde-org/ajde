@@ -81,7 +81,7 @@ it.each(["driver", "passenger"] as const)("previews %s trip cards before the loc
     await waitFor(() => expect(screen.getAllByRole("heading", { name: "Скопје до Битола" }).length).toBeGreaterThan(0));
     expect(container.textContent).toContain(mk["trips.openChat"]);
     expect(container.textContent).not.toContain(en["trips.openChat"]);
-    expect(container.textContent).toContain(view === "driver" ? "29.3.2027" : "мар.");
+    expect(container.textContent).toContain(view === "driver" ? "29.03.2027" : "мар.");
     expect(container.textContent).toContain(view === "driver" ? "Original Passenger" : "Original Driver");
     await act(async () => { finish({ ok: false }); });
     await waitFor(() => expect(screen.getAllByRole("heading", { name: "Skopje to Bitola" }).length).toBeGreaterThan(0));
