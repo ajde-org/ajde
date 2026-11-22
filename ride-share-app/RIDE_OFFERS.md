@@ -56,7 +56,7 @@ Apply these migrations before running the new publication/routing endpoints:
 - `supabase/migrations/20260921210000_ride_routing_gate.sql`
 - `supabase/migrations/20260921211000_atomic_ride_offers.sql`
 
-Interpretation uses the existing server-only `OPENAI_API_KEY` and `OPENAI_MODEL`. Routing needs
+Interpretation uses the server-only `AJDE_OPENAI_API_KEY` (or the legacy `OPENAI_API_KEY`) and `OPENAI_MODEL`. Routing needs
 no additional credentials. Existing student-account and onboarding restrictions apply to both APIs.
 
 - `npm test`: full Vitest suite (393 tests passed on 21 September 2026).

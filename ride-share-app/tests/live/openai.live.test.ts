@@ -1,3 +1,4 @@
+import { getOpenAIConfig } from "@/lib/ai/openai-config";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -26,8 +27,8 @@ function show(label: string, value: unknown) {
 }
 
 beforeAll(() => {
-  if (!process.env.OPENAI_API_KEY?.trim()) {
-    throw new Error("OPENAI_API_KEY is not set. Add it to ride-share-app/.env.local before running npm run test:live.");
+  if (!getOpenAIConfig()) {
+    throw new Error("AJDE_OPENAI_API_KEY is not set. Add it to ride-share-app/.env.local before running npm run test:live.");
   }
 });
 

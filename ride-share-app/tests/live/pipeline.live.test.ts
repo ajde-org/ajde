@@ -1,3 +1,4 @@
+import { getOpenAIConfig } from "@/lib/ai/openai-config";
 import { readFile } from "node:fs/promises";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { readScreenshot } from "@/lib/ai/read-screenshot";
@@ -10,7 +11,7 @@ import { CITY, parserCities } from "./catalog";
 
 vi.mock("server-only", () => ({}));
 beforeAll(() => {
-  if (!process.env.OPENAI_API_KEY?.trim()) throw new Error("OPENAI_API_KEY is required for this opt-in live check.");
+  if (!getOpenAIConfig()) throw new Error("AJDE_OPENAI_API_KEY is required for this opt-in live check.");
 });
 afterEach(() => vi.restoreAllMocks());
 
