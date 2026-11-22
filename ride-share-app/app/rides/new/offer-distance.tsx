@@ -14,6 +14,7 @@ export function offerDistanceMessage(message: string, t: ReturnType<typeof useI1
     case "offer.distanceUnavailable":
     case "Arrival estimate unavailable. Retry or publish without an estimate.": return t("timing.failed");
     case "Distance unavailable. Enter km manually or retry.": return t("offer.distanceUnavailable");
+    case "offer.distanceLimited": return t("offer.distanceLimited");
     default: return "";
   }
 }
@@ -38,6 +39,11 @@ export function OfferDistance({ tab, origin, destination, update }: {
         const response = await fetch("/api/rides/distance", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ originCity: origin, destinationCity: destination }), signal: controller.signal });
         const result = await response.json();
+        // Over the per-user lookup limit: stop retrying and leave the km field to the driver.
+        if (response.status === 429 && result.code === "user_limit") {
+          apply(previous => ({ ...previous, estimatedDurationMinutes: null, distanceMode: previous.distanceMode === "manual" ? "manual" : "error", distanceMessage: "offer.distanceLimited" }));
+          return;
+        }
         if (response.status === 429 && attempt < 30 && current) {
           timer = setTimeout(() => { void request(attempt + 1); }, 1300 + Math.random() * 300); return;
         }

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!origin || !destination || origin.id === destination.id) return Response.json({ error: "Choose two different supported cities." }, { status: 400 });
   const result = await cachedRouteEstimate(supabase, origin.id, destination.id);
   if (result.ok) return Response.json({ distanceKm: result.distanceKm, durationMinutes: result.durationMinutes });
-  return Response.json({ error: result.error, ...(result.retryAfterMs === undefined ? {} : { retryAfterMs: result.retryAfterMs }) }, {
+  return Response.json({ error: result.error, ...("code" in result && result.code ? { code: result.code } : {}), ...(result.retryAfterMs === undefined ? {} : { retryAfterMs: result.retryAfterMs }) }, {
     status: result.status,
     headers: result.retryAfterSeconds === undefined ? undefined : { "Retry-After": String(result.retryAfterSeconds) },
   });

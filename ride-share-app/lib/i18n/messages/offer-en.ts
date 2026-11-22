@@ -78,6 +78,7 @@ export const offerEn = {
   "offer.distanceCalculating": "Calculating city-to-city road distance…",
   "offer.distanceFilled": "Estimated city-to-city driving distance filled.",
   "offer.distanceUnavailable": "Distance unavailable. Enter km manually or retry.",
+  "offer.distanceLimited": "You've looked up many distances in a short time. Enter km manually or retry in a few minutes.",
   "offer.routingCredit": "City-to-city routing by OSRM.",
   "offer.mapCredit": "Map data © OpenStreetMap contributors.",
   "offer.fixMap": "Fix the map",

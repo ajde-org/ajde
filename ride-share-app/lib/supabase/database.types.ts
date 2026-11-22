@@ -826,6 +826,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ride_routing_user_usage: {
+        Row: {
+          lookups: number
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          lookups?: number
+          user_id: string
+          window_started_at?: string
+        }
+        Update: {
+          lookups?: number
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       rides: {
         Row: {
           car_id: string | null
@@ -1134,8 +1152,8 @@ export type Database = {
         Returns: boolean
       }
       try_ride_routing_request: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
+        Args: { p_user_id: string }
+        Returns: Json
       }
       valid_driver_details: { Args: { details: Json }; Returns: boolean }
     }

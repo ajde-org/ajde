@@ -274,6 +274,8 @@ rollback;
 
 \ir ride_timing.sql
 
+\ir ride_routing.sql
+
 \ir api_privileges.sql
 
 \ir profile_contacts.sql
